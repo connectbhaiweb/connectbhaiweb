@@ -429,7 +429,7 @@ footer button.linkbtn{color:var(--muted);text-decoration:none;font-weight:600}
 /* ---- header + footer (logo is white-on-dark, so both sit on the deep blue) ---- */
 .top{background:var(--blue-deep);border-bottom:1px solid rgba(141,180,255,.18);backdrop-filter:none}
 .top .wrap{min-height:64px}
-.brand .logo-img{height:40px;width:auto;display:block}
+.brand .logo-img{display:block;flex:none;max-width:none}
 .topnav button{color:#C9D8FF}
 .topnav button:hover,.topnav button[aria-current="page"]{color:#fff;background:rgba(255,255,255,.12)}
 .top .btn-ghost{background:transparent;color:#fff;border-color:rgba(141,180,255,.55)}
@@ -441,8 +441,7 @@ footer{background:var(--blue-deep);color:#C9D8FF;border-top:0}
 footer h4{color:#fff}
 footer button.linkbtn{color:#C9D8FF}
 footer button.linkbtn:hover{color:#fff}
-footer .brand .logo-img{height:40px}
-@media (max-width:600px){.brand .logo-img{height:34px}}
+@media (max-width:600px){.brand{--logo-h:34px}}
 
 /* ---- demo bar: one line on phones ---- */
 @media (max-width:700px){.demobar .demo-more{display:none}.demobar .wrap{padding-block:5px;gap:4px 12px}}
@@ -463,6 +462,7 @@ footer .brand .logo-img{height:40px}
 .hero .search h2{font-size:19px}
 .hero-story .meet{font-size:14px;margin:0}
 .search .chips{gap:6px}
+.search .chips .chip{flex:none;white-space:nowrap}
 @media (max-height:800px) and (min-width:901px){
   .hero .wrap{padding-block:16px 18px;gap:12px 32px}
   .hero-head .eyebrow,.hero .lede{display:none}
@@ -607,7 +607,7 @@ footer .brand .logo-img{height:40px}
 .faq-a{padding:0 22px 20px}
 .faq-a p{margin:0;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
 @media (max-width:900px){.faq-grid{grid-template-columns:1fr;gap:24px}}
-@media (max-width:700px){.hero-head .eyebrow{display:none}.hero .wrap{padding-block:12px 20px}.hero .cityrow{margin-bottom:8px}.story .stage{max-height:max(150px,calc(100svh - 600px))}}
+@media (max-width:700px){.hero-head .eyebrow{display:none}.hero .wrap{padding-block:12px 20px}.hero .cityrow{margin-bottom:8px}}
 @media (min-width:701px) and (max-width:900px){.hero .wrap{gap:14px 20px}.hero .lede{display:none}.hero-story .meet{display:none}.search .pinrow input{font-size:18px}.ptab{padding:9px 8px}}
 @media (max-width:900px){.dialsvg{width:min(100%,250px)}.st-actions>.muted{display:none}.st-actions .btn-lg{padding:12px 20px}.dialcard{gap:6px;padding:10px 14px 12px}}
 #faq,#get-app,#results,#partners,#router{scroll-margin-top:72px}
