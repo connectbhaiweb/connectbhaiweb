@@ -1,2 +1,3 @@
-import ViewRoute from "@/components/ViewRoute";
-export default function SpeedPage() { return <ViewRoute view="speed" />; }
+import SpeedTest from "@/components/speed/SpeedTest";
+
+export default function SpeedPage() { return <SpeedTest />; }

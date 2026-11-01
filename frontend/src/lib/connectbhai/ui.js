@@ -144,7 +144,7 @@ async function show(view, tab) {
 async function render() {
   const v = S.view;
   if (v === "home") return renderHome();
-  if (v === "speed") return renderSpeed();
+  if (v === "speed") { app.innerHTML = ""; return; }   // the speed test is a React page (components/speed/SpeedTest.jsx)
   if (v === "router") return renderRouter().catch(e => { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load router status.</b><p class="muted">${esc(errMsg(e))}</p></div></div>`; });
   const need = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" }[v];
   const u = me();
@@ -1369,103 +1369,6 @@ async function renderRouter() {
    WI-FI SPEED TEST
    ===================================================================== */
 const ST_PREVIEW = location.protocol === "file:" || /claude|anthropic/.test(location.hostname);
-let stLast = null;
-async function renderSpeed() {
-  const u = me(); let conns = [];
-  if (u && u.role === "customer") { try { conns = (await API.myBookings()).filter(b => b.status === "installed"); } catch (e) {} }
-  app.innerHTML = `<div class="wrap dash speedpage">
-    <div class="st2">
-      <div class="st-left">
-        <div class="st-head"><span class="eyebrow">Wi-Fi speed test</span><h1>How fast is your <span>internet</span> right now?</h1>
-          <p class="st-sub">Measures download, upload and ping from this phone or laptop over your Wi-Fi. To check the line speed without Wi-Fi, run a router test from your dashboard.</p>
-          <div class="st-chips"><span>${ICON_CLOCK}About 30 seconds</span><span>${ICON_TICK}Free to use</span><span>${ICON_PHONE}Phone or laptop</span></div></div>
-        <div class="st-actions stack">
-          ${conns.length ? field("st-conn", "Save result to", `<select id="st-conn">${conns.map(b => `<option value="${b.id}">${esc(b.plan ? b.plan.provider.name + " · " + b.plan.name + " (" + b.plan.speed_mbps + " Mbps)" : b.ref_code)}</option>`).join("")}</select>`) : ""}
-          <div class="row"><button class="btn btn-primary btn-lg" id="stGo" data-act="st-go" type="button">Start speed test</button><button class="btn btn-ghost btn-lg" id="stReport" data-act="st-report" type="button" hidden>Report slow speed</button></div>
-          <p class="muted small">${u ? (conns.length ? "Results are saved to your connection so support can see them." : u.role === "customer" ? "Results are saved to your account." : "") : `<button class="linkbtn" data-act="login" type="button">Log in</button> to save results and report slow speed to support.`} The test uses Cloudflare's speed test servers.</p>
-        </div>
-      </div>
-      <div class="dialcard" data-act="st-go" role="button" tabindex="0" aria-label="Tap the dial to start the speed test">
-        ${stDialSvg()}
-        <div class="phase" id="stPhase">Ready · tap the dial to start</div>
-        <ol class="st-steps" id="stSteps"><li data-s="1"><i>1</i>Ping</li><li data-s="2"><i>2</i>Download</li><li data-s="3"><i>3</i>Upload</li></ol>
-        <p class="st-verdict" id="stVerdict"></p>
-      </div>
-      <div class="st-res"><div><span>${ICON_DOWN}Download</span><b id="stDown">–</b><small>Mbps</small></div><div><span>${ICON_UP}Upload</span><b id="stUp">–</b><small>Mbps</small></div><div><span>${ICON_CLOCK}Ping</span><b id="stPing">–</b><small>ms</small></div><div><span>${ICON_PULSE}Jitter</span><b id="stJit">–</b><small>ms</small></div></div>
-    </div>
-    <div class="steps3" style="margin-top:18px">
-      <div class="step"><span class="n">Tip 1</span><h3>Stay close to the router</h3><p>Walls and floors reduce Wi-Fi speed. Test in the same room first.</p></div>
-      <div class="step"><span class="n">Tip 2</span><h3>Pause other downloads</h3><p>Streaming, updates and other devices share the same connection.</p></div>
-      <div class="step"><span class="n">Tip 3</span><h3>Compare with the router test</h3><p>If the router test is fast but Wi-Fi is slow, the Wi-Fi setup needs attention, not the line.</p></div>
-    </div></div>`;
-}
-const ICON_CLOCK = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
-const ICON_TICK = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
-const ICON_PHONE = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/></svg>`;
-const ICON_DOWN = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>`;
-const ICON_UP = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V9M7 13l5-5 5 5M5 4h14"/></svg>`;
-const ICON_PULSE = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>`;
-
-/* Gauge: 270° sweep, 0 at bottom-left, 100 Mbps at the top, 300+ at bottom-right (same non-linear scale as before). */
-const ST_SCALE = [0, 25, 50, 100, 150, 200, 300];
-const stPct = m => Math.min(100, m <= 100 ? m / 2 : 50 + (Math.min(m, 300) - 100) / 4);
-const stAng = pct => -135 + pct * 2.7;                       // degrees from 12 o'clock
-const stXY = (cx, cy, r, ang) => { const a = (ang - 90) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
-function stDialSvg() {
-  const arc = (r, p0, p1) => { const [x0, y0] = stXY(150, 150, r, stAng(p0)), [x1, y1] = stXY(150, 150, r, stAng(p1)); return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${(p1 - p0) * 2.7 > 180 ? 1 : 0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
-  let ticks = ""; for (let i = 0; i <= 40; i++) { const p = i * 2.5, major = i % 5 === 0, [x0, y0] = stXY(150, 150, major ? 100 : 104, stAng(p)), [x1, y1] = stXY(150, 150, 112, stAng(p)); ticks += `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" stroke="rgba(201,216,255,${major ? .75 : .35})" stroke-width="${major ? 2.2 : 1.2}" stroke-linecap="round"/>`; }
-  const labels = ST_SCALE.slice(1).map(v => { const [x, y] = stXY(150, 150, 84, stAng(stPct(v))); return `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="700" fill="#C9D8FF">${v}</text>`; }).join("");
-  return `<svg class="dialsvg" viewBox="0 0 300 262" aria-hidden="true">
-    <path d="${arc(128, 0, 100)}" fill="none" stroke="rgba(141,180,255,.22)" stroke-width="16" stroke-linecap="round"/>
-    <path id="stArc" d="${arc(128, 0, 100)}" fill="none" stroke="#5B8CFF" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/>
-    ${ticks}${labels}
-    <g id="stNeedle" style="transform:rotate(${stAng(0)}deg);transform-origin:150px 150px"><path d="M150 150 L150 52" stroke="#fff" stroke-width="4" stroke-linecap="round"/><circle cx="150" cy="150" r="12" fill="#5B8CFF"/><circle cx="150" cy="150" r="5" fill="#0A1B3D"/></g>
-    <text id="stBig" x="150" y="214" text-anchor="middle" font-family="Sora,Manrope,sans-serif" font-size="56" font-weight="800" fill="#fff">0</text>
-    <text x="150" y="238" text-anchor="middle" font-size="12" font-weight="700" letter-spacing="2" fill="#C9D8FF">MBPS</text></svg>`;
-}
-function stDial(m) {
-  const a = document.getElementById("stArc"); if (!a) return; const pct = stPct(m);
-  a.setAttribute("stroke-dasharray", pct.toFixed(1) + " 100");
-  document.getElementById("stNeedle").style.transform = `rotate(${stAng(pct).toFixed(1)}deg)`;
-  document.getElementById("stBig").textContent = Math.round(m);
-}
-/* which of the 3 steps is active: 1 ping, 2 download, 3 upload, 4 = all done, 0 = idle */
-function stStep(n) { const l = document.getElementById("stSteps"); if (l) l.dataset.step = n; }
-const stF = (v, d) => (v == null || isNaN(v)) ? "–" : Number(v).toFixed(d == null ? 1 : d);
-function stVerdict(d) { if (d >= 100) return "Excellent. 4K streaming, gaming and work from home will run smoothly."; if (d >= 40) return "Good. HD streaming and video calls will work well."; if (d >= 10) return "Slow. Basic browsing works; streaming may buffer."; return "Very slow. Report it so a technician can check the connection."; }
-async function stFinish(r) {
-  stLast = r; const $i = id => document.getElementById(id);
-  if (!$i("stGo")) return;
-  $i("stDown").textContent = stF(r.down); $i("stUp").textContent = stF(r.up); $i("stPing").textContent = stF(r.ping, 0); $i("stJit").textContent = stF(r.jit, 0);
-  stDial(r.down || 0); $i("stPhase").textContent = r.simulated ? "Simulated result (the preview cannot reach speed test servers)" : "Test complete"; stStep(4);
-  $i("stVerdict").textContent = stVerdict(r.down || 0); $i("stReport").hidden = false;
-  $i("stGo").disabled = false; $i("stGo").textContent = "Test again";
-  const u = me();
-  if (u) { const c = $i("st-conn"); try { await API.recordSpeedTest(c ? c.value : null, r); toast("Result saved" + (c ? " to your connection." : ".")); } catch (e) { toast(errMsg(e), true); } }
-}
-function stRun() {
-  const $i = id => document.getElementById(id), go = $i("stGo");
-  go.disabled = true; go.textContent = "Testing…"; $i("stReport").hidden = true; $i("stVerdict").textContent = ""; ["stDown", "stUp", "stPing", "stJit"].forEach(i => ($i(i).textContent = "–")); stDial(0); stStep(0);
-  if (ST_PREVIEW) {
-    let t = 0; const target = 70 + Math.random() * 40; $i("stPhase").textContent = "Checking download… (simulated)"; stStep(2);
-    const iv = setInterval(() => { if (!$i("stGo")) return clearInterval(iv); t++; stDial(target * (0.6 + 0.4 * Math.min(1, t / 12)) * (0.95 + Math.random() * 0.1)); if (t === 14) { $i("stPhase").textContent = "Checking upload… (simulated)"; stStep(3); }
-      if (t >= 24) { clearInterval(iv); stFinish({ down: target, up: target * 0.9, ping: 6 + Math.random() * 4, jit: 1 + Math.random() * 2, simulated: true }); } }, 160);
-    return;
-  }
-  $i("stPhase").textContent = "Connecting to the test server…";
-  const failed = msg => { stStep(0); $i("stPhase").textContent = msg; go.disabled = false; go.textContent = "Try again"; };
-  import(/* webpackIgnore: true */ /* turbopackIgnore: true */ "https://cdn.jsdelivr.net/npm/@cloudflare/speedtest@1.3.0/+esm").then(m => {
-    const SpeedTest = m.default || m.SpeedTest;
-    const st = new SpeedTest({ autoStart: false, measurements: [{ type: "latency", numPackets: 1 }, { type: "download", bytes: 1e5, count: 1, bypassMinDuration: true }, { type: "latency", numPackets: 20 }, { type: "download", bytes: 1e5, count: 8 }, { type: "download", bytes: 1e6, count: 8 }, { type: "upload", bytes: 1e5, count: 8 }, { type: "upload", bytes: 1e6, count: 6 }, { type: "download", bytes: 1e7, count: 6 }, { type: "upload", bytes: 1e7, count: 4 }, { type: "download", bytes: 2.5e7, count: 4 }] });
-    st.onResultsChange = ({ type }) => { if (!$i("stGo")) return; const r = st.results;
-      if (type === "download") { $i("stPhase").textContent = "Checking download…"; stStep(2); const d = r.getDownloadBandwidth(); if (d) { stDial(d / 1e6); $i("stDown").textContent = stF(d / 1e6); } }
-      else if (type === "upload") { $i("stPhase").textContent = "Checking upload…"; stStep(3); const u = r.getUploadBandwidth(); if (u) { stDial(u / 1e6); $i("stUp").textContent = stF(u / 1e6); } }
-      else if (type === "latency") { $i("stPhase").textContent = "Checking ping…"; stStep(1); const l = r.getUnloadedLatency(); if (l) $i("stPing").textContent = stF(l, 0); } };
-    st.onFinish = r => { const x = r.getSummary(); stFinish({ down: x.download / 1e6, up: x.upload / 1e6, ping: x.latency, jit: x.jitter, simulated: false }); };
-    st.onError = () => failed("The test stopped. Check your internet and try again.");
-    st.play();
-  }).catch(() => failed("Could not load the speed test. Check your internet and try again."));
-}
 async function openTicketModal(prefill) {
   const bookings = (await API.myBookings()).filter(b => b.status !== "cancelled");
   openModal(`<h2>${esc(prefill.title || "Report slow speed")}</h2><form class="stack" data-form="ticket" novalidate style="margin-top:12px">
@@ -1496,7 +1399,6 @@ const actions = {
   "edit-profile": () => { const u = me(); openModal(`<h2>Your details</h2><p class="muted" style="margin:4px 0 12px">Your mobile number is your WhatsApp login (+91 ${esc(u.phone || "")}). Your name and email are shown to the people working on your connection.</p>
     <form class="stack" data-form="set-profile" novalidate>${field("pf-name", "Full name", `<input id="pf-name" name="name" autocomplete="name" value="${esc(u.full_name || "")}">`)}${field("pf-email", "Email", `<input id="pf-email" name="email" type="email" autocomplete="email" value="${esc(u.email || "")}">`)}<button class="btn btn-primary" type="submit">Save</button></form>
     <div class="row" style="margin-top:14px;border-top:1px dashed var(--line);padding-top:12px"><b class="small">Password</b><span class="muted small">${u.pw || u.has_password ? "Log in with mobile + password" : "Not set yet. You log in with WhatsApp OTP."}</span><span class="spacer"></span><button class="btn btn-soft btn-sm" data-act="change-password" type="button">${u.pw || u.has_password ? "Change password" : "Create password"}</button></div>`); },
-  "st-go": () => { const g = document.getElementById("stGo"); if (g && !g.disabled) stRun(); },
   "pick-city": b => { setCity(b.dataset.v); const s = document.getElementById("search"); if (s) s.scrollIntoView({ behavior: "smooth", block: "center" }); },
   "all-cities": () => { S.allCities = true; const sec = document.getElementById("cities"); if (sec) sec.outerHTML = citiesSection(); },
   "focus-city": () => { const s = document.getElementById("city-pick"); if (s) { s.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => s.focus(), 300); } },
@@ -1537,11 +1439,6 @@ const actions = {
       ${field("mw-pw", "New Wi-Fi password", `<input id="mw-pw" name="password" type="password" maxlength="63" autocomplete="new-password">`, "8 to 63 characters. Leave empty to keep it.")}
       <button class="btn btn-primary" type="submit">Change Wi-Fi</button></form>`),
   "offline-complaint": b => openTicketModal({ booking_id: b.dataset.id, title: "Report modem offline", category: "No internet", description: "My modem shows Offline in Connect Bhai since " + fdt(new Date()) + ". Please check the line." }).catch(e => toast(errMsg(e), true)),
-  "st-report": () => {
-    const u = me(); if (!u) return openLogin(); if (u.role !== "customer") { toast("Only customers can raise complaints."); return; }
-    const c = document.getElementById("st-conn"), r = stLast || {};
-    openTicketModal({ booking_id: c ? c.value : "", description: `Wi-Fi speed test on ${fdt(new Date())}: ${stF(r.down)} Mbps download, ${stF(r.up)} Mbps upload, ${stF(r.ping, 0)} ms ping. Speed feels slow.` });
-  },
   "router-test": async b => {
     const out = document.getElementById("rt-" + b.dataset.id); const label = b.textContent;
     b.disabled = true; b.textContent = "Router test running…"; if (out) out.textContent = "The router is downloading a test file. This can take 1–5 minutes.";
@@ -1852,6 +1749,24 @@ const forms = {
 const onSubmit = e => {
   const f = e.target.closest("form[data-form]"); if (!f) return; e.preventDefault();
   const fn = forms[f.dataset.form]; if (fn) Promise.resolve(fn(f, f.querySelector('[type="submit"]'))).catch(() => {});
+};
+
+
+/* ---------- bridge for the React speed-test page (components/speed/SpeedTest.jsx) ---------- */
+export const speedBridge = {
+  user: () => { const u = me(); return u ? { role: u.role, full_name: u.full_name } : null; },
+  async connections() {
+    const u = me(); if (!u || u.role !== "customer") return [];
+    try { return (await API.myBookings()).filter(b => b.status === "installed").map(b => ({ id: b.id, label: b.plan ? b.plan.provider.name + " · " + b.plan.name + " (" + b.plan.speed_mbps + " Mbps)" : b.ref_code })); } catch (e) { return []; }
+  },
+  async save(connId, r) { await API.recordSpeedTest(connId || null, r); },
+  toast: (m, bad) => toast(m, bad),
+  errMsg,
+  report(r, connId) {
+    const u = me(); if (!u) return openLogin(); if (u.role !== "customer") { toast("Only customers can raise complaints."); return; }
+    const f = (v, d) => (v == null || isNaN(v)) ? "–" : Number(v).toFixed(d == null ? 1 : d);
+    openTicketModal({ booking_id: connId || "", description: `Wi-Fi speed test on ${fdt(new Date())}: ${f(r.down)} Mbps download, ${f(r.up)} Mbps upload, ${f(r.ping, 0)} ms ping. Speed feels slow.` });
+  },
 };
 
 /* ---------- boot ---------- */

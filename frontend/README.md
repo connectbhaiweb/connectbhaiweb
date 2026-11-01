@@ -50,6 +50,15 @@ src/lib/connectbhai/
 ### Set before going live
 `.env.local`: `NEXT_PUBLIC_PLAY_STORE_URL`, `NEXT_PUBLIC_APP_STORE_URL`, `NEXT_PUBLIC_APP_URL` (QR target). Until set, the store buttons show a "coming soon" message and no QR is rendered. Support number for Call/WhatsApp comes from `src/lib/connectbhai/config.js`.
 
+## v3: shadcn/ui + Magic UI + Tailwind, and the new Speed test
+
+* **Tailwind v4 is installed WITHOUT its global reset**, and it only scans `src/components/ui`, `components/magicui`, `components/speed` and `app/ui-kit`. So the original CSS/design of every other page is untouched (checked with a pixel diff of Home in light and dark). shadcn colour tokens are mapped to the site's own CSS variables (`@theme inline` at the top of `globals.css`).
+* **shadcn/ui** (`components.json` is set up): `components/ui/button.jsx`, `card.jsx` (`<Card interactive>` = hover lift + glow). Add more with `npx shadcn@latest add dialog` etc.
+* **Magic UI** (needs the `motion` package, which is why it is installed): `components/magicui/number-ticker.jsx`, `shimmer-button.jsx`, `border-beam.jsx`. These three were written to match Magic UI's published API because the build sandbox could not reach magicui.design; you can overwrite them with the official ones: `npx shadcn@latest add @magicui/number-ticker` (registry alias is in `components.json`).
+* **Speed test is now a React page**: `components/speed/SpeedTest.jsx` + `Gauge.jsx`, designed from your two images (desktop + mobile, dark). Same Cloudflare measuring and the same save-result / report-slow-speed logic (through `speedBridge` in `ui.js`). Hover cards, animated needle and arc, count-up numbers, shimmer button, border beam while testing; all motion is off for "reduce motion". On phones, tapping Start scrolls the gauge into view so the result and the 4 cards are visible without scrolling.
+* "What can you do at X Mbps?" uses simple thresholds (4K 25 Mbps, video calls 10, gaming 15 Mbps and ping under 50 ms, work from home 20). Adjust `USES` in `SpeedTest.jsx` if you want different numbers.
+* `/ui-kit` is a private preview of the components (noindex). Delete `src/app/ui-kit` before launch if you do not want it public.
+
 ## Status: Stage 1 of 2
 
 **Native Next.js/React now:** routing and URLs, layout, metadata/viewport, header (session-aware, active route), footer,
