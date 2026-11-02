@@ -27,10 +27,25 @@ const onKeydown = e => {
   if (e.key === "Escape" && !$("#modal").hidden) closeModal();
   if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("dialcard")) { e.preventDefault(); e.target.click(); }
 };
-const errMsg = e => (e && e.message) || "Something went wrong. Please try again.";
+const errMsg = e => {
+  const m = (e && e.message) || "";
+  if (!m) return "Something went wrong. Please try again.";
+  if (/failed to fetch|networkerror|network request failed|load failed/i.test(m)) return "Cannot reach the server. Check your internet connection and try again.";
+  if (/rate limit|too many|after \d+ seconds|security purposes/i.test(m)) return "Too many attempts. Please wait a minute and try again.";
+  if (/token has expired|otp.*(expired|invalid)|expired.*otp/i.test(m)) return "That OTP is incorrect or has expired. Request a new one.";
+  return m;
+};
+/* ---- phone numbers: accept +91 / 91 / 0 prefixes, spaces and dashes; Indian mobiles only ---- */
+const normPhone = v => { let d = String(v == null ? "" : v).replace(/\D/g, ""); if (d.length === 14 && d.startsWith("0091")) d = d.slice(4); else if (d.length === 12 && d.startsWith("91")) d = d.slice(2); else if (d.length === 11 && d.startsWith("0")) d = d.slice(1); return d; };
+const phoneError = v => { const d = normPhone(v); if (!d) return "Enter your 10-digit mobile number."; if (d.length !== 10) return "Enter a 10-digit mobile number without the country code."; if (!isPhone(d)) return "Indian mobile numbers start with 6, 7, 8 or 9. Only +91 numbers are supported."; return ""; };
+const GUARD_TIMEOUT_MS = 30000;
 async function guard(btn, fn) {
   if (btn) { btn.disabled = true; btn.dataset.t = btn.textContent; btn.textContent = "Please wait…"; }
-  try { return await fn(); } catch (e) { toast(errMsg(e), true); throw e; }
+  try {
+    if (LIVE && typeof navigator !== "undefined" && navigator.onLine === false) throw new AppError("You appear to be offline. Check your internet connection and try again.");
+    let timer; const slow = new Promise((_, rej) => { timer = setTimeout(() => rej(new AppError("This is taking too long. Check your internet and try again.")), GUARD_TIMEOUT_MS); });
+    try { return await Promise.race([fn(), slow]); } finally { clearTimeout(timer); }
+  } catch (e) { toast(errMsg(e), true); throw e; }
   finally { if (btn) { btn.disabled = false; btn.textContent = btn.dataset.t; } }
 }
 
@@ -53,7 +68,7 @@ function setErr(form, map) {
   Object.entries(map).forEach(([id, msg]) => { const fe = form.querySelector(`[data-f="${id}"]`); if (fe) { fe.classList.add("bad"); fe.querySelector(".ferr").textContent = msg; first = first || fe.querySelector("input,select,textarea"); } });
   if (first) first.focus(); return Object.keys(map).length === 0;
 }
-const val = (form, name) => { const el = form.elements[name]; if (!el) return ""; return el.type === "checkbox" ? el.checked : String(el.value || "").trim(); };
+const val = (form, name) => { const el = form.elements[name]; if (!el) return ""; if (el.type === "checkbox") return el.checked; const v = String(el.value || "").trim(); return /phone$/.test(name) ? normPhone(v) : v; };
 function deviceView(d) {
   const live = d && !d.is_simulated;
   const tag = live ? `<span class="badge live" title="Reported by the modem through GenieACS (Care plan)">Live · GenieACS</span>`
@@ -141,11 +156,21 @@ async function show(view, tab) {
   renderedKey = key; S.view = view; S.tab = tab || null;
   renderHeader(); await render(); updateCompareBar();
 }
+/* ---------- loading states: skeleton markup + top progress bar ---------- */
+const sk = (cls, h) => `<span class="sk ${cls || ""}" ${h ? `style="height:${h}px"` : ""} aria-hidden="true"></span>`;
+function skeleton(kind) {
+  const kpis = `<div class="sk-row">${[1, 2, 3, 4].map(() => `<div class="sk-card">${sk("w40", 12)}${sk("w60", 28)}${sk("w50", 10)}</div>`).join("")}</div>`;
+  if (kind === "home") return `<div class="wrap sk-page" role="status" aria-label="Loading">${sk("w70", 46)}${sk("w50", 18)}<div class="sk-two"><div class="sk-card tall">${sk("w50", 14)}${sk("", 44)}${sk("", 52)}${sk("w60", 14)}</div><div class="sk-card tall">${sk("", 220)}</div></div></div>`;
+  return `<div class="wrap dash sk-page" role="status" aria-label="Loading">${sk("w40", 30)}${sk("w60", 14)}${kpis}<div class="sk-card">${sk("w30", 16)}${[1, 2, 3, 4].map(() => sk("", 38)).join("")}</div></div>`;
+}
+let busy = 0;
+const track = p => { busy++; document.documentElement.classList.add("is-loading"); const done = () => { if (--busy <= 0) { busy = 0; document.documentElement.classList.remove("is-loading"); } }; return Promise.resolve(p).finally(done); };
+
 async function render() {
   const v = S.view;
-  if (v === "home") return renderHome();
+  if (v === "home") { if (!app.children.length) app.innerHTML = skeleton("home"); return track(renderHome()); }
   if (v === "speed") { app.innerHTML = ""; return; }   // the speed test is a React page (components/speed/SpeedTest.jsx)
-  if (v === "router") return renderRouter().catch(e => { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load router status.</b><p class="muted">${esc(errMsg(e))}</p></div></div>`; });
+  if (v === "router") { app.innerHTML = skeleton("dash"); return track(renderRouter().catch(e => { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load router status.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; })); }
   const need = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" }[v];
   const u = me();
   if (!u || u.role !== need) {
@@ -154,8 +179,8 @@ async function render() {
       <button class="btn btn-primary" data-act="login" type="button">Log in</button></div></div>`;
     return;
   }
-  app.innerHTML = `<div class="wrap dash"><p class="muted">Loading…</p></div>`;
-  try { await ({ my: renderCustomer, dsa: renderDSA, tip: renderTIP, admin: renderAdmin }[v])(); scrollChat(); }
+  app.innerHTML = skeleton("dash");
+  try { await track(({ my: renderCustomer, dsa: renderDSA, tip: renderTIP, admin: renderAdmin }[v])()); scrollChat(); }
   catch (e) { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load this page.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; }
 }
 
@@ -218,7 +243,7 @@ async function renderHome() {
         ${field("pa-type", "I am a", `<select id="pa-type" name="type"><option value="dsa">Direct Selling Agent (DSA)</option><option value="tip">BSNL TIP partner</option></select>`)}
         ${field("pa-name", "Full name", `<input id="pa-name" name="name" autocomplete="name">`)}
         ${field("pa-firm", "Firm / shop name", `<input id="pa-firm" name="firm" autocomplete="organization">`)}
-        ${field("pa-phone", "Mobile number", `<input id="pa-phone" name="phone" inputmode="numeric" maxlength="10" autocomplete="tel-national">`)}
+        ${field("pa-phone", "Mobile number", `<input id="pa-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="tel-national">`)}
       </div>
       ${field("pa-email", "Email", `<input id="pa-email" name="email" type="email" autocomplete="email">`)}
       ${field("pa-city", "Your city", `<select id="pa-city" name="city_id">${cityOptions(S.city, true)}</select>`, "Partners can register before we launch in their city.")}
@@ -368,7 +393,7 @@ function openRequest(planId) {
    <form class="stack" data-form="request" data-plan="${planId || ""}" data-product="${product}" novalidate>
      <div class="grid2">
        ${field("rq-name", "Full name", `<input id="rq-name" name="name" autocomplete="name" value="${esc(u && u.role === "customer" ? u.full_name : "")}">`)}
-       ${field("rq-phone", "Mobile number", `<input id="rq-phone" name="phone" inputmode="numeric" maxlength="10" autocomplete="tel-national" value="${esc(u && u.role === "customer" ? u.phone || "" : "")}">`)}
+       ${field("rq-phone", "Mobile number", `<input id="rq-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="tel-national" value="${esc(u && u.role === "customer" ? u.phone || "" : "")}">`)}
        ${field("rq-pin", "PIN code", `<input id="rq-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(S.pin)}">`)}
        ${field("rq-area", "Area / colony", `<input id="rq-area" name="area" value="${esc(S.areas[0] || "")}">`)}
      </div>
@@ -392,7 +417,7 @@ function openSimBooking(p) {
      ${field("sm-for", "This SIM is for", `<select id="sm-for" name="for_whom"><option value="self">Myself</option><option value="family">A family member</option><option value="known">Someone I know</option></select>`)}
      <div class="grid2">
        ${field("rq-name", "Full name (as on Aadhaar)", `<input id="rq-name" name="name" autocomplete="name" value="${esc(u && u.role === "customer" ? u.full_name : "")}">`)}
-       ${field("rq-phone", "Your WhatsApp number (for OTP & delivery)", `<input id="rq-phone" name="phone" inputmode="numeric" maxlength="10" autocomplete="tel-national" value="${esc(u && u.role === "customer" ? u.phone || "" : "")}">`)}
+       ${field("rq-phone", "Your WhatsApp number (for OTP & delivery)", `<input id="rq-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="tel-national" value="${esc(u && u.role === "customer" ? u.phone || "" : "")}">`)}
      </div>
      ${field("rq-email", "Email (optional)", `<input id="rq-email" name="email" type="email" autocomplete="email" value="${esc(u && u.role === "customer" ? u.email || "" : "")}">`, "Your agent, installer and admin can see it to send bills and updates.")}
      <div id="sm-port" hidden class="card stack" style="padding:14px">
@@ -797,7 +822,7 @@ async function openPartner(id) {
     <div class="grid2">${field("pt-type", "Type", `<select id="pt-type" name="type"><option value="dsa" ${p.type === "dsa" ? "selected" : ""}>DSA</option><option value="tip" ${p.type === "tip" ? "selected" : ""}>TIP partner</option></select>`)}
     ${field("pt-name", "Name", `<input id="pt-name" name="name" value="${esc(p.name || "")}">`)}
     ${field("pt-firm", "Firm", `<input id="pt-firm" name="firm" value="${esc(p.firm || "")}">`)}
-    ${field("pt-phone", "Mobile", `<input id="pt-phone" name="phone" inputmode="numeric" maxlength="10" value="${esc(p.phone || "")}">`)}
+    ${field("pt-phone", "Mobile", `<input id="pt-phone" name="phone" inputmode="numeric" maxlength="16" value="${esc(p.phone || "")}">`)}
     ${field("pt-email", "Email", `<input id="pt-email" name="email" type="email" value="${esc(p.email || "")}">`)}
     ${field("pt-comm", "Per-install amount (₹)", `<input id="pt-comm" name="commission_per_install" type="number" min="0" step="50" value="${esc(p.commission_per_install || 0)}">`, "DSA: payout Connect Bhai pays. TIP: platform fee the TIP pays (+GST).")}
     ${field("pt-target", "Leads promised per month", `<input id="pt-target" name="lead_target" type="number" min="0" step="1" value="${esc(p.lead_target || "")}" placeholder="Default">`, "Shown on the partner's dashboard as Connect Bhai's monthly lead promise. Empty = default from Billing & fees.")}</div>
@@ -832,9 +857,9 @@ function openLogin(tab) {
   openModal(`<h2>Log in to Connect Bhai</h2>
     <div class="chips" style="margin:10px 0 14px"><button type="button" class="chip" data-act="login-tab" data-v="pw" aria-pressed="${!otp}">Mobile + password</button><button type="button" class="chip" data-act="login-tab" data-v="otp" aria-pressed="${otp}">WhatsApp OTP</button></div>
     ${otp ? `<p class="muted" style="margin-bottom:12px">We'll send a 6-digit OTP to your WhatsApp. New here? The same step creates your customer account.</p>
-      <form class="stack" data-form="otp-send" data-purpose="login" novalidate>${field("lg-phone", "WhatsApp number", `<input id="lg-phone" name="phone" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit mobile">`)}
+      <form class="stack" data-form="otp-send" data-purpose="login" novalidate>${field("lg-phone", "WhatsApp number", `<input id="lg-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="tel-national" placeholder="10-digit mobile">`)}
       <button class="btn btn-primary" type="submit">Send OTP on WhatsApp</button></form>`
-    : `<form class="stack" data-form="pw-login" novalidate>${field("pl-phone", "Username (your mobile number)", `<input id="pl-phone" name="phone" inputmode="numeric" maxlength="10" autocomplete="username" placeholder="10-digit mobile">`)}
+    : `<form class="stack" data-form="pw-login" novalidate>${field("pl-phone", "Username (your mobile number)", `<input id="pl-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="username" placeholder="10-digit mobile">`)}
       ${field("pl-pw", "Password", `<input id="pl-pw" name="password" type="password" autocomplete="current-password">`)}
       <button class="btn btn-primary" type="submit">Log in</button></form>
       <p class="small" style="margin-top:10px"><button class="linkbtn" data-act="forgot-pw" type="button">Forgot password?</button> <span class="muted">Reset it with an OTP on WhatsApp.</span></p>`}
@@ -843,7 +868,7 @@ function openLogin(tab) {
 }
 function openForgot() {
   openModal(`<h2>Reset your password</h2><p class="muted" style="margin:4px 0 14px">Enter your registered mobile number. We'll send an OTP on WhatsApp, then you set a new password.</p>
-    <form class="stack" data-form="otp-send" data-purpose="reset" novalidate>${field("lg-phone", "Mobile number", `<input id="lg-phone" name="phone" inputmode="numeric" maxlength="10" autocomplete="tel-national">`)}
+    <form class="stack" data-form="otp-send" data-purpose="reset" novalidate>${field("lg-phone", "Mobile number", `<input id="lg-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="tel-national">`)}
     <button class="btn btn-primary" type="submit">Send OTP on WhatsApp</button></form>
     <p class="small" style="margin-top:10px"><button class="linkbtn" data-act="login" type="button">Back to log in</button></p>`);
 }
@@ -876,9 +901,9 @@ function openOtpStep(phone, purpose) {
   openModal(`<h2>Enter WhatsApp OTP</h2><p class="muted" style="margin:4px 0 14px">Sent to WhatsApp <b>+91 ${esc(phone.slice(0, 5))} ${esc(phone.slice(5))}</b>${purpose === "request" ? ". This confirms your number before we create the request." : ""}</p>
     ${LIVE ? "" : `<p class="notice info" style="margin-bottom:12px">Demo OTP: <b>&nbsp;123456</b></p>`}
     <form class="stack" data-form="otp-verify" data-phone="${phone}" data-purpose="${purpose}" novalidate>
-      ${field("lg-otp", "6-digit OTP", `<input id="lg-otp" name="otp" inputmode="numeric" maxlength="6" autocomplete="one-time-code" style="font-family:var(--mono);font-size:24px;letter-spacing:.4em;text-align:center">`)}
+      ${field("lg-otp", "6-digit OTP", `<input id="lg-otp" name="otp" inputmode="numeric" maxlength="9" autocomplete="one-time-code" style="font-family:var(--mono);font-size:24px;letter-spacing:.4em;text-align:center">`)}
       <button class="btn btn-primary" type="submit">Verify${purpose === "request" ? " and submit request" : ""}</button></form>
-    <p class="muted small" style="margin-top:12px;text-align:center">Didn't get it? <button class="linkbtn" id="otp-resend" data-act="otp-resend" data-phone="${phone}" type="button" disabled>Resend in 30s</button></p>`);
+    <p class="muted small" style="margin-top:12px;text-align:center">Didn't get it? <button class="linkbtn" id="otp-resend" data-act="otp-resend" data-phone="${phone}" type="button" disabled>Resend in 30s</button> · <button class="linkbtn" data-act="${purpose === "reset" ? "forgot-pw" : "login-otp"}" type="button">Change number</button></p>`);
   let t = 30; clearInterval(otpTimer);
   otpTimer = setInterval(() => { const r = document.getElementById("otp-resend"); if (!r) return clearInterval(otpTimer); t--; if (t <= 0) { clearInterval(otpTimer); r.disabled = false; r.textContent = "Resend OTP"; } else r.textContent = "Resend in " + t + "s"; }, 1000);
 }
@@ -971,7 +996,7 @@ function openCreateUser() {
     <form class="stack" data-form="create-user" novalidate><div class="grid2">
       ${field("cu-role", "Role", `<select id="cu-role" name="role"><option value="dsa">DSA (Direct Selling Agent)</option><option value="tip">TIP partner (installer)</option><option value="admin">Admin</option></select>`)}
       ${field("cu-name", "Full name", `<input id="cu-name" name="name" autocomplete="off">`)}
-      ${field("cu-phone", "Mobile number (username)", `<input id="cu-phone" name="phone" inputmode="numeric" maxlength="10" autocomplete="off">`)}
+      ${field("cu-phone", "Mobile number (username)", `<input id="cu-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="off">`)}
       ${field("cu-email", "Email", `<input id="cu-email" name="email" type="email" autocomplete="off">`)}
       ${field("cu-firm", "Firm / shop name", `<input id="cu-firm" name="firm">`)}
       ${field("cu-pins", "Service PIN codes", `<input id="cu-pins" name="pincodes" placeholder="452010, 452016">`)}</div>
@@ -1070,7 +1095,7 @@ function soonBody() {
   }
   return `<h2>Launching soon in ${esc(name)}</h2><p class="muted small" style="margin-top:2px">Connect Bhai is live in Indore today and is coming to ${esc(name)} next. Leave your number and we'll message you on WhatsApp the day we start here.</p>
     <div class="grid2" style="margin-top:12px">${field("wl-name", "Your name", `<input id="wl-name" name="wl_name" autocomplete="name" value="${esc(u && u.role === "customer" ? u.full_name || "" : "")}">`)}
-    ${field("wl-phone", "WhatsApp number", `<input id="wl-phone" name="wl_phone" inputmode="numeric" maxlength="10" autocomplete="tel-national" value="${esc(u && u.role === "customer" ? u.phone || "" : "")}">`)}</div>
+    ${field("wl-phone", "WhatsApp number", `<input id="wl-phone" name="wl_phone" inputmode="numeric" maxlength="16" autocomplete="tel-national" value="${esc(u && u.role === "customer" ? u.phone || "" : "")}">`)}</div>
     ${field("wl-pin", "PIN code (optional)", `<input id="wl-pin" name="wl_pin" inputmode="numeric" maxlength="6">`, "Helps us plan which areas to start with.")}
     <div class="field" data-f="wl-consent" style="margin-top:4px"><label class="check"><input type="checkbox" name="wl_consent" id="wl-consent"> Message me on WhatsApp when Connect Bhai launches in ${esc(name)}.</label><span class="ferr" id="wl-consent-err"></span></div>
     <button class="btn btn-primary btn-block" type="submit" style="margin-top:10px">Notify me at launch</button>
@@ -1387,6 +1412,7 @@ const actions = {
   "close-modal": () => closeModal(),
   "chat": b => openChat(b.dataset.thread),
   "login-tab": b => openLogin(b.dataset.v),
+  "login-otp": () => openLogin("otp"),
   "forgot-pw": () => openForgot(),
   "change-password": () => openSetPassword("change"),
   "copy-cred": async b => { try { await navigator.clipboard.writeText(b.dataset.v); toast("Copied."); } catch (e) { toast("Select and copy the details by hand.", true); } },
@@ -1508,7 +1534,7 @@ const actions = {
   "auto-assign": async b => { await guard(b, () => API.setAutoAssign(b.dataset.v === "1")); toast("Auto-assign turned " + (b.dataset.v === "1" ? "on." : "off.")); render(); },
   "dsa-add": () => openModal(`<h2>Add a lead</h2><p class="muted" style="margin:4px 0 12px">For a customer you met in the field. The lead is assigned to you, and to the TIP covering that PIN code.</p>
     <form class="stack" data-form="dsa-add" novalidate><div class="grid2">
-      ${field("dl-name", "Customer name", `<input id="dl-name" name="name">`)}${field("dl-phone", "Customer mobile", `<input id="dl-phone" name="phone" inputmode="numeric" maxlength="10">`)}
+      ${field("dl-name", "Customer name", `<input id="dl-name" name="name">`)}${field("dl-phone", "Customer mobile", `<input id="dl-phone" name="phone" inputmode="numeric" maxlength="16">`)}
       ${field("dl-pin", "PIN code", `<input id="dl-pin" name="pincode" inputmode="numeric" maxlength="6">`)}${field("dl-area", "Area / colony", `<input id="dl-area" name="area">`)}</div>
       ${field("dl-addr", "Address", `<input id="dl-addr" name="address">`)}
       ${field("dl-plan", "Plan (optional)", `<select id="dl-plan" name="plan_id"><option value="">Enter PIN code to load plans</option></select>`)}
@@ -1531,9 +1557,12 @@ const onClick = e => {
   const t = e.target.closest("[data-tab]");
   if (t && !t.closest("form")) { S.tab = t.dataset.tab; renderedKey = S.view + "/" + S.tab; navigate(pathFor(S.view, S.tab), "replace"); render(); return; }
   const a = e.target.closest("[data-act]");
-  if (a && actions[a.dataset.act]) { if (a.tagName !== "INPUT") e.preventDefault(); Promise.resolve(actions[a.dataset.act](a, e)).catch(() => {}); }
+  if (a && actions[a.dataset.act]) { if (a.tagName !== "INPUT") e.preventDefault(); track(actions[a.dataset.act](a, e)).catch(() => {}); }
 };
 const onInput = e => {
+  const t = e.target;
+  if (t && t.tagName === "INPUT" && /phone$/.test(t.name)) { const c = normPhone(t.value).slice(0, 12); if (t.value !== c) t.value = c; }   // strips + spaces - and the 91 / 0 prefix
+  if (t && t.tagName === "INPUT" && t.name === "otp") { const c = t.value.replace(/\D/g, "").slice(0, 6); if (t.value !== c) t.value = c; }
   const el = e.target; if (!el.dataset || !el.dataset.filter) return;
   const k = el.dataset.filter;
   if (k === "price") { S.f.price = Number(el.value); $("#f-price-v").textContent = inr(el.value); clearTimeout(S.pt); S.pt = setTimeout(renderResults, 120); return; }
@@ -1576,7 +1605,7 @@ const forms = {
   },
   "pw-login": async (f, btn) => {
     const phone = val(f, "phone"), pw = f.elements.password.value, e = {};
-    if (!isPhone(phone)) e["pl-phone"] = "Enter your 10-digit mobile number."; if (!pw) e["pl-pw"] = "Enter your password.";
+    if (phoneError(phone)) e["pl-phone"] = phoneError(phone); if (!pw) e["pl-pw"] = "Enter your password.";
     if (!setErr(f, e)) return;
     let u; try { u = await guard(btn, () => API.signInPassword(phone, pw)); } catch (x) { setErr(f, { "pl-pw": errMsg(x) }); return; }
     afterLogin(u);
@@ -1728,8 +1757,9 @@ const forms = {
     if (!setErr(f, e)) return; await guard(btn, () => API.adminCreateCharge(d)); closeModal(); toast("Charge created and sent on WhatsApp."); render(); },
   "charge-offline": async (f, btn) => { const r = val(f, "reference"); if (!setErr(f, r.length >= 3 ? {} : { "co-ref": "Enter the reference." })) return; await guard(btn, () => API.adminSetCharge(f.dataset.id, "paid_offline", r)); closeModal(); toast("Marked as paid."); render(); },
   "otp-send": async (f, btn) => {
-    const phone = val(f, "phone"); if (!setErr(f, isPhone(phone) ? {} : { "lg-phone": "Enter a valid 10-digit WhatsApp number." })) return;
-    await guard(btn, () => API.sendOtp(phone)); openOtpStep(phone, f.dataset.purpose || "login");
+    const phone = val(f, "phone"); if (!setErr(f, phoneError(phone) ? { "lg-phone": phoneError(phone) } : {})) return;
+    try { await guard(btn, () => API.sendOtp(phone)); } catch (x) { setErr(f, { "lg-phone": errMsg(x) }); return; }
+    openOtpStep(phone, f.dataset.purpose || "login");
   },
   "otp-verify": async (f, btn) => {
     const otp = val(f, "otp"); if (!setErr(f, /^\d{6}$/.test(otp) ? {} : { "lg-otp": "Enter the 6-digit OTP." })) return;
@@ -1748,7 +1778,7 @@ const forms = {
 };
 const onSubmit = e => {
   const f = e.target.closest("form[data-form]"); if (!f) return; e.preventDefault();
-  const fn = forms[f.dataset.form]; if (fn) Promise.resolve(fn(f, f.querySelector('[type="submit"]'))).catch(() => {});
+  const fn = forms[f.dataset.form]; if (fn) track(fn(f, f.querySelector('[type="submit"]'))).catch(() => {});
 };
 
 

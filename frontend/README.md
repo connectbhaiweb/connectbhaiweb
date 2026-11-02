@@ -59,6 +59,16 @@ src/lib/connectbhai/
 * "What can you do at X Mbps?" uses simple thresholds (4K 25 Mbps, video calls 10, gaming 15 Mbps and ping under 50 ms, work from home 20). Adjust `USES` in `SpeedTest.jsx` if you want different numbers.
 * `/ui-kit` is a private preview of the components (noindex). Delete `src/app/ui-kit` before launch if you do not want it public.
 
+## v4: mobile, header, loading states, login
+
+* **Mobile menu** (hamburger, keyboard + Esc, `aria-expanded`, closes on navigation). Below 900px the desktop nav was simply hidden before, so phones had no way to reach Care plan / Speed test.
+* **No sideways scroll** at 320 / 375 / 390 / 430 / 768 / 1024 on every route, light and dark, and in all 4 dashboards (108 views). Root cause: single-column tracks were written `1fr` (= `minmax(auto,1fr)`), so input minimum widths stretched the column; now `minmax(0,1fr)`.
+* **Speed test page** uses the same `.wrap` container as the header and footer. **Dark mode:** the App-download phones and store buttons used theme colours on a white surface (invisible text); they now use fixed colours.
+* **Loading states:** shimmer skeletons (`.sk`, `components/ui/skeleton.jsx`) instead of blank pages / "Loading…", a placeholder before the app script paints (no layout jump), a top progress bar for navigation, fetches and form submits, and a "Try again" button on every load error.
+* **Login hardening** (UI layer only, same auth provider and APIs): `+91`, `91`, `0` prefixes, spaces and dashes are accepted and cleaned (no more truncation when pasting); specific messages for wrong length / non-Indian numbers; OTP accepts "123 456"; OTP-send errors shown under the field; friendly text for rate-limit / expired OTP / network errors; 30 s request timeout and an offline message (Supabase mode); "Change number" link on the OTP step; resend cooldown and duplicate-tap protection verified.
+* **Cards:** one hover / keyboard-focus / touch-press style for plan, KPI, step and account cards; everything respects reduced motion. Global `:focus-visible` outline.
+* Images: the site has no photos, only the logo (kept at its aspect ratio via `width:auto`) and inline SVG.
+
 ## Status: Stage 1 of 2
 
 **Native Next.js/React now:** routing and URLs, layout, metadata/viewport, header (session-aware, active route), footer,

@@ -93,8 +93,9 @@ export default function SpeedTest() {
 
   return (
     <section className="relative isolate overflow-hidden bg-[#050B1F] text-white" aria-labelledby="sp-h">
+      <style>{"#app{display:none}"}</style>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(55%_55%_at_50%_38%,rgba(29,107,255,.22),transparent_70%),radial-gradient(40%_40%_at_8%_70%,rgba(20,80,230,.18),transparent_70%)]" />
-      <div className="mx-auto grid max-w-[1320px] gap-4 px-5 py-4 lg:gap-4 lg:py-5">
+      <div className="wrap grid gap-4 py-4 lg:gap-4 lg:py-5">
 
         <div className="grid items-center gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.15fr)_minmax(0,.8fr)] lg:gap-6">
           {/* left: copy + start */}
