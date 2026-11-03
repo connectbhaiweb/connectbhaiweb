@@ -1,6 +1,6 @@
 /* Tiny external store that lets server-rendered React components (Header, CompareBar) react to state owned by
    the browser-only app module (session user, compare selection). SSR-safe: no browser APIs at import time. */
-const SERVER_SNAPSHOT = { user: null, compareCount: 0, showCompare: false };
+const SERVER_SNAPSHOT = { user: null, compareCount: 0, showCompare: false, ready: false };
 let snapshot = SERVER_SNAPSHOT;
 const listeners = new Set();
 

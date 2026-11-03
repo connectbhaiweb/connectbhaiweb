@@ -25,7 +25,7 @@ export default function Header() {
     <header className="top">
       <div className="wrap">
         <button className="brand" data-go="home" type="button" aria-label="Connect Bhai home">
-          <Logo variant="reveal" height={40} priority />
+          <Logo height={40} priority />
         </button>
         <nav className="topnav" id="topnav" aria-label="Main">
           {nav.map(([v, label]) => (

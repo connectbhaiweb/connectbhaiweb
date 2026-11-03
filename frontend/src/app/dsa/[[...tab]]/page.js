@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import ViewRoute from "@/components/ViewRoute";
+import DsaDashboard from "@/components/portal/DsaDashboard";
 
 /* /dsa and /dsa/<tab>  (replaces the old #dsa and #dsa-<tab> hash URLs) */
 export default async function Page({ params }) {
   const { tab } = await params;
-  return <ViewRoute view="dsa" tab={tab ? decodeURIComponent(tab[0]) : null} />;
+  const t = tab ? decodeURIComponent(tab[0]) : null;
+  return <><ViewRoute view="dsa" tab={t} /><Suspense fallback={null}><DsaDashboard tab={t} /></Suspense></>;
 }

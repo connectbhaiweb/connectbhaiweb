@@ -9,6 +9,9 @@ import "@fontsource/manrope/800.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "@fontsource/ibm-plex-mono/600.css";
 import "./globals.css";
+import "./dashboard.css";
+import "./customer.css";
+import "./portal.css";
 import DemoBar from "@/components/DemoBar";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -16,6 +19,7 @@ import CompareBar from "@/components/CompareBar";
 import Overlays from "@/components/Overlays";
 import StoryTemplate from "@/components/StoryTemplate";
 import ConnectBhaiRuntime from "@/components/ConnectBhaiRuntime";
+import DashboardShell from "@/components/dashboard/DashboardShell";
 
 export const metadata = {
   title: "Connect Bhai",
@@ -26,7 +30,11 @@ export const viewport = { width: "device-width", initialScale: 1, viewportFit: "
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en-IN">
+    <html lang="en-IN" suppressHydrationWarning>
+      <head>
+        {/* signed-in on a dashboard URL: hide the site header/footer from the first paint (DashboardShell clears this once the session is known) */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var p=location.pathname.split("/")[1];if(/^(my|dsa|tip|admin)$/.test(p)&&(localStorage.getItem("cb-session")||Object.keys(localStorage).some(function(k){return k.indexOf("sb-")===0})))document.documentElement.setAttribute("data-shell-pending",p)}catch(e){}` }} />
+      </head>
       <body>
         <DemoBar />
         <Header />
@@ -37,6 +45,7 @@ export default function RootLayout({ children }) {
         <CompareBar />
         <Overlays />
         <StoryTemplate />
+        <DashboardShell />
         <ConnectBhaiRuntime />
       </body>
     </html>

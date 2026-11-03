@@ -166,6 +166,9 @@ function skeleton(kind) {
 let busy = 0;
 const track = p => { busy++; document.documentElement.classList.add("is-loading"); const done = () => { if (--busy <= 0) { busy = 0; document.documentElement.classList.remove("is-loading"); } }; return Promise.resolve(p).finally(done); };
 
+/* Dashboard pages that are React components (src/components/<role>/). The app clears #app for them and announces
+   every re-render (after pay, restart, chat…) so the React page reloads its data. */
+const REACT_VIEWS = { my: t => !t || t === "bookings", dsa: t => !t || ["home", "customers", "tickets"].includes(t), tip: t => !t || ["home", "leads"].includes(t), admin: t => !t || t === "overview" };
 async function render() {
   const v = S.view;
   if (v === "home") { if (!app.children.length) app.innerHTML = skeleton("home"); return track(renderHome()); }
@@ -179,6 +182,7 @@ async function render() {
       <button class="btn btn-primary" data-act="login" type="button">Log in</button></div></div>`;
     return;
   }
+  if (REACT_VIEWS[v] && REACT_VIEWS[v](S.tab)) { app.innerHTML = ""; window.dispatchEvent(new CustomEvent("cb:render", { detail: { view: v, tab: S.tab } })); return; }
   app.innerHTML = skeleton("dash");
   try { await track(({ my: renderCustomer, dsa: renderDSA, tip: renderTIP, admin: renderAdmin }[v])()); scrollChat(); }
   catch (e) { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load this page.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; }
@@ -1806,7 +1810,7 @@ let booted = false;
 async function bootData() {
   if (LIVE) { try { await API.init(); } catch (e) { toast("Could not connect to the server.", true); } }
   else { loadDemo(); migrateCities(); let sid = null; try { sid = localStorage.getItem("cb-session"); } catch (e) {} if (sid) await API.restore(sid); }
-  renderHeader(); updateCompareBar();
+  renderHeader(); updateCompareBar(); publish({ ready: true });
   resolveReady();
 }
 
