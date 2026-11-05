@@ -1,7 +1,8 @@
 /* Connect Bhai · data layer (migrated verbatim from the original single-file app).
    Demo back end (in-browser) and Live back end (Supabase) expose the same API object.
    Configuration lives in ./config.js. Browser-only: import this module from client code at runtime. */
-import { CONFIG, SUPPORT, LIVE } from "./config";
+import { CONFIG, SUPPORT, LIVE, REST } from "./config";
+import { createRest } from "./rest";
 import { ROLE_NAME } from "./shared";
 
 /* =====================================================================
@@ -1063,7 +1064,9 @@ const Live = (() => {
   };
 })();
 
-const API = LIVE ? Live : Demo;
+const Rest = REST ? createRest({ AppError, BOOK_NEXT, ROLE_NAME }) : null;
+const API = REST ? Rest : LIVE ? Live : Demo;
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") window.__cbApi = API;   // dev only: lets you poke the data layer from the browser console
 
 
-export { API, AppError, BOOK, BOOK_NEXT, BOOK_TONE, CATS, COMM, COMM_TONE, DB, DEMO_KEY, Demo, KIND, LEAD, LEAD_NEXT, LEAD_TONE, Live, MP_CITIES, PRODUCT_NAME, PW_RULE, SHEET_COLS, TICKET, TICKET_TONE, ZONES, ZONE_BY_PIN, ZONE_NAME, addDays, cityIdOfLoc, citySlug, demoHash, esc, fail, fdate, fdt, genTempPw, inr, isPhone, isPin, loadDemo, migrateCities, nowISO, planFromRow, productOf, pwOk, resetDemoData, saveDemo, seedDemo, todayISO, uuid };
+export { API, Rest, AppError, BOOK, BOOK_NEXT, BOOK_TONE, CATS, COMM, COMM_TONE, DB, DEMO_KEY, Demo, KIND, LEAD, LEAD_NEXT, LEAD_TONE, Live, MP_CITIES, PRODUCT_NAME, PW_RULE, SHEET_COLS, TICKET, TICKET_TONE, ZONES, ZONE_BY_PIN, ZONE_NAME, addDays, cityIdOfLoc, citySlug, demoHash, esc, fail, fdate, fdt, genTempPw, inr, isPhone, isPin, loadDemo, migrateCities, nowISO, planFromRow, productOf, pwOk, resetDemoData, saveDemo, seedDemo, todayISO, uuid };

@@ -185,6 +185,7 @@ select.sel{padding:8px 10px;border-radius:9px;border:1.5px solid var(--line-stro
 .plan:hover{border-color:var(--line-strong);box-shadow:var(--shadow)}
 .plan.sel{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
 .plan .prov{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px}
+.plogo-img{background:#fff;border:1px solid #E4EAF5;object-fit:contain;padding:3px;display:block;width:40px;height:40px}
 .plogo{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:800;font-size:13px;flex:none}
 .plan .pname{font-family:var(--display);font-size:18px;font-weight:700}
 .speed{display:flex;align-items:baseline;gap:6px}
@@ -663,3 +664,16 @@ html.is-loading::after{content:"";position:fixed;left:0;top:0;height:3px;width:1
 :where(a,button,input,select,textarea,[role="button"],[tabindex="0"]):focus-visible{outline:3px solid var(--sky);outline-offset:2px}
 
 @media (max-width:420px){.top .acts .acts-who{display:none}.top .wrap{padding-inline:12px}}
+
+/* table search (top right) + pagination (bottom) - lib/connectbhai/tableTools.js */
+.tt-hide{display:none!important}
+.tt-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 12px;margin:0 0 10px;font-size:13px;color:var(--muted,#53617F)}
+.tt-q{flex:0 1 300px;min-width:180px;padding:9px 12px;border:1px solid #C9D3E8;border-radius:10px;background:#fff;font:inherit;color:inherit}
+.tt-q:focus{outline:2px solid #1043C8;outline-offset:1px}
+.tt-size select{margin-left:4px;padding:6px 8px;border:1px solid #C9D3E8;border-radius:8px;background:#fff;font:inherit}
+.tt-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin:10px 0 0;font-size:13px;color:var(--muted,#53617F)}
+.tt-pager{display:flex;gap:4px;align-items:center;margin-left:auto}
+.tt-pager button{min-width:34px;height:34px;padding:0 8px;border:1px solid #C9D3E8;border-radius:8px;background:#fff;font:inherit;font-weight:700;cursor:pointer;color:#0B2A6F}
+.tt-pager button.on{background:#1043C8;border-color:#1043C8;color:#fff}
+.tt-pager button:disabled{opacity:.4;cursor:default}
+.tt-gap{padding:0 2px}

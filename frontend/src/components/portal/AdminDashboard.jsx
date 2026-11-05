@@ -1,4 +1,5 @@
 "use client";
+import { areaIndex } from "@/lib/connectbhai/areas";
 import { useMemo, useState } from "react";
 import { Building2, CalendarDays, ChartColumn, Check, CircleCheck, CircleX, Coins, Handshake, MapPin, Phone, Store, Ticket, UserRound, Users, Wrench } from "lucide-react";
 import { useDashData } from "@/components/dashboard/useDashData";
@@ -9,20 +10,20 @@ import { byMonth, inr, mKey, monthKeys, planName, sum } from "./stats";
 async function load(API, m) {
   const [leads, partners, bookings, tickets, comms, cities, locations, plans, threads] = await Promise.all([API.adminLeads(), API.adminPartners(), API.adminBookings(), API.adminTickets(), API.adminCommissions(),
     API.adminCities().catch(() => []), API.adminLocations().catch(() => []), API.adminPlans().catch(() => []), API.myThreads().catch(() => [])]);
-  return { leads, partners, bookings, tickets, comms, cities, locations, plans, threads, ZONES: m.ZONES, ZONE_BY_PIN: m.ZONE_BY_PIN };
+  return { leads, partners, bookings, tickets, comms, cities, locations, plans, threads };
 }
 const fmtPh = p => (p ? String(p).replace(/^(\d{5})(\d{5})$/, "$1 $2") : "");
 
 export default function AdminDashboard({ tab }) {
   const { active, pending, data, error, loading, reload } = useDashData("admin", load);
   const [months, setMonths] = useState(6);
-  const z = useMemo(() => {
+  const z = useMemo(() => {   // leads and installs by AREA (PIN code + area name)
     if (!data) return [];
-    const zoneOf = {}; data.locations.forEach(l => { if (l.zone) zoneOf[l.pincode] = l.zone; });
-    const zid = pin => zoneOf[pin] || data.ZONE_BY_PIN[pin];
+    const idx = areaIndex(data.locations);
     const inst = data.bookings.filter(b => b.status === "installed");
-    return data.ZONES.map(zn => { const ls = data.leads.filter(l => zid(l.pincode) === zn.id), is = inst.filter(b => b.lead && zid(b.lead.pincode) === zn.id).length; return { name: zn.name, leads: ls.length, installs: is, conv: ls.length ? Math.round(is / ls.length * 100) : 0 }; })
-      .filter(r => r.leads).sort((a, b) => b.leads - a.leads);
+    const pins = [...new Set(data.leads.map(l => l.pincode).filter(Boolean))];
+    return pins.map(pin => { const ls = data.leads.filter(l => l.pincode === pin), is = inst.filter(b => b.lead && b.lead.pincode === pin).length; return { name: `${pin} · ${idx.get(pin) || "—"}`, leads: ls.length, installs: is, conv: ls.length ? Math.round(is / ls.length * 100) : 0 }; })
+      .sort((a, b) => b.leads - a.leads).slice(0, 4);   // top 4 areas only
   }, [data]);
   if (!(!tab || tab === "overview") || (!active && !pending)) return null;
   if (pending || loading) return <div className="dsh-page"><Loading /></div>;
@@ -40,13 +41,13 @@ export default function AdminDashboard({ tab }) {
   return (
     <div className="dsh-page"><div className="pt">
       <Counts c={counts} />
-      <PortalHead title="Admin portal" sub="Control panel for leads, partners, installations, plans and business operations." />
+      <PortalHead title="Admin portal" sub="Control panel for leads, DSAs, TIPs, installations, plans and business operations." />
       <div className="pt-kpis pt-kpis-6">
         <Kpi tone="red" Icon={Users} label="Unassigned leads" value={unassigned.length} sub="Need assignment" />
         <Kpi tone="amber" Icon={CalendarDays} label="Installs pending" value={bookings.filter(b => ["scheduled", "in_progress"].includes(b.status)).length} />
         <Kpi tone="blue" Icon={Ticket} label="Open tickets" value={openT} />
         <Kpi tone="purple" Icon={Coins} label="Payouts to approve" value={inr(sum(comms.filter(c => c.status === "pending"), c => c.amount))} />
-        <Kpi tone="blue" Icon={Store} label="Active partners" value={partners.filter(p => p.status === "active").length} />
+        <Kpi tone="blue" Icon={Store} label="Active DSAs & TIPs" value={partners.filter(p => p.status === "active").length} />
         <Kpi tone="green" Icon={CircleCheck} label="Customers installed this month" value={inst.filter(b => mKey(b.installed_at) === cur).length} />
       </div>
       <div className="pt-row pt-row-adm1">
@@ -64,9 +65,9 @@ export default function AdminDashboard({ tab }) {
             </div>
           ) : <p className="pt-muted">Every lead is assigned.</p>}
         </Card>
-        <Card title="Partner applications" Icon={Handshake} action={<More href="/admin/partners">View all applications</More>}>
+        <Card title="DSA & TIP applications" Icon={Handshake} action={<More href="/admin/partners">View all applications</More>}>
           {apps.length ? (
-            <div className="pt-table pt-t-apps" role="table" aria-label="Partner applications">
+            <div className="pt-table pt-t-apps" role="table" aria-label="DSA & TIP applications">
               <div className="pt-tr pt-th" role="row"><span role="columnheader">Applicant</span><span role="columnheader">Type</span><span role="columnheader">Firm / Organization</span><span role="columnheader">Phone</span><span role="columnheader">Service PINs</span><span role="columnheader">Action</span></div>
               {apps.slice(0, 5).map(p => (
                 <div className="pt-tr" role="row" key={p.id}>
@@ -85,9 +86,9 @@ export default function AdminDashboard({ tab }) {
         <Card title="Leads and installs, last 6 months" Icon={ChartColumn} className="pt-chartcard" action={<Period value={months} onChange={setMonths} />}>
           <Bars legend="bottom" height={230} data={byMonth(months, leads, l => l.created_at, inst, b => b.installed_at)} series={[{ key: "leads", name: "Leads", color: "#2878FD" }, { key: "installs", name: "Installs", color: "#32B661" }]} />
         </Card>
-        <Card title="Zone performance" Icon={MapPin} action={<More href="/admin/reports">View detailed report</More>}>
-          <div className="pt-table pt-t-zone pt-plain" role="table" aria-label="Zone performance">
-            <div className="pt-tr pt-th" role="row"><span role="columnheader">Zone</span><span role="columnheader">Leads</span><span role="columnheader">Installs</span><span role="columnheader">Conversion</span></div>
+        <Card title="Top 4 areas" Icon={MapPin} action={<More href="/admin/reports">View detailed report</More>}>
+          <div className="pt-table pt-t-zone pt-plain" role="table" aria-label="Top 4 areas">
+            <div className="pt-tr pt-th" role="row"><span role="columnheader">Area</span><span role="columnheader">Leads</span><span role="columnheader">Installs</span><span role="columnheader">Conversion</span></div>
             {z.map(r => <div className="pt-tr" role="row" key={r.name}><span role="cell"><b>{r.name}</b></span><span role="cell">{r.leads}</span><span role="cell">{r.installs}</span><span role="cell"><Chip label={`${r.conv}%`} tone="green" /></span></div>)}
           </div>
         </Card>

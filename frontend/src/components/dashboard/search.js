@@ -1,5 +1,5 @@
 /* Top-bar search. Pages of the role always match by name; roles with a React page also search their own records
-   through the existing API (customer: bookings, complaints, payments; DSA: leads and customers; TIP: leads, installs, tickets; admin: leads, partners, plans, locations). Returns [{ kind, title, sub, href }]. */
+   through the existing API (customer: bookings, complaints, payments; DSA: leads and customers; TIP: leads, installs, tickets; admin: leads, DSAs, TIPs, plans, locations). Returns [{ kind, title, sub, href }]. */
 import { ROLES, hrefOf } from "./nav";
 
 const has = (q, ...xs) => xs.some(x => x != null && String(x).toLowerCase().includes(q));
@@ -31,7 +31,7 @@ async function tip(API, q) {
   ];
 }
 async function admin(API, q) {
-  const [leads, partners, plans, locs] = await Promise.all([API.adminLeads(), API.adminPartners(), API.adminPlans().catch(() => []), API.adminLocations().catch(() => [])]);
+  const [leads, DSAs, TIPs, plans, locs] = await Promise.all([API.adminLeads(), API.adminPartners(), API.adminPlans().catch(() => []), API.adminLocations().catch(() => [])]);
   return [
     ...leads.filter(l => leadHit(q, l)).map(l => ({ kind: "Lead", title: `${l.name} · ${l.ref_code}`, sub: leadSub(l), href: "/admin/leads" })),
     ...partners.filter(p => has(q, p.name, p.firm, p.phone, p.service_pincodes)).map(p => ({ kind: p.type.toUpperCase(), title: p.name, sub: `${p.firm || ""} · ${p.status}`, href: "/admin/partners" })),

@@ -45,7 +45,7 @@ function Home({ data, s, months, setMonths }) {
   const ups = [...plans.mine].slice(0, 3);
   return (
     <>
-      <PortalHead title="TIP partner portal" sub="Manage installations, update plans and track your performance with Connect Bhai." pins={partner.service_pincodes} />
+      <PortalHead title="TIP portal" sub="Manage installations, update plans and track your performance with Connect Bhai." pins={partner.service_pincodes} />
       <div className="pt-kpis">
         <Kpi tone="blue" Icon={Users} label="Leads from Connect Bhai" value={s.mine.length} sub={`${s.givenMonth} this month`} up />
         <Kpi tone="green" Icon={CircleCheck} label="Customers installed" value={s.inst.length} sub={`${s.instMonth} this month · ${s.conv}% conversion`} up />

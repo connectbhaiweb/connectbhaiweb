@@ -1,0 +1,5492 @@
+{
+"plans": [
+{
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Plan Name": "Fibre Budget",
+"Price_ex_GST (Rs/month)": 399,
+"Price_incl_GST (Rs/month)": 471,
+"Speed_Mbps": 30,
+"Data_GB (FUP/month)": 1400,
+"Speed after FUP": "4 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 0,
+"OTT Apps Included": null,
+"Live TV Channels": "IFTV 500+ (free, app)",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "N",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly",
+"Category": "Budget",
+"Suitable_For": "Home",
+"Remarks": "Intro price for 1st year, Rs 449 after; confirm speed/FUP"
+},
+{
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Plan Name": "Fibre Basic Neo",
+"Price_ex_GST (Rs/month)": 449,
+"Price_incl_GST (Rs/month)": 530,
+"Speed_Mbps": 50,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "4 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 0,
+"OTT Apps Included": null,
+"Live TV Channels": "IFTV 500+ (free, app)",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "N",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Budget",
+"Suitable_For": "Home",
+"Remarks": null
+},
+{
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Plan Name": "Fibre Basic",
+"Price_ex_GST (Rs/month)": 499,
+"Price_incl_GST (Rs/month)": 589,
+"Speed_Mbps": 60,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "4 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 0,
+"OTT Apps Included": null,
+"Live TV Channels": "IFTV 500+ (free, app)",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "N",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 12M / 24M / 36M",
+"Category": "Budget",
+"Suitable_For": "Home, Shop",
+"Remarks": null
+},
+{
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Plan Name": "Fibre Basic Plus",
+"Price_ex_GST (Rs/month)": 599,
+"Price_incl_GST (Rs/month)": 707,
+"Speed_Mbps": 100,
+"Data_GB (FUP/month)": 4000,
+"Speed after FUP": "4 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 1,
+"OTT Apps Included": "JioHotstar",
+"Live TV Channels": "IFTV 500+ (free, app)",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 12M",
+"Category": "Value",
+"Suitable_For": "Home, Shop",
+"Remarks": "Confirm OTT inclusion"
+},
+{
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Plan Name": "Fibre Value",
+"Price_ex_GST (Rs/month)": 799,
+"Price_incl_GST (Rs/month)": 943,
+"Speed_Mbps": 150,
+"Data_GB (FUP/month)": 4000,
+"Speed after FUP": "10 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 5,
+"OTT Apps Included": "JioHotstar, SonyLIV, ZEE5, Lionsgate, ShemarooMe",
+"Live TV Channels": "IFTV 500+ (free, app)",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 12M",
+"Category": "Value",
+"Suitable_For": "Home, Shop, Office",
+"Remarks": null
+},
+{
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Plan Name": "Fibre Premium",
+"Price_ex_GST (Rs/month)": 999,
+"Price_incl_GST (Rs/month)": 1179,
+"Speed_Mbps": 200,
+"Data_GB (FUP/month)": 5000,
+"Speed after FUP": "15 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 6,
+"OTT Apps Included": "JioHotstar, Amazon Prime, SonyLIV, ZEE5, Lionsgate, ShemarooMe",
+"Live TV Channels": "IFTV 500+ (free, app)",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 12M",
+"Category": "Premium",
+"Suitable_For": "Home, Office",
+"Remarks": null
+},
+{
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Plan Name": "Fibre Ultra",
+"Price_ex_GST (Rs/month)": 1499,
+"Price_incl_GST (Rs/month)": 1769,
+"Speed_Mbps": 300,
+"Data_GB (FUP/month)": 6000,
+"Speed after FUP": "25 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 6,
+"OTT Apps Included": "JioHotstar, Amazon Prime, SonyLIV, ZEE5, Lionsgate, ShemarooMe",
+"Live TV Channels": "IFTV 500+ (free, app)",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 12M",
+"Category": "Premium",
+"Suitable_For": "Office, Business",
+"Remarks": "Static IP add-on Rs 3000/yr"
+},
+{
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Plan Name": "Xstream Fiber Basic",
+"Price_ex_GST (Rs/month)": 499,
+"Price_incl_GST (Rs/month)": 589,
+"Speed_Mbps": 40,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 0,
+"OTT Apps Included": null,
+"Live TV Channels": "No",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "N",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Budget",
+"Suitable_For": "Home",
+"Remarks": null
+},
+{
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Plan Name": "Xstream Fiber Entertainment",
+"Price_ex_GST (Rs/month)": 799,
+"Price_incl_GST (Rs/month)": 943,
+"Speed_Mbps": 100,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 22,
+"OTT Apps Included": "JioHotstar, Xstream Play (22+ apps)",
+"Live TV Channels": "350+ channels",
+"Set-top Box": "Xstream Box",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Value",
+"Suitable_For": "Home, Shop",
+"Remarks": null
+},
+{
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Plan Name": "Xstream Fiber Professional",
+"Price_ex_GST (Rs/month)": 999,
+"Price_incl_GST (Rs/month)": 1179,
+"Speed_Mbps": 200,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 23,
+"OTT Apps Included": "Amazon Prime, JioHotstar, Xstream Play (22+ apps)",
+"Live TV Channels": "350+ channels",
+"Set-top Box": "Xstream Box",
+"Has_Netflix": "N",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Value",
+"Suitable_For": "Home, Office",
+"Remarks": null
+},
+{
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Plan Name": "Xstream Fiber Infinity Netflix",
+"Price_ex_GST (Rs/month)": 1199,
+"Price_incl_GST (Rs/month)": 1415,
+"Speed_Mbps": 200,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 24,
+"OTT Apps Included": "Netflix Basic, Amazon Prime, JioHotstar, Xstream Play",
+"Live TV Channels": "350+ channels",
+"Set-top Box": "Xstream Box",
+"Has_Netflix": "Y",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Premium",
+"Suitable_For": "Home",
+"Remarks": "Confirm plan name & speed"
+},
+{
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Plan Name": "Xstream Fiber 300 Mbps",
+"Price_ex_GST (Rs/month)": 1599,
+"Price_incl_GST (Rs/month)": 1887,
+"Speed_Mbps": 300,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 24,
+"OTT Apps Included": "Netflix, Amazon Prime, JioHotstar, Xstream Play",
+"Live TV Channels": "350+ channels",
+"Set-top Box": "4K Android Box",
+"Has_Netflix": "Y",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Premium",
+"Suitable_For": "Home, Office",
+"Remarks": null
+},
+{
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Plan Name": "Xstream Fiber 1 Gbps",
+"Price_ex_GST (Rs/month)": 3999,
+"Price_incl_GST (Rs/month)": 4719,
+"Speed_Mbps": 1000,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 24,
+"OTT Apps Included": "Netflix Premium, Amazon Prime, JioHotstar, Xstream Play",
+"Live TV Channels": "350+ channels",
+"Set-top Box": "4K Android Box",
+"Has_Netflix": "Y",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Premium",
+"Suitable_For": "Office, Business",
+"Remarks": null
+},
+{
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Plan Name": "AirFiber 699",
+"Price_ex_GST (Rs/month)": 699,
+"Price_incl_GST (Rs/month)": 825,
+"Speed_Mbps": 40,
+"Data_GB (FUP/month)": 1000,
+"Speed after FUP": "2 Mbps",
+"Voice Calling": "No",
+"OTT App Count": 22,
+"OTT Apps Included": "JioHotstar, Xstream Play (22+ apps)",
+"Live TV Channels": "350+ channels",
+"Set-top Box": "4K Android Box",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Budget",
+"Suitable_For": "Home",
+"Remarks": "Needs 5G line-of-sight"
+},
+{
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Plan Name": "AirFiber 799",
+"Price_ex_GST (Rs/month)": 799,
+"Price_incl_GST (Rs/month)": 943,
+"Speed_Mbps": 100,
+"Data_GB (FUP/month)": 1000,
+"Speed after FUP": "2 Mbps",
+"Voice Calling": "No",
+"OTT App Count": 0,
+"OTT Apps Included": null,
+"Live TV Channels": "No",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "N",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Value",
+"Suitable_For": "Home, Shop",
+"Remarks": null
+},
+{
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Plan Name": "AirFiber 899",
+"Price_ex_GST (Rs/month)": 899,
+"Price_incl_GST (Rs/month)": 1061,
+"Speed_Mbps": 100,
+"Data_GB (FUP/month)": 1000,
+"Speed after FUP": "2 Mbps",
+"Voice Calling": "No",
+"OTT App Count": 22,
+"OTT Apps Included": "JioHotstar, Xstream Play (22+ apps)",
+"Live TV Channels": "350+ channels",
+"Set-top Box": "4K Android Box",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Value",
+"Suitable_For": "Home",
+"Remarks": null
+},
+{
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Plan Name": "JioFiber 399",
+"Price_ex_GST (Rs/month)": 399,
+"Price_incl_GST (Rs/month)": 471,
+"Speed_Mbps": 30,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 0,
+"OTT Apps Included": null,
+"Live TV Channels": "No",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "N",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Budget",
+"Suitable_For": "Home",
+"Remarks": null
+},
+{
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Plan Name": "JioFiber 699",
+"Price_ex_GST (Rs/month)": 699,
+"Price_incl_GST (Rs/month)": 825,
+"Speed_Mbps": 100,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 0,
+"OTT Apps Included": null,
+"Live TV Channels": "No",
+"Set-top Box": "No",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "N",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Value",
+"Suitable_For": "Home, Shop",
+"Remarks": null
+},
+{
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Plan Name": "JioFiber 888",
+"Price_ex_GST (Rs/month)": 888,
+"Price_incl_GST (Rs/month)": 1048,
+"Speed_Mbps": 30,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 15,
+"OTT Apps Included": "Netflix Basic, Amazon Prime Lite, JioHotstar, SonyLIV, ZEE5 + more",
+"Live TV Channels": "1000+ channels",
+"Set-top Box": "Jio STB",
+"Has_Netflix": "Y",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly",
+"Category": "Value",
+"Suitable_For": "Home",
+"Remarks": "Postpaid only"
+},
+{
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Plan Name": "JioFiber 999",
+"Price_ex_GST (Rs/month)": 999,
+"Price_incl_GST (Rs/month)": 1179,
+"Speed_Mbps": 150,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 15,
+"OTT Apps Included": "Amazon Prime Lite, JioHotstar, SonyLIV, ZEE5 + more",
+"Live TV Channels": "1000+ channels",
+"Set-top Box": "Jio STB",
+"Has_Netflix": "N",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Value",
+"Suitable_For": "Home, Office",
+"Remarks": null
+},
+{
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Plan Name": "JioFiber 1499",
+"Price_ex_GST (Rs/month)": 1499,
+"Price_incl_GST (Rs/month)": 1769,
+"Speed_Mbps": 300,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 16,
+"OTT Apps Included": "Netflix Basic, Amazon Prime Lite, JioHotstar, SonyLIV, ZEE5 + more",
+"Live TV Channels": "1000+ channels",
+"Set-top Box": "Jio STB",
+"Has_Netflix": "Y",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Premium",
+"Suitable_For": "Home, Office",
+"Remarks": null
+},
+{
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Plan Name": "JioFiber 2499",
+"Price_ex_GST (Rs/month)": 2499,
+"Price_incl_GST (Rs/month)": 2949,
+"Speed_Mbps": 500,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 16,
+"OTT Apps Included": "Netflix Standard, Amazon Prime Lite, JioHotstar + more",
+"Live TV Channels": "1000+ channels",
+"Set-top Box": "Jio STB",
+"Has_Netflix": "Y",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Premium",
+"Suitable_For": "Office, Business",
+"Remarks": null
+},
+{
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Plan Name": "JioFiber 3999",
+"Price_ex_GST (Rs/month)": 3999,
+"Price_incl_GST (Rs/month)": 4719,
+"Speed_Mbps": 1000,
+"Data_GB (FUP/month)": 3300,
+"Speed after FUP": "1 Mbps",
+"Voice Calling": "Unlimited (landline)",
+"OTT App Count": 16,
+"OTT Apps Included": "Netflix Premium, Amazon Prime Lite, JioHotstar + more",
+"Live TV Channels": "1000+ channels",
+"Set-top Box": "Jio STB",
+"Has_Netflix": "Y",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 0,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Premium",
+"Suitable_For": "Office, Business",
+"Remarks": null
+},
+{
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Plan Name": "AirFiber 599",
+"Price_ex_GST (Rs/month)": 599,
+"Price_incl_GST (Rs/month)": 707,
+"Speed_Mbps": 30,
+"Data_GB (FUP/month)": 1000,
+"Speed after FUP": "64 Kbps",
+"Voice Calling": "No",
+"OTT App Count": 14,
+"OTT Apps Included": "JioHotstar, SonyLIV, ZEE5 + 11 more",
+"Live TV Channels": "800+ channels",
+"Set-top Box": "4K Jio STB",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 1000,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Budget",
+"Suitable_For": "Home",
+"Remarks": "Rs 1000 install waived on 12M plan"
+},
+{
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Plan Name": "AirFiber 899",
+"Price_ex_GST (Rs/month)": 899,
+"Price_incl_GST (Rs/month)": 1061,
+"Speed_Mbps": 100,
+"Data_GB (FUP/month)": 1000,
+"Speed after FUP": "64 Kbps",
+"Voice Calling": "No",
+"OTT App Count": 14,
+"OTT Apps Included": "JioHotstar, SonyLIV, ZEE5 + 11 more",
+"Live TV Channels": "800+ channels",
+"Set-top Box": "4K Jio STB",
+"Has_Netflix": "N",
+"Has_Prime": "N",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 1000,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Value",
+"Suitable_For": "Home, Shop",
+"Remarks": null
+},
+{
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Plan Name": "AirFiber 1199",
+"Price_ex_GST (Rs/month)": 1199,
+"Price_incl_GST (Rs/month)": 1415,
+"Speed_Mbps": 100,
+"Data_GB (FUP/month)": 1000,
+"Speed after FUP": "64 Kbps",
+"Voice Calling": "No",
+"OTT App Count": 16,
+"OTT Apps Included": "Netflix Basic, Amazon Prime Lite, JioHotstar + 13 more",
+"Live TV Channels": "800+ channels",
+"Set-top Box": "4K Jio STB",
+"Has_Netflix": "Y",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 1000,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Premium",
+"Suitable_For": "Home",
+"Remarks": null
+},
+{
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Plan Name": "AirFiber Max 1499",
+"Price_ex_GST (Rs/month)": 1499,
+"Price_incl_GST (Rs/month)": 1769,
+"Speed_Mbps": 300,
+"Data_GB (FUP/month)": 1000,
+"Speed after FUP": "64 Kbps",
+"Voice Calling": "No",
+"OTT App Count": 16,
+"OTT Apps Included": "Netflix Basic, Amazon Prime Lite, JioHotstar + 13 more",
+"Live TV Channels": "800+ channels",
+"Set-top Box": "4K Jio STB",
+"Has_Netflix": "Y",
+"Has_Prime": "Y",
+"Has_Hotstar": "Y",
+"Installation (Rs)": 1000,
+"Security Deposit (Rs)": 0,
+"Validity Options": "Monthly / 6M / 12M",
+"Category": "Premium",
+"Suitable_For": "Home, Office",
+"Remarks": null
+},
+{
+"Plan_ID": "Blue = typed input (price). Price_incl_GST is a formula using the GST rate on Read_Me. Data_GB 3300 = 'Unlimited' with 3.3 TB FUP. Sources: BSNL circle tariff PDFs, telecomtalk.info, smartprix.com, techmitra.in (2025\u201326 reports). Verify before go-live.",
+"Brand": null,
+"Technology": null,
+"Plan Name": null,
+"Price_ex_GST (Rs/month)": null,
+"Price_incl_GST (Rs/month)": null,
+"Speed_Mbps": null,
+"Data_GB (FUP/month)": null,
+"Speed after FUP": null,
+"Voice Calling": null,
+"OTT App Count": null,
+"OTT Apps Included": null,
+"Live TV Channels": null,
+"Set-top Box": null,
+"Has_Netflix": null,
+"Has_Prime": null,
+"Has_Hotstar": null,
+"Installation (Rs)": null,
+"Security Deposit (Rs)": null,
+"Validity Options": null,
+"Category": null,
+"Suitable_For": null,
+"Remarks": null
+}
+],
+"packs": [
+{
+"Pack_ID": "TV-01",
+"Brand": "BSNL",
+"Type": "Live TV (IFTV)",
+"Pack Name": "BSNL IFTV \u2013 free live TV",
+"Price (Rs, ex GST)": 0,
+"Billing": "Monthly",
+"Live TV Channels": "500+ live channels",
+"OTT Apps": "-",
+"Requirement / Notes": "Bharat Fibre customers; Android TV app",
+"Can Be Added To": "All BSNL FTTH plans"
+},
+{
+"Pack_ID": "TV-02",
+"Brand": "BSNL",
+"Type": "OTT add-on",
+"Pack Name": "BSNL Cinema Plus Starter",
+"Price (Rs, ex GST)": 49,
+"Billing": "Monthly",
+"Live TV Channels": "-",
+"OTT Apps": "ShemarooMe, Hungama, Lionsgate, EpicOn",
+"Requirement / Notes": "Add-on on any BSNL FTTH plan",
+"Can Be Added To": "All BSNL FTTH plans"
+},
+{
+"Pack_ID": "TV-03",
+"Brand": "BSNL",
+"Type": "OTT add-on",
+"Pack Name": "BSNL Cinema Plus Full",
+"Price (Rs, ex GST)": 199,
+"Billing": "Monthly",
+"Live TV Channels": "-",
+"OTT Apps": "JioHotstar, SonyLIV, ZEE5, YuppTV",
+"Requirement / Notes": "Add-on on any BSNL FTTH plan",
+"Can Be Added To": "All BSNL FTTH plans"
+},
+{
+"Pack_ID": "TV-04",
+"Brand": "Airtel",
+"Type": "OTT add-on",
+"Pack Name": "Xstream Play Premium",
+"Price (Rs, ex GST)": 149,
+"Billing": "Monthly",
+"Live TV Channels": "-",
+"OTT Apps": "22+ apps incl. SonyLIV, Lionsgate, Aha",
+"Requirement / Notes": "Works with Airtel Fiber/AirFiber",
+"Can Be Added To": "AIR-01, AIR-08"
+},
+{
+"Pack_ID": "TV-05",
+"Brand": "Airtel",
+"Type": "DTH",
+"Pack Name": "Airtel Digital TV \u2013 Hindi Value Pack",
+"Price (Rs, ex GST)": 350,
+"Billing": "Monthly",
+"Live TV Channels": "200+ channels",
+"OTT Apps": "-",
+"Requirement / Notes": "Separate DTH box",
+"Can Be Added To": "Any (standalone)"
+},
+{
+"Pack_ID": "TV-06",
+"Brand": "Jio",
+"Type": "OTT add-on",
+"Pack Name": "Jio OTT add-on (Fiber)",
+"Price (Rs, ex GST)": 299,
+"Billing": "Monthly",
+"Live TV Channels": "-",
+"OTT Apps": "Amazon Prime Lite, JioHotstar, SonyLIV, ZEE5 + more",
+"Requirement / Notes": "For JioFiber plans without OTT",
+"Can Be Added To": "JIO-01, JIO-02"
+},
+{
+"Pack_ID": "TV-07",
+"Brand": "Jio",
+"Type": "Live TV",
+"Pack Name": "JioTV+ (with STB)",
+"Price (Rs, ex GST)": 0,
+"Billing": "Monthly",
+"Live TV Channels": "1000+ channels",
+"OTT Apps": "-",
+"Requirement / Notes": "Included on OTT-bundle plans",
+"Can Be Added To": "JIO-03 to JIO-11"
+},
+{
+"Pack_ID": "TV-08",
+"Brand": "Standalone",
+"Type": "OTT",
+"Pack Name": "Netflix Mobile",
+"Price (Rs, ex GST)": 149,
+"Billing": "Monthly",
+"Live TV Channels": "-",
+"OTT Apps": "Netflix (mobile only)",
+"Requirement / Notes": "Any internet",
+"Can Be Added To": "Any"
+},
+{
+"Pack_ID": "TV-09",
+"Brand": "Standalone",
+"Type": "OTT",
+"Pack Name": "Netflix Basic",
+"Price (Rs, ex GST)": 199,
+"Billing": "Monthly",
+"Live TV Channels": "-",
+"OTT Apps": "Netflix (1 screen HD)",
+"Requirement / Notes": "Any internet",
+"Can Be Added To": "Any"
+},
+{
+"Pack_ID": "TV-10",
+"Brand": "Standalone",
+"Type": "OTT",
+"Pack Name": "Netflix Premium",
+"Price (Rs, ex GST)": 649,
+"Billing": "Monthly",
+"Live TV Channels": "-",
+"OTT Apps": "Netflix (4 screens 4K)",
+"Requirement / Notes": "Any internet",
+"Can Be Added To": "Any"
+},
+{
+"Pack_ID": "TV-11",
+"Brand": "Standalone",
+"Type": "OTT",
+"Pack Name": "Amazon Prime (monthly)",
+"Price (Rs, ex GST)": 299,
+"Billing": "Monthly",
+"Live TV Channels": "-",
+"OTT Apps": "Prime Video, Prime delivery",
+"Requirement / Notes": "Any internet",
+"Can Be Added To": "Any"
+},
+{
+"Pack_ID": "TV-12",
+"Brand": "Standalone",
+"Type": "OTT",
+"Pack Name": "Amazon Prime Lite (yearly)",
+"Price (Rs, ex GST)": 799,
+"Billing": "Yearly",
+"Live TV Channels": "-",
+"OTT Apps": "Prime Video (HD, ads)",
+"Requirement / Notes": "Any internet",
+"Can Be Added To": "Any"
+},
+{
+"Pack_ID": "TV-13",
+"Brand": "Standalone",
+"Type": "OTT",
+"Pack Name": "JioHotstar Mobile",
+"Price (Rs, ex GST)": 149,
+"Billing": "Quarterly",
+"Live TV Channels": "-",
+"OTT Apps": "JioHotstar (mobile)",
+"Requirement / Notes": "Any internet",
+"Can Be Added To": "Any"
+},
+{
+"Pack_ID": "TV-14",
+"Brand": "Standalone",
+"Type": "OTT",
+"Pack Name": "JioHotstar Super",
+"Price (Rs, ex GST)": 299,
+"Billing": "Quarterly",
+"Live TV Channels": "-",
+"OTT Apps": "JioHotstar (2 devices, TV)",
+"Requirement / Notes": "Any internet",
+"Can Be Added To": "Any"
+},
+{
+"Pack_ID": "TV-15",
+"Brand": "Standalone",
+"Type": "OTT",
+"Pack Name": "SonyLIV Premium",
+"Price (Rs, ex GST)": 699,
+"Billing": "Half-yearly",
+"Live TV Channels": "-",
+"OTT Apps": "SonyLIV",
+"Requirement / Notes": "Any internet",
+"Can Be Added To": "Any"
+},
+{
+"Pack_ID": "TV-16",
+"Brand": "Standalone",
+"Type": "OTT",
+"Pack Name": "ZEE5 Premium HD",
+"Price (Rs, ex GST)": 699,
+"Billing": "Yearly",
+"Live TV Channels": "-",
+"OTT Apps": "ZEE5",
+"Requirement / Notes": "Any internet",
+"Can Be Added To": "Any"
+},
+{
+"Pack_ID": "Standalone OTT prices are public retail prices (sample) \u2013 verify on each app before go-live.",
+"Brand": null,
+"Type": null,
+"Pack Name": null,
+"Price (Rs, ex GST)": null,
+"Billing": null,
+"Live TV Channels": null,
+"OTT Apps": null,
+"Requirement / Notes": null,
+"Can Be Added To": null
+}
+],
+"pincodes": [
+{
+"Pincode": "452001",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"ConnectBhai Zone": "Nehru Park",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 27
+},
+{
+"Pincode": "452002",
+"Area / Locality": "Malharganj, Juni Indore",
+"ConnectBhai Zone": "Pologround",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "N",
+"No. of Plans Available": 24
+},
+{
+"Pincode": "452003",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"ConnectBhai Zone": "Bengali Chouraha",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "N",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 21
+},
+{
+"Pincode": "452005",
+"Area / Locality": "Annapurna, Usha Nagar",
+"ConnectBhai Zone": "Nehru Park",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 27
+},
+{
+"Pincode": "452006",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"ConnectBhai Zone": "Transport Nagar",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "N",
+"No. of Plans Available": 24
+},
+{
+"Pincode": "452007",
+"Area / Locality": "Siyaganj, Chhawni",
+"ConnectBhai Zone": "Nehru Park",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "N",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 20
+},
+{
+"Pincode": "452008",
+"Area / Locality": "Palasia, Saket Nagar",
+"ConnectBhai Zone": "Meghdoot Park",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 27
+},
+{
+"Pincode": "452009",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"ConnectBhai Zone": "Nehru Park",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 27
+},
+{
+"Pincode": "452010",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"ConnectBhai Zone": "Meghdoot Park",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 27
+},
+{
+"Pincode": "452011",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"ConnectBhai Zone": "Transport Nagar",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 27
+},
+{
+"Pincode": "452012",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"ConnectBhai Zone": "Transport Nagar",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "N",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 21
+},
+{
+"Pincode": "452014",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"ConnectBhai Zone": "Pologround",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "N",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "N",
+"No. of Plans Available": 17
+},
+{
+"Pincode": "452015",
+"Area / Locality": "Sanwer Road Industrial Area",
+"ConnectBhai Zone": "Pologround",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "N",
+"No. of Plans Available": 24
+},
+{
+"Pincode": "452016",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"ConnectBhai Zone": "Bengali Chouraha",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 27
+},
+{
+"Pincode": "452018",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"ConnectBhai Zone": "Meghdoot Park",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 27
+},
+{
+"Pincode": "452020",
+"Area / Locality": "Silicon City, Rau Bypass",
+"ConnectBhai Zone": "Transport Nagar",
+"Urban / Rural": "Urban",
+"BSNL Fiber (FTTH)": "N",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 20
+},
+{
+"Pincode": "453331",
+"Area / Locality": "Rau",
+"ConnectBhai Zone": "Rural - Mhow",
+"Urban / Rural": "Rural",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "N",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 20
+},
+{
+"Pincode": "453441",
+"Area / Locality": "Mhow Cantonment",
+"ConnectBhai Zone": "Rural - Mhow",
+"Urban / Rural": "Rural",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "Y",
+"JioFiber": "Y",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "N",
+"No. of Plans Available": 24
+},
+{
+"Pincode": "453551",
+"Area / Locality": "Depalpur",
+"ConnectBhai Zone": "Rural - Depalpur",
+"Urban / Rural": "Rural",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "N",
+"JioFiber": "N",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "N",
+"No. of Plans Available": 11
+},
+{
+"Pincode": "453220",
+"Area / Locality": "Gautampura",
+"ConnectBhai Zone": "Rural - Depalpur",
+"Urban / Rural": "Rural",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "N",
+"JioFiber": "N",
+"Jio AirFiber (5G)": "N",
+"Airtel AirFiber (5G)": "N",
+"No. of Plans Available": 7
+},
+{
+"Pincode": "453771",
+"Area / Locality": "Sanwer",
+"ConnectBhai Zone": "Rural - Sanwer",
+"Urban / Rural": "Rural",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "N",
+"JioFiber": "N",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "Y",
+"No. of Plans Available": 14
+},
+{
+"Pincode": "453111",
+"Area / Locality": "Hatod",
+"ConnectBhai Zone": "Rural - Depalpur",
+"Urban / Rural": "Rural",
+"BSNL Fiber (FTTH)": "Y",
+"Airtel Xstream Fiber": "N",
+"JioFiber": "N",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "N",
+"No. of Plans Available": 11
+},
+{
+"Pincode": "453446",
+"Area / Locality": "Kishanganj, Mhow Road",
+"ConnectBhai Zone": "Rural - Mhow",
+"Urban / Rural": "Rural",
+"BSNL Fiber (FTTH)": "N",
+"Airtel Xstream Fiber": "N",
+"JioFiber": "N",
+"Jio AirFiber (5G)": "Y",
+"Airtel AirFiber (5G)": "N",
+"No. of Plans Available": 4
+}
+],
+"map": [
+{
+"Pincode": "452001",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452001",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajwada, MG Road, Jawahar Marg",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452002",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Malharganj, Juni Indore",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452003",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Musakhedi, Azad Nagar",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452005",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Annapurna, Usha Nagar",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452006",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanyogitaganj, Navlakha",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452007",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Siyaganj, Chhawni",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452008",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Palasia, Saket Nagar",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452009",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sudama Nagar, Dwarkapuri",
+"Zone": "Nehru Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452010",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Vijay Nagar, Scheme 54, Scheme 78",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452011",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Bhawarkuan, Pipliyahana",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452012",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rajendra Nagar, Bijalpur",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452014",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Lokmanya Nagar, Kalani Nagar",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452015",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer Road Industrial Area",
+"Zone": "Pologround",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452016",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Khajrana, Kanadia Road, Bengali Square",
+"Zone": "Bengali Chouraha",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452018",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Nipania, Bicholi Mardana, Lasudia",
+"Zone": "Meghdoot Park",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "452020",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Silicon City, Rau Bypass",
+"Zone": "Transport Nagar",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453331",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Rau",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "AIR-01",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "AIR-02",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "AIR-03",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "AIR-04",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "AIR-05",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "AIR-06",
+"Brand": "Airtel",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-01",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-02",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-03",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-04",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-05",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-06",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-07",
+"Brand": "Jio",
+"Technology": "FTTH",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453441",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Mhow Cantonment",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453551",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Depalpur",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453220",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Gautampura",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453220",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Gautampura",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453220",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Gautampura",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453220",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Gautampura",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453220",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Gautampura",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453220",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Gautampura",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453220",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Gautampura",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "AIR-07",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "AIR-08",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "AIR-09",
+"Brand": "Airtel",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453771",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Sanwer",
+"Zone": "Rural - Sanwer",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "BSNL-01",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "BSNL-02",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "BSNL-03",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "BSNL-04",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "BSNL-05",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "BSNL-06",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "BSNL-07",
+"Brand": "BSNL",
+"Technology": "FTTH",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453111",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Hatod",
+"Zone": "Rural - Depalpur",
+"Available": "Y"
+},
+{
+"Pincode": "453446",
+"Plan_ID": "JIO-08",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Kishanganj, Mhow Road",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453446",
+"Plan_ID": "JIO-09",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Kishanganj, Mhow Road",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453446",
+"Plan_ID": "JIO-10",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Kishanganj, Mhow Road",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+},
+{
+"Pincode": "453446",
+"Plan_ID": "JIO-11",
+"Brand": "Jio",
+"Technology": "5G AirFiber",
+"Area / Locality": "Kishanganj, Mhow Road",
+"Zone": "Rural - Mhow",
+"Available": "Y"
+}
+]
+}

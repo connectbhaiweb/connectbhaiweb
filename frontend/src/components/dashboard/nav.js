@@ -22,7 +22,7 @@ export const ROLES = {
     { tab: "tickets", label: "Tickets", Icon: Ticket },
     { tab: "chat", label: "Chat", Icon: ChatBubbles, badge: "dot-blue" },
   ] },
-  tip: { base: "tip", title: "TIP partner", items: [
+  tip: { base: "tip", title: "TIP", items: [
     { tab: "home", label: "Home", Icon: House },
     { tab: "careplan", label: "Care plan", Icon: ShieldCheck },
     { tab: "leads", label: "Leads", Icon: Users, badge: "new" },
@@ -37,7 +37,7 @@ export const ROLES = {
     { tab: "careplan", label: "Care plan", Icon: ShieldCheck },
     { tab: "leads", label: "Leads", Icon: Users, badge: "new" },
     { tab: "customers", label: "Customers", Icon: User },
-    { tab: "partners", label: "Partners", Icon: Handshake, badge: "pending" },
+    { tab: "partners", label: "DSA & TIP", Icon: Handshake, badge: "pending" },
     { tab: "team", label: "Team & logins", Icon: UserCog },
     { tab: "providers", label: "Providers", Icon: Radio },
     { tab: "plans", label: "Plans", Icon: Layers, badge: "pending" },

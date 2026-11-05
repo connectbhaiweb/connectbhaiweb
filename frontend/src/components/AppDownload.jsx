@@ -55,7 +55,7 @@ export default async function AppDownload() {
               <b className="ph-t">Track installation</b><small>Booking #CB-104B2</small>
               <ol className="ph-steps">
                 <li className="done"><b>Lead received</b><small>Today, 10:12 am</small></li>
-                <li className="done"><b>Partner assigned</b><small>Sharma Networks</small></li>
+                <li className="done"><b>TIP assigned</b><small>Sharma Networks</small></li>
                 <li className="now"><b>Installation scheduled</b><small>Tomorrow, 11 am</small></li>
                 <li><b>Installed</b><small>Pending</small></li>
               </ol>

@@ -5,3 +5,7 @@ dist/
 .env.*
 !.env.example
 .DS_Store
+
+# generated production secrets (give to your host, never commit)
+.production.env
+*.production.env

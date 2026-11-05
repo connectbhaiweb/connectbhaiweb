@@ -10,7 +10,7 @@ export default function Footer() {
               <Logo height={40} />
             </div>
             <p style={{ marginTop: 8 }}>
-              Compare. Choose. Connect. A broadband marketplace for Madhya Pradesh, live in Indore, connecting customers with BSNL TIP partners, Direct Selling Agents and local internet providers.
+              Compare. Choose. Connect. A broadband marketplace for Madhya Pradesh, live in Indore, connecting customers with BSNL TIPs, Direct Selling Agents and local internet providers.
             </p>
           </div>
           <div>
@@ -22,7 +22,7 @@ export default function Footer() {
               <li><button className="linkbtn" data-go="home" data-scroll="faq" type="button">FAQ</button></li>
               <li><button className="linkbtn" data-go="home" data-scroll="get-app" type="button">Get the app</button></li>
               <li><button className="linkbtn" data-go="my" type="button">My dashboard</button></li>
-              <li><button className="linkbtn" data-go="home" data-scroll="partners" type="button">Become a partner</button></li>
+              <li><button className="linkbtn" data-go="home" data-scroll="partners" type="button">Become a DSA or TIP</button></li>
             </ul>
           </div>
           <div>

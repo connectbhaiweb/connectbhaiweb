@@ -1,12 +1,17 @@
-# Local dev database only. Run backend/frontend with npm.
+# Local dev database only (optional - you can also use a locally installed MySQL 8).
+# Run backend/frontend with npm:  npm run dev
 services:
   db:
     image: mysql:8
     ports: ["3306:3306"]
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
       MYSQL_DATABASE: connectbhai
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     volumes: [db_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
 volumes:
   db_data:

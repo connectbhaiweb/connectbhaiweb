@@ -1,0 +1,197 @@
+[
+ {
+  "id": "TC-01",
+  "pincode": "452010",
+  "need": "Vijay Nagar family, any brand, budget up to Rs 800",
+  "query": "max_price=800",
+  "expected_count": 12,
+  "expected_plan_codes": [
+   "BSNL-01",
+   "JIO-01",
+   "BSNL-02",
+   "BSNL-03",
+   "AIR-01",
+   "BSNL-04",
+   "JIO-08",
+   "JIO-02",
+   "AIR-07",
+   "BSNL-05",
+   "AIR-02",
+   "AIR-08"
+  ]
+ },
+ {
+  "id": "TC-02",
+  "pincode": "452010",
+  "need": "Wants Netflix, budget up to Rs 1200",
+  "query": "ott=Netflix&max_price=1200",
+  "expected_count": 3,
+  "expected_plan_codes": [
+   "JIO-03",
+   "AIR-04",
+   "JIO-10"
+  ]
+ },
+ {
+  "id": "TC-03",
+  "pincode": "452016",
+  "need": "Work from home, needs 200+ Mbps, budget up to Rs 1500",
+  "query": "min_speed=200&max_price=1500",
+  "expected_count": 6,
+  "expected_plan_codes": [
+   "BSNL-06",
+   "AIR-03",
+   "AIR-04",
+   "BSNL-07",
+   "JIO-05",
+   "JIO-11"
+  ]
+ },
+ {
+  "id": "TC-04",
+  "pincode": "453551",
+  "need": "Depalpur (rural) – show everything available",
+  "query": "",
+  "expected_count": 11,
+  "expected_plan_codes": [
+   "BSNL-01",
+   "BSNL-02",
+   "BSNL-03",
+   "BSNL-04",
+   "JIO-08",
+   "BSNL-05",
+   "JIO-09",
+   "BSNL-06",
+   "JIO-10",
+   "BSNL-07",
+   "JIO-11"
+  ]
+ },
+ {
+  "id": "TC-05",
+  "pincode": "453220",
+  "need": "Gautampura – only BSNL fiber available",
+  "query": "",
+  "expected_count": 7,
+  "expected_plan_codes": [
+   "BSNL-01",
+   "BSNL-02",
+   "BSNL-03",
+   "BSNL-04",
+   "BSNL-05",
+   "BSNL-06",
+   "BSNL-07"
+  ]
+ },
+ {
+  "id": "TC-06",
+  "pincode": "453446",
+  "need": "Kishanganj – no wired fiber, only Jio AirFiber",
+  "query": "",
+  "expected_count": 4,
+  "expected_plan_codes": [
+   "JIO-08",
+   "JIO-09",
+   "JIO-10",
+   "JIO-11"
+  ]
+ },
+ {
+  "id": "TC-07",
+  "pincode": "452007",
+  "need": "Siyaganj – JioFiber not available; wants Hotstar under Rs 900",
+  "query": "ott=Hotstar&max_price=900",
+  "expected_count": 7,
+  "expected_plan_codes": [
+   "BSNL-04",
+   "JIO-08",
+   "AIR-07",
+   "BSNL-05",
+   "AIR-02",
+   "AIR-09",
+   "JIO-09"
+  ]
+ },
+ {
+  "id": "TC-08",
+  "pincode": "452018",
+  "need": "Office in Nipania, needs 300+ Mbps",
+  "query": "min_speed=300",
+  "expected_count": 7,
+  "expected_plan_codes": [
+   "BSNL-07",
+   "JIO-05",
+   "JIO-11",
+   "AIR-05",
+   "JIO-06",
+   "AIR-06",
+   "JIO-07"
+  ]
+ },
+ {
+  "id": "TC-09",
+  "pincode": "452001",
+  "need": "Only BSNL plans, budget up to Rs 600",
+  "query": "brand=BSNL&max_price=600",
+  "expected_count": 4,
+  "expected_plan_codes": [
+   "BSNL-01",
+   "BSNL-02",
+   "BSNL-03",
+   "BSNL-04"
+  ]
+ },
+ {
+  "id": "TC-10",
+  "pincode": "452020",
+  "need": "Silicon City – no BSNL; cheapest plan",
+  "query": "",
+  "expected_count": 20,
+  "expected_plan_codes": [
+   "JIO-01",
+   "AIR-01",
+   "JIO-08",
+   "JIO-02",
+   "AIR-07",
+   "AIR-02",
+   "AIR-08",
+   "JIO-03",
+   "AIR-09",
+   "JIO-09",
+   "AIR-03",
+   "JIO-04",
+   "AIR-04",
+   "JIO-10",
+   "JIO-05",
+   "JIO-11",
+   "AIR-05",
+   "JIO-06",
+   "AIR-06",
+   "JIO-07"
+  ]
+ },
+ {
+  "id": "TC-11",
+  "pincode": "452003",
+  "need": "Musakhedi – wants Amazon Prime, wired fiber only",
+  "query": "ott=Amazon&wired_only=1",
+  "expected_count": 7,
+  "expected_plan_codes": [
+   "JIO-03",
+   "BSNL-06",
+   "JIO-04",
+   "BSNL-07",
+   "JIO-05",
+   "JIO-06",
+   "JIO-07"
+  ]
+ },
+ {
+  "id": "TC-12",
+  "pincode": "999999",
+  "need": "Invalid / non-Indore pincode",
+  "query": "",
+  "expected_count": 0,
+  "expected_plan_codes": []
+ }
+]

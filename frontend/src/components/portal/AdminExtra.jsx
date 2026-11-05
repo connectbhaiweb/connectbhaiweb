@@ -18,7 +18,7 @@ async function loadPeople(API) {
   return { customers, partners, leads, bookings, charges, comms };
 }
 
-/* Admin → Customers: Customers / TIP partners / DSA agents */
+/* Admin → Customers: Customers / TIPs / DSA agents */
 export function AdminCustomers({ tab }) {
   const { active, pending, data, error, loading, reload } = useDashData("admin", loadPeople);
   const [t, setT] = useState("customers");
@@ -27,10 +27,10 @@ export function AdminCustomers({ tab }) {
   if (error && !data) return <div className="dsh-page"><Failed error={error} retry={reload} /></div>;
   const { customers, partners, leads, bookings, charges, comms } = data;
   const tips = partners.filter(p => p.type === "tip"), dsas = partners.filter(p => p.type === "dsa");
-  const T = [["customers", "Customers", customers.length], ["tip", "TIP partners", tips.length], ["dsa", "DSA agents", dsas.length]];
+  const T = [["customers", "Customers", customers.length], ["tip", "TIPs", tips.length], ["dsa", "DSA agents", dsas.length]];
   return (
     <div className="dsh-page"><div className="pt">
-      <PortalHead title="Customers" sub="Everyone on Connect Bhai: customers, TIP partners and DSA agents." />
+      <PortalHead title="Customers" sub="Everyone on Connect Bhai: customers, TIPs and DSA agents." />
       <div className="pt-filters" role="tablist" aria-label="Lists">{T.map(([k, l, n]) => <button key={k} type="button" role="tab" aria-selected={t === k} onClick={() => setT(k)}>{l}<span>{n}</span></button>)}</div>
       {t === "customers" && (
         <Card title={`Customers (${customers.length})`} Icon={User}>
@@ -49,9 +49,9 @@ export function AdminCustomers({ tab }) {
         </Card>
       )}
       {t === "tip" && (
-        <Card title={`TIP partners (${tips.length})`} Icon={Users}>
-          <div className="pt-table pt-t-pt" role="table" aria-label="TIP partners">
-            <div className="pt-tr pt-th" role="row"><span role="columnheader">Partner</span><span role="columnheader">Status</span><span role="columnheader">Leads given</span><span role="columnheader">Installed</span><span role="columnheader">Amount paid</span><span role="columnheader">Receipts</span></div>
+        <Card title={`TIPs (${tips.length})`} Icon={Users}>
+          <div className="pt-table pt-t-pt" role="table" aria-label="TIPs">
+            <div className="pt-tr pt-th" role="row"><span role="columnheader">DSA / TIP</span><span role="columnheader">Status</span><span role="columnheader">Leads given</span><span role="columnheader">Installed</span><span role="columnheader">Amount paid</span><span role="columnheader">Receipts</span></div>
             {tips.map(p => { const paid = charges.filter(c => c.partner_id === p.id && c.status === "paid"); return (
               <div className="pt-tr" role="row" key={p.id}>
                 <span role="cell" className="pt-name"><span><b>{p.firm || p.name}</b><small>{p.name} · {p.service_pincodes || "—"}</small></span></span>
@@ -106,7 +106,7 @@ export function BillingBreakdown({ tab }) {
     <div className="dsh-page dsh-addon"><div className="pt pt-addon">
       {error && !data ? <Failed error={error} retry={reload} /> : !data ? <Loading /> : (
         <div className="pt-row pt-row-2">
-          <Breakdown title="Partner fees: GST / TDS" sub="Registration and platform fees charged to partners (excluding waived/cancelled)."
+          <Breakdown title="TIP fees: GST / TDS" sub="Registration and platform fees charged to TIPs (excluding waived/cancelled)."
             base={sum(data.charges.filter(c => c.partner_id && !["waived", "cancelled"].includes(c.status)), c => c.base_amount)} />
           <Breakdown title="DSA payouts: GST / TDS" sub="Commission owed to DSA agents (excluding rejected)."
             base={sum(data.comms.filter(c => c.status !== "rejected"), c => c.amount)} />

@@ -110,8 +110,8 @@ function BookingCard({ lead, booking, events }) {
       {lost && <p className="cu-note">This request was closed. Search your PIN code again to request a new connection.</p>}
 
       <div className="cu-people">
-        <Person label="Your agent" city={cityOf(lead.pincode)} p={lead.dsa} kind="DSA Partner" text={`Namaste, about my Connect Bhai request ${lead.ref_code}`} />
-        <Person label="Your installer" city={cityOf(lead.pincode)} p={lead.tip} kind={`${lead.plan && lead.plan.provider ? lead.plan.provider.name + " " : ""}TIP Partner`} text={`Namaste, about my connection ${lead.ref_code}`} store />
+        <Person label="Your agent" city={cityOf(lead.pincode)} p={lead.dsa} kind="DSA" text={`Namaste, about my Connect Bhai request ${lead.ref_code}`} />
+        <Person label="Your installer" city={cityOf(lead.pincode)} p={lead.tip} kind={`${lead.plan && lead.plan.provider ? lead.plan.provider.name + " " : ""}TIP`} text={`Namaste, about my connection ${lead.ref_code}`} store />
       </div>
     </section>
   );

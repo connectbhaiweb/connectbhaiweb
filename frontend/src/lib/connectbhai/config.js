@@ -4,11 +4,14 @@ export const CONFIG = {
   SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || null,        // e.g. "https://xyzcompany.supabase.co"
   SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || null, // public anon key (RLS protects data)
   SUPPORT_NAME: "Connect Bhai Admin",
-  SUPPORT_PHONE: "9479935365",          // shown to customers and partners for call / WhatsApp
+  SUPPORT_PHONE: "9479935365",          // shown to customers, DSAs and TIPs for call / WhatsApp
   SUPPORT_EMAIL: "support@connectbhai.in",
 };
 export const SUPPORT = { name: CONFIG.SUPPORT_NAME, phone: CONFIG.SUPPORT_PHONE, email: CONFIG.SUPPORT_EMAIL, role: "admin" };
-export const LIVE = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
+/* REST: the NestJS + MySQL API (NEXT_PUBLIC_API_URL). Takes priority over Supabase and the in-browser demo. */
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || null;
+export const REST = !!API_URL;
+export const LIVE = REST || !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY);
 
 /* App store links. Leave empty until the apps are published: the buttons then say "coming soon" and no QR is shown. */
 export const APP_LINKS = {

@@ -20,6 +20,7 @@ import CompareBar from "@/components/CompareBar";
 import Overlays from "@/components/Overlays";
 import StoryTemplate from "@/components/StoryTemplate";
 import ConnectBhaiRuntime from "@/components/ConnectBhaiRuntime";
+import TableTools from "@/components/TableTools";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 
 export const metadata = {
@@ -48,6 +49,7 @@ export default function RootLayout({ children }) {
         <StoryTemplate />
         <DashboardShell />
         <ConnectBhaiRuntime />
+        <TableTools />
       </body>
     </html>
   );

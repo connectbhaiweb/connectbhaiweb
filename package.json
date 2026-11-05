@@ -1,0 +1,15 @@
+{
+  "name": "connectbhai",
+  "private": true,
+  "description": "ConnectBhai monorepo: Next.js frontend + NestJS/Prisma/MySQL backend",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "setup": "npm --prefix backend ci && npm --prefix frontend ci && npm run db:setup",
+    "db:setup": "npm --prefix backend run db:setup",
+    "dev": "concurrently -k -n api,web -c blue,green \"npm --prefix backend run start:dev\" \"npm --prefix frontend run dev\"",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "start": "concurrently -k -n api,web -c blue,green \"npm --prefix backend run start:prod\" \"npm --prefix frontend run start\"",
+    "test": "npm --prefix backend run test:all"
+  },
+  "devDependencies": { "concurrently": "^9.1.0" }
+}

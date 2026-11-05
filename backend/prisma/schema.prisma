@@ -1,0 +1,607 @@
+// ConnectBhai - MySQL schema (source of truth for migrations).
+// Field names are snake_case on purpose: they match the DB columns and the API JSON.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum CityStatus {
+  live
+  soon
+  hidden
+}
+enum PlanType {
+  fiber
+  airfiber
+  tv
+  ott
+  sim
+}
+enum UserRole {
+  customer
+  dsa
+  tip
+  admin
+}
+enum PartnerStatus {
+  pending
+  approved
+  rejected
+  suspended
+}
+enum OtpPurpose {
+  login
+  signup
+  reset
+}
+enum LeadSource {
+  website
+  callback
+  dsa
+  admin
+}
+enum LeadStatus {
+  new
+  contacted
+  followup
+  scheduled
+  installed
+  lost
+  cancelled
+}
+enum BookingStatus {
+  scheduled
+  completed
+  rescheduled
+  cancelled
+}
+enum CommissionStatus {
+  pending
+  approved
+  paid
+  cancelled
+}
+enum PayMode {
+  upi
+  bank
+  cash
+  other
+}
+enum ChargeKind {
+  tip_onboarding
+  tip_install_fee
+  tip_care_plan_fee
+  customer_payment
+  other
+}
+enum ChargeStatus {
+  pending
+  paid
+  failed
+  waived
+  cancelled
+  refunded
+}
+enum ChargePayMode {
+  razorpay
+  offline
+}
+enum TicketCategory {
+  no_internet
+  slow_speed
+  billing
+  shifting
+  other
+}
+enum TicketPriority {
+  low
+  normal
+  high
+}
+enum TicketStatus {
+  open
+  in_progress
+  resolved
+  closed
+}
+enum ThreadType {
+  lead
+  support
+  ticket
+}
+enum DeviceActionType {
+  reboot
+  change_wifi
+  factory_reset
+  refresh
+}
+enum DeviceActionStatus {
+  queued
+  sent
+  done
+  failed
+}
+enum NotifChannel {
+  whatsapp
+  sms
+  in_app
+}
+enum NotifStatus {
+  queued
+  sent
+  delivered
+  failed
+}
+
+// ---------------- 1. Location ----------------
+model City {
+  id     BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  name   String     @unique(map: "uq_city_name") @db.VarChar(80)
+  status CityStatus @default(soon)
+  areas     Area[]
+  users     User[]
+  waitlist  Waitlist[]
+  @@map("cities")
+}
+
+model Area {
+  id      BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  city_id BigInt @db.UnsignedBigInt
+  name    String @db.VarChar(120)
+  pincode String @db.Char(6)
+  city City   @relation(fields: [city_id], references: [id])
+  leads Lead[]
+  @@unique([city_id, name, pincode], map: "uq_area")
+  @@index([pincode], map: "ix_pincode")
+  @@map("areas")
+}
+
+model TipPincodeMapping {
+  id          BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  pincode     String  @db.Char(6)
+  tip_user_id BigInt  @db.UnsignedBigInt
+  is_active   Boolean @default(true)
+  tip User @relation(fields: [tip_user_id], references: [id])
+  @@unique([pincode, tip_user_id], map: "uq_tip_pincode")
+  @@index([tip_user_id], map: "ix_tip")
+  @@map("tip_pincode_mapping")
+}
+
+// ---------------- 2. Catalogue ----------------
+model PlanCategory {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name       String   @db.VarChar(80)
+  type       PlanType @default(fiber)
+  logo_url   String?  @db.VarChar(255)
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  plans Plan[]
+  @@unique([name, type], map: "uq_cat")
+  @@map("plan_categories")
+}
+
+model Plan {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  plan_code      String   @unique(map: "uq_plan_code") @db.VarChar(40)
+  category_id    BigInt   @db.UnsignedBigInt
+  name           String   @db.VarChar(160)
+  speed_mbps     Int?
+  data_limit     String?  @db.VarChar(40)
+  validity_days  Int?
+  price          Decimal  @db.Decimal(10, 2)
+  install_charge Decimal  @default(0) @db.Decimal(10, 2)
+  router_charge  Decimal  @default(0) @db.Decimal(10, 2)
+  needs_install  Boolean  @default(true)
+  has_tv         Boolean  @default(false)
+  tv_channels    Int?
+  benefits       Json?
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now()) @db.DateTime(3)
+  updated_at     DateTime @default(now()) @updatedAt @db.DateTime(3)
+  category PlanCategory   @relation(fields: [category_id], references: [id])
+  otts     PlanOttApp[]
+  pincodes PincodePlanMapping[]
+  leads    Lead[]
+  @@index([category_id], map: "ix_plan_cat")
+  @@map("plans")
+}
+
+model OttApp {
+  id        BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  name      String  @unique(map: "uq_ott") @db.VarChar(80)
+  logo_url  String? @db.VarChar(255)
+  is_active Boolean @default(true)
+  plans PlanOttApp[]
+  @@map("ott_apps")
+}
+
+model PlanOttApp {
+  plan_id    BigInt @db.UnsignedBigInt
+  ott_app_id BigInt @db.UnsignedBigInt
+  plan Plan   @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  ott  OttApp @relation(fields: [ott_app_id], references: [id], onDelete: Cascade)
+  @@id([plan_id, ott_app_id])
+  @@index([ott_app_id], map: "ix_ott")
+  @@map("plan_ott_apps")
+}
+
+model PincodePlanMapping {
+  pincode      String  @db.Char(6)
+  plan_id      BigInt  @db.UnsignedBigInt
+  is_available Boolean @default(true)
+  plan Plan @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  @@id([pincode, plan_id])
+  @@index([plan_id], map: "ix_plan")
+  @@map("pincode_plan_mapping")
+}
+
+// ---------------- 3. People ----------------
+model User {
+  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  role          UserRole
+  partner_code  String?  @unique(map: "uq_partner_code") @db.VarChar(30)
+  name          String   @db.VarChar(120)
+  phone         String   @db.VarChar(15)
+  email         String?  @db.VarChar(160)
+  password_hash String?  @db.VarChar(255)
+  city_id       BigInt?  @db.UnsignedBigInt
+  address       String?  @db.VarChar(255)
+  pincode       String?  @db.Char(6)
+
+  business_name      String?  @db.VarChar(160)
+  gst_number         String?  @db.VarChar(20)
+  gst_state_code     String?  @db.Char(2)
+  aadhaar_enc        Bytes?   @db.VarBinary(255)
+  aadhaar_last4      String?  @db.Char(4)
+  pan_enc            Bytes?   @db.VarBinary(255)
+  pan_last4          String?  @db.Char(4)
+  bank_name          String?  @db.VarChar(120)
+  bank_account_enc   Bytes?   @db.VarBinary(255)
+  bank_account_last4 String?  @db.Char(4)
+  bank_ifsc          String?  @db.VarChar(15)
+  upi_id             String?  @db.VarChar(80)
+  docs               Json?
+
+  partner_status PartnerStatus?
+  approved_by    BigInt?  @db.UnsignedBigInt
+  approved_at    DateTime? @db.DateTime(3)
+  is_internal    Boolean  @default(false)
+
+  is_active     Boolean   @default(true)
+  last_login_at DateTime? @db.DateTime(3)
+  created_at    DateTime  @default(now()) @db.DateTime(3)
+  updated_at    DateTime  @default(now()) @updatedAt @db.DateTime(3)
+
+  city City? @relation(fields: [city_id], references: [id])
+  tip_pincodes      TipPincodeMapping[]
+  leads_as_customer Lead[]   @relation("LeadCustomer")
+  leads_brought     Lead[]   @relation("LeadDsa")
+  leads_assigned    Lead[]   @relation("LeadTip")
+  lead_events       LeadEvent[]
+  bookings          Booking[]
+  commissions       Commission[] @relation("CommissionDsa")
+  charges           Charge[] @relation("ChargePayer")
+  tickets_raised    Ticket[] @relation("TicketRaisedBy")
+  tickets_assigned  Ticket[] @relation("TicketAssignedTo")
+  chat_messages     ChatMessage[]
+  chat_reads        ChatRead[]
+  care_devices      CarePlanDevice[]
+  device_actions    DeviceAction[]
+  notifications     Notification[]
+
+  @@unique([role, phone], map: "uq_role_phone")
+  @@index([role, partner_status], map: "ix_role_status")
+  @@map("users")
+}
+
+model OtpCode {
+  id         BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  phone      String     @db.VarChar(15)
+  code_hash  String     @db.VarChar(255)
+  purpose    OtpPurpose @default(login)
+  attempts   Int        @default(0) @db.TinyInt
+  expires_at DateTime   @db.DateTime(3)
+  used_at    DateTime?  @db.DateTime(3)
+  created_at DateTime   @default(now()) @db.DateTime(3)
+  @@index([phone, created_at], map: "ix_otp_phone")
+  @@map("otp_codes")
+}
+
+// ---------------- 4. Sales ----------------
+model Lead {
+  id                 BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  ref_code           String     @unique(map: "uq_ref") @db.VarChar(30)
+  source             LeadSource @default(website)
+  customer_user_id   BigInt?    @db.UnsignedBigInt
+  customer_name      String     @db.VarChar(120)
+  customer_phone     String     @db.VarChar(15)
+  customer_email     String?    @db.VarChar(160)
+  address            String?    @db.VarChar(255)
+  area_id            BigInt?    @db.UnsignedBigInt
+  pincode            String     @db.Char(6)
+  plan_id            BigInt?    @db.UnsignedBigInt
+  brought_by_user_id BigInt?    @db.UnsignedBigInt
+  tip_user_id        BigInt?    @db.UnsignedBigInt
+  status             LeadStatus @default(new)
+  followup_at        DateTime?  @db.DateTime(3)
+  lost_reason        String?    @db.VarChar(255)
+  notes              String?    @db.Text
+  care_plan          Boolean    @default(false)
+  care_plan_at       DateTime?  @db.DateTime(3)
+  installed_at       DateTime?  @db.DateTime(3)
+  created_at         DateTime   @default(now()) @db.DateTime(3)
+  updated_at         DateTime   @default(now()) @updatedAt @db.DateTime(3)
+
+  customer User? @relation("LeadCustomer", fields: [customer_user_id], references: [id])
+  area     Area? @relation(fields: [area_id], references: [id])
+  plan     Plan? @relation(fields: [plan_id], references: [id])
+  dsa      User? @relation("LeadDsa", fields: [brought_by_user_id], references: [id])
+  tip      User? @relation("LeadTip", fields: [tip_user_id], references: [id])
+  events      LeadEvent[]
+  bookings    Booking[]
+  commission  Commission?
+  charges     Charge[]
+  charge_leads ChargeLead[]
+  tickets     Ticket[]
+  care_device CarePlanDevice?
+
+  @@index([tip_user_id, status], map: "ix_lead_tip")
+  @@index([brought_by_user_id, status], map: "ix_lead_dsa")
+  @@index([pincode], map: "ix_lead_pin")
+  @@index([customer_phone], map: "ix_lead_phone")
+  @@map("leads")
+}
+
+model LeadEvent {
+  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id       BigInt   @db.UnsignedBigInt
+  actor_user_id BigInt?  @db.UnsignedBigInt
+  event_type    String   @db.VarChar(40)
+  from_status   String?  @db.VarChar(20)
+  to_status     String?  @db.VarChar(20)
+  note          String?  @db.VarChar(500)
+  created_at    DateTime @default(now()) @db.DateTime(3)
+  lead  Lead  @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actor_user_id], references: [id])
+  @@index([lead_id, created_at], map: "ix_le_lead")
+  @@map("lead_events")
+}
+
+model Booking {
+  id            BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id       BigInt        @db.UnsignedBigInt
+  tip_user_id   BigInt        @db.UnsignedBigInt
+  scheduled_at  DateTime      @db.DateTime(3)
+  status        BookingStatus @default(scheduled)
+  completed_at  DateTime?     @db.DateTime(3)
+  connection_id String?       @db.VarChar(60)
+  router_serial String?       @db.VarChar(60)
+  router_mac    String?       @db.VarChar(20)
+  notes         String?       @db.VarChar(500)
+  created_at    DateTime      @default(now()) @db.DateTime(3)
+  updated_at    DateTime      @default(now()) @updatedAt @db.DateTime(3)
+  lead Lead @relation(fields: [lead_id], references: [id])
+  tip  User @relation(fields: [tip_user_id], references: [id])
+  commissions Commission[]
+  @@index([lead_id], map: "ix_bk_lead")
+  @@index([tip_user_id, status], map: "ix_bk_tip")
+  @@map("bookings")
+}
+
+// ---------------- 5. Money ----------------
+model Commission {
+  id             BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  dsa_user_id    BigInt           @db.UnsignedBigInt
+  lead_id        BigInt           @unique(map: "uq_comm_lead") @db.UnsignedBigInt
+  booking_id     BigInt?          @db.UnsignedBigInt
+  amount         Decimal          @db.Decimal(12, 2)
+  status         CommissionStatus @default(pending)
+  approved_by    BigInt?          @db.UnsignedBigInt
+  approved_at    DateTime?        @db.DateTime(3)
+  paid_at        DateTime?        @db.DateTime(3)
+  paid_mode      PayMode?
+  paid_reference String?          @db.VarChar(80)
+  paid_by        BigInt?          @db.UnsignedBigInt
+  notes          String?          @db.VarChar(255)
+  created_at     DateTime         @default(now()) @db.DateTime(3)
+  dsa     User     @relation("CommissionDsa", fields: [dsa_user_id], references: [id])
+  lead    Lead     @relation(fields: [lead_id], references: [id])
+  booking Booking? @relation(fields: [booking_id], references: [id])
+  @@index([dsa_user_id, status], map: "ix_comm_dsa")
+  @@map("commissions")
+}
+
+model Charge {
+  id          BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  kind        ChargeKind
+  payer_user_id BigInt   @db.UnsignedBigInt
+  lead_id     BigInt?    @db.UnsignedBigInt
+  description String?    @db.VarChar(255)
+
+  base_amount  Decimal @db.Decimal(12, 2)
+  gst_percent  Decimal @default(18.00) @db.Decimal(5, 2)
+  cgst_amount  Decimal @default(0) @db.Decimal(12, 2)
+  sgst_amount  Decimal @default(0) @db.Decimal(12, 2)
+  igst_amount  Decimal @default(0) @db.Decimal(12, 2)
+  total_amount Decimal @db.Decimal(12, 2)
+
+  status              ChargeStatus   @default(pending)
+  pay_mode            ChargePayMode?
+  razorpay_order_id   String?        @unique(map: "uq_rzp_order") @db.VarChar(60)
+  razorpay_payment_id String?        @db.VarChar(60)
+  razorpay_signature  String?        @db.VarChar(255)
+  offline_reference   String?        @db.VarChar(80)
+  recorded_by         BigInt?        @db.UnsignedBigInt
+  paid_at             DateTime?      @db.DateTime(3)
+
+  invoice_no  String? @unique(map: "uq_invoice") @db.VarChar(40)
+  invoice_url String? @db.VarChar(255)
+
+  // Set by the application to lead_id for live tip_install_fee rows (NULL otherwise)
+  // so a lead can never be billed an install fee twice. Cleared when the charge is cancelled.
+  install_fee_key BigInt? @unique(map: "uq_install_fee") @db.UnsignedBigInt
+
+  created_at DateTime @default(now()) @db.DateTime(3)
+  updated_at DateTime @default(now()) @updatedAt @db.DateTime(3)
+
+  payer User  @relation("ChargePayer", fields: [payer_user_id], references: [id])
+  lead  Lead? @relation(fields: [lead_id], references: [id])
+  charge_leads ChargeLead[]
+  @@index([payer_user_id, kind, status], map: "ix_ch_payer")
+  @@map("charges")
+}
+
+model ChargeLead {
+  id          BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  charge_id   BigInt  @db.UnsignedBigInt
+  lead_id     BigInt  @unique(map: "uq_cl_lead") @db.UnsignedBigInt
+  base_amount Decimal @db.Decimal(12, 2)
+  charge Charge @relation(fields: [charge_id], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [lead_id], references: [id])
+  @@unique([charge_id, lead_id], map: "uq_cl_charge_lead")
+  @@map("charge_leads")
+}
+
+// ---------------- 6. Support ----------------
+model Ticket {
+  id          BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  ticket_code String         @unique(map: "uq_ticket_code") @db.VarChar(30)
+  lead_id     BigInt?        @db.UnsignedBigInt
+  raised_by   BigInt         @db.UnsignedBigInt
+  assigned_to BigInt?        @db.UnsignedBigInt
+  category    TicketCategory @default(other)
+  subject     String         @db.VarChar(160)
+  description String?        @db.Text
+  priority    TicketPriority @default(normal)
+  status      TicketStatus   @default(open)
+  resolved_at DateTime?      @db.DateTime(3)
+  created_at  DateTime       @default(now()) @db.DateTime(3)
+  updated_at  DateTime       @default(now()) @updatedAt @db.DateTime(3)
+  lead     Lead? @relation(fields: [lead_id], references: [id])
+  raiser   User  @relation("TicketRaisedBy", fields: [raised_by], references: [id])
+  assignee User? @relation("TicketAssignedTo", fields: [assigned_to], references: [id])
+  @@index([raised_by, status], map: "ix_tk_raised")
+  @@index([assigned_to, status], map: "ix_tk_assigned")
+  @@map("tickets")
+}
+
+model ChatMessage {
+  id             BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  thread_type    ThreadType
+  thread_id      BigInt     @db.UnsignedBigInt
+  sender_user_id BigInt     @db.UnsignedBigInt
+  body           String?    @db.Text
+  attachment_url String?    @db.VarChar(255)
+  created_at     DateTime   @default(now()) @db.DateTime(3)
+  sender User @relation(fields: [sender_user_id], references: [id])
+  @@index([thread_type, thread_id, created_at], map: "ix_chat_thread")
+  @@map("chat_messages")
+}
+
+model ChatRead {
+  user_id              BigInt     @db.UnsignedBigInt
+  thread_type          ThreadType
+  thread_id            BigInt     @db.UnsignedBigInt
+  last_read_message_id BigInt     @default(0) @db.UnsignedBigInt
+  updated_at           DateTime   @default(now()) @updatedAt @db.DateTime(3)
+  user User @relation(fields: [user_id], references: [id])
+  @@id([user_id, thread_type, thread_id])
+  @@map("chat_reads")
+}
+
+// ---------------- 7. Modem (Care Plan) ----------------
+model CarePlanDevice {
+  id                 BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id            BigInt    @unique(map: "uq_cpd_lead") @db.UnsignedBigInt
+  tip_user_id        BigInt    @db.UnsignedBigInt
+  genieacs_device_id String?   @db.VarChar(120)
+  serial_number      String?   @unique(map: "uq_cpd_serial") @db.VarChar(60)
+  mac_address        String?   @db.VarChar(20)
+  model              String?   @db.VarChar(80)
+  is_active          Boolean   @default(true)
+  online             Boolean?
+  last_seen_at       DateTime? @db.DateTime(3)
+  rx_power_dbm       Decimal?  @db.Decimal(5, 2)
+  wifi_ssid          String?   @db.VarChar(64)
+  connected_clients  Int?
+  last_status        Json?
+  created_at         DateTime  @default(now()) @db.DateTime(3)
+  updated_at         DateTime  @default(now()) @updatedAt @db.DateTime(3)
+  lead Lead @relation(fields: [lead_id], references: [id])
+  tip  User @relation(fields: [tip_user_id], references: [id])
+  actions     DeviceAction[]
+  speed_tests SpeedTest[]
+  @@index([tip_user_id], map: "ix_cpd_tip")
+  @@map("care_plan_devices")
+}
+
+model DeviceAction {
+  id                  BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  care_plan_device_id BigInt             @db.UnsignedBigInt
+  requested_by        BigInt             @db.UnsignedBigInt
+  action              DeviceActionType
+  params              Json?
+  status              DeviceActionStatus @default(queued)
+  error               String?            @db.VarChar(255)
+  created_at          DateTime           @default(now()) @db.DateTime(3)
+  completed_at        DateTime?          @db.DateTime(3)
+  device    CarePlanDevice @relation(fields: [care_plan_device_id], references: [id], onDelete: Cascade)
+  requester User           @relation(fields: [requested_by], references: [id])
+  @@index([care_plan_device_id, created_at], map: "ix_da_dev")
+  @@map("device_actions")
+}
+
+model SpeedTest {
+  id                  BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  care_plan_device_id BigInt   @db.UnsignedBigInt
+  download_mbps       Decimal? @db.Decimal(8, 2)
+  upload_mbps         Decimal? @db.Decimal(8, 2)
+  ping_ms             Decimal? @db.Decimal(8, 2)
+  tested_at           DateTime @default(now()) @db.DateTime(3)
+  device CarePlanDevice @relation(fields: [care_plan_device_id], references: [id], onDelete: Cascade)
+  @@index([care_plan_device_id, tested_at], map: "ix_st_dev")
+  @@map("speed_tests")
+}
+
+// ---------------- 8. System ----------------
+model Waitlist {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  city_id     BigInt    @db.UnsignedBigInt
+  name        String?   @db.VarChar(120)
+  phone       String    @db.VarChar(15)
+  notified_at DateTime? @db.DateTime(3)
+  created_at  DateTime  @default(now()) @db.DateTime(3)
+  city City @relation(fields: [city_id], references: [id])
+  @@unique([city_id, phone], map: "uq_wait")
+  @@map("waitlist")
+}
+
+model Notification {
+  id              BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id         BigInt?      @db.UnsignedBigInt
+  phone           String?      @db.VarChar(15)
+  channel         NotifChannel @default(whatsapp)
+  template        String       @db.VarChar(60)
+  payload         Json?
+  status          NotifStatus  @default(queued)
+  provider_msg_id String?      @db.VarChar(80)
+  error           String?      @db.VarChar(255)
+  read_at         DateTime?    @db.DateTime(3)
+  created_at      DateTime     @default(now()) @db.DateTime(3)
+  user User? @relation(fields: [user_id], references: [id])
+  @@index([user_id, created_at], map: "ix_nt_user")
+  @@map("notifications")
+}
+
+model AppSetting {
+  key         String   @id @db.VarChar(60)
+  value       String   @db.VarChar(255)
+  description String?  @db.VarChar(255)
+  updated_by  BigInt?  @db.UnsignedBigInt
+  updated_at  DateTime @default(now()) @updatedAt @db.DateTime(3)
+  @@map("app_settings")
+}

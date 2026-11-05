@@ -1,6 +1,6 @@
 /* Small pure helpers shared by React components and the legacy UI module. SSR-safe. */
 export const ROLE_HOME = { customer: "my", dsa: "dsa", tip: "tip", admin: "admin" };
-export const ROLE_NAME = { customer: "Customer", dsa: "DSA", tip: "TIP partner", admin: "Administrator" };
+export const ROLE_NAME = { customer: "Customer", dsa: "DSA", tip: "TIP", admin: "Administrator" };
 export const ROLE_NAV_LABEL = { customer: "My dashboard", dsa: "DSA portal", tip: "TIP portal", admin: "Admin portal" };
 export const VIEWS = ["home", "speed", "router", "my", "dsa", "tip", "admin"];
 
