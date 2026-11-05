@@ -3,7 +3,9 @@ import { useMemo, useState } from "react";
 import { CalendarDays, ChartColumn, CircleCheck, Clock, CloudUpload, Coins, Database, Download, Loader, Ticket, Users, Wallet, Wifi } from "lucide-react";
 import { useDashData } from "@/components/dashboard/useDashData";
 import { Bars, CallWa, Card, Chip, Counts, Failed, Kpi, Loading, More, Period, Pin, PortalHead } from "./parts";
-import { byMonth, fDate, fWhen, inr, partnerStats, planName, planPrice } from "./stats";
+import { CarePlanCard } from "@/components/careplan/CarePlan";
+import { Progress, TARGET } from "./AdminExtra";
+import { byMonth, fDate, fWhen, inr, partnerStats, planName, planPrice, sum } from "./stats";
 
 async function load(API) {
   const [leads, bookings, tickets, comms, partner, plans, settings, threads, charges] = await Promise.all([API.partnerLeads(), API.partnerBookings(), API.partnerTickets(), API.myCommissions(), API.myPartner(),
@@ -33,7 +35,8 @@ export default function TipDashboard({ tab }) {
 }
 
 function Home({ data, s, months, setMonths }) {
-  const { bookings, tickets, partner, plans, settings } = data;
+  const { bookings, tickets, partner, plans, settings, charges } = data;
+  const paid = charges.filter(c => c.status === "paid");
   const share = Number(settings.tip_share_percent) || 0;
   const chart = byMonth(months, s.mine, l => l.assigned_at || l.created_at, s.inst, b => b.installed_at);
   const t0 = new Date(); t0.setHours(0, 0, 0, 0); const from = new Date(t0 - 3 * 864e5).toISOString().slice(0, 10), to = new Date(+t0 + 7 * 864e5).toISOString().slice(0, 10);
@@ -99,6 +102,18 @@ function Home({ data, s, months, setMonths }) {
             </ul>
           ) : <p className="pt-muted">No open tickets.</p>}
         </Card>
+      </div>
+      <div className="pt-row pt-row-3">
+        <Card title="Leads given" Icon={Users}>
+          <p className="pt-big"><b>{s.mine.length}</b> of {TARGET}</p>
+          <Progress n={s.mine.length} />
+          <p className="pt-muted">All-time leads Connect Bhai has given you. Target: {TARGET}.</p>
+        </Card>
+        <Card title="Amount paid to Connect Bhai" Icon={Wallet} action={<More href="/tip/payments">View</More>}>
+          <p className="pt-big"><b>{inr(sum(paid, c => c.amount))}</b></p>
+          <p className="pt-muted">{paid.length} paid fee{paid.length === 1 ? "" : "s"} (incl. GST){paid[0] ? ` · last on ${fDate(paid[0].paid_at || paid[0].created_at)}` : ""}</p>
+        </Card>
+        <CarePlanCard role="tip" />
       </div>
     </>
   );

@@ -35,10 +35,10 @@ with sync_playwright() as p:
 
     # ---- DSA ----
     c, pg, errs = open_page(b, "dsa"); pg.wait_for_selector(".pt-kpi")
-    check("D1 DSA home: 4 KPIs, chart, 7 pipeline tiles, calls table, commission tiles", pg.locator(".pt-kpi").count() == 4 and pg.locator(".recharts-bar-rectangle").count() > 0 and pg.locator(".pt-pipe li").count() == 7 and pg.locator(".pt-tiles>div").count() == 3)
-    n6 = pg.locator(".recharts-xAxis .recharts-cartesian-axis-tick").count()
-    pg.select_option(".pt-period select", "3"); pg.wait_for_timeout(300)
-    check("D2 'Last 6 months' dropdown changes the chart", n6 == 6 and pg.locator(".recharts-xAxis .recharts-cartesian-axis-tick").count() == 3)
+    check("D1 DSA home: 4 KPIs, NO chart, 7 pipeline tiles, calls table, commission tiles", pg.locator(".pt-kpi").count() == 4 and pg.locator(".recharts-wrapper").count() == 0 and pg.locator(".pt-pipe li").count() == 7 and pg.locator(".pt-tiles>div").count() == 3)
+    pw = pg.evaluate("document.querySelector('.pt-pipecard').getBoundingClientRect().width / document.querySelector('.pt-kpis').getBoundingClientRect().width")
+    pg.wait_for_function("[...document.querySelectorAll('.cp-card .cp-sum b')].every(b=>/^\\d+$/.test(b.textContent))")
+    check("D2 pipeline full width + Care plan card with numbers", pw > .98 and int(pg.locator(".cp-card .cp-sum b").first.inner_text()) > 0, pw)
     hrefs = pg.eval_on_selector_all(".pt-t-calls .pt-ibtn", "els=>els.map(a=>a.getAttribute('href'))")
     check("D3 call / WhatsApp buttons are tel: and wa.me links", hrefs and all(h.startswith(("tel:+91", "https://wa.me/91")) for h in hrefs), hrefs[:2])
     pg.locator(".pt-pipe a").first.click(); pg.wait_for_url("**/dsa/leads")
@@ -94,10 +94,46 @@ with sync_playwright() as p:
     check("A5 search finds leads / partners / locations by PIN", "452009" in pg.locator(".dsh-results").inner_text())
     check("A6 no page errors", not errs, errs[:1]); c.close()
 
+    # ---- Care plan, admin customers, billing, TIP cards, phone search ----
+    for role, path in (("dsa", "/careplan"), ("tip", "/careplan"), ("admin", "/careplan")):
+        c, pg, errs = open_page(b, role, path); pg.wait_for_selector(".cp-table .pt-tr:not(.pt-th)")
+        tot = int(pg.locator(".cp-sum-lg b").first.inner_text()); rows = pg.locator(".cp-table .pt-tr:not(.pt-th)").count()
+        pg.locator(".cp-f button", has_text="Offline").click(); pg.wait_for_timeout(150); off = pg.locator(".cp-table .pt-tr:not(.pt-th)").count()
+        pg.locator(".cp-f button", has_text="All").click(); pg.locator(".cp-search input").fill("neha"); pg.wait_for_timeout(150)
+        hit = pg.locator(".cp-table .pt-tr:not(.pt-th)").count(); txt = pg.locator(".cp-table").inner_text() if hit else ""
+        check(f"P1 {role}: care plan list, Offline filter, search", tot == rows and 0 < off < rows and hit >= 1 and "Neha" in txt and not errs, f"tot {tot} rows {rows} off {off} hit {hit}")
+        c.close()
+    c, pg, errs = open_page(b, "admin", "/careplan"); pg.wait_for_selector(".cp-sum-lg b")
+    check("P2 admin sees all 24 devices; DSA/TIP see fewer", int(pg.locator(".cp-sum-lg b").first.inner_text()) == 24); c.close()
+    c = b.new_context(viewport={"width": 1440, "height": 900}); c.add_init_script("localStorage.setItem('cb-session','u-cust')"); pg = c.new_page(); pg.goto(f"{BASE}/my/devices"); pg.wait_for_selector(".cp-dl")
+    check("P3 customer care plan: own device details + Restart / Change Wi-Fi (app flow)", pg.locator(".cp-dl div").count() >= 10 and pg.locator(".cp-acts [data-act=modem-reboot]").count() == 1 and pg.locator(".cp-acts [data-act=modem-wifi]").count() == 1)
+    pg.locator(".cp-acts [data-act=modem-reboot]").click(); check("P4 Restart opens the app's confirm", modal(pg, "[data-act=modem-reboot-go]")); c.close()
+    c, pg, errs = open_page(b, "admin", "/customers"); pg.wait_for_selector(".pt-t-pc")
+    pg.locator(".pt-filters button", has_text="TIP partners").click(); pg.wait_for_selector(".pt-t-pt .pt-prog")
+    check("A7 Admin Customers: 3 tabs, TIP list with N/100 progress, amount paid, receipts View", pg.locator(".pt-filters button").count() == 3 and pg.locator(".pt-t-pt [role=progressbar]").count() >= 1 and pg.locator(".pt-t-pt a", has_text="View").count() >= 1)
+    pg.locator(".pt-filters button", has_text="DSA agents").click(); pg.wait_for_timeout(200)
+    check("A8 DSA agents tab lists agents", pg.locator(".pt-t-pt .pt-tr:not(.pt-th)").count() >= 1)
+    pg.goto(f"{BASE}/admin/billing"); pg.wait_for_selector(".pt-bd")
+    def money(t): return float(t.replace("−", "").replace("₹", "").replace(",", "").strip())
+    ok = True
+    for bd in pg.locator(".pt-bd").all():
+        v = [money(x) for x in bd.locator("dd").all_inner_texts()]
+        ok = ok and abs(v[1] - v[0] * .18) < 1.01 and abs(v[2] - v[0] * .10) < 1.01 and abs(v[3] - (v[0] + v[1] - v[2])) < 2.01
+    check("A9 Billing: two GST/TDS breakdowns, maths correct (18% / 10%)", pg.locator(".pt-bd").count() == 2 and ok and pg.locator("#app .tbl").count() >= 1)
+    c.close()
+    c, pg, errs = open_page(b, "tip"); pg.wait_for_selector(".pt-row-3")
+    check("T11 TIP: Leads given N of 100 (progress) + Amount paid + Care plan card", pg.locator(".pt-row-3 [role=progressbar]").count() == 1 and "of 100" in pg.locator(".pt-row-3").inner_text() and "₹" in pg.locator(".pt-row-3").inner_text() and pg.locator(".pt-row-3 .cp-card").count() == 1)
+    c.close()
+    c, pg, errs = open_page(b, "dsa", "", 390, 844); pg.wait_for_selector(".pt-kpi")
+    pg.locator(".dsh-msearch").click(); pg.locator("#dsh-search input").fill("arjun"); pg.wait_for_selector(".dsh-results li")
+    check("M1 phone: search icon opens search, results show", pg.locator("#dsh-search.is-open").is_visible() and "Arjun" in pg.locator(".dsh-results").inner_text())
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(150)
+    check("M2 Esc closes phone search", not pg.locator("#dsh-search").is_visible()); c.close()
+
     # ---- layout at all widths ----
     bad = []
-    for role, path in (("dsa", ""), ("dsa", "/customers"), ("dsa", "/tickets"), ("tip", ""), ("tip", "/leads"), ("admin", "")):
-        for w in (360, 390, 768, 1024, 1440, 1672):
+    for role, path in (("dsa", ""), ("dsa", "/customers"), ("dsa", "/tickets"), ("dsa", "/careplan"), ("tip", ""), ("tip", "/leads"), ("admin", ""), ("admin", "/customers")):
+        for w in (360, 768, 1440):
             c, pg, _ = open_page(b, role, path, w, 850); pg.wait_for_selector(".pt .pt-card", timeout=15000); pg.wait_for_timeout(250)
             sw = pg.evaluate("Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)")
             if sw > w: bad.append(f"{role}{path}@{w}:{sw}")

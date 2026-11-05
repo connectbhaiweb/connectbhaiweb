@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import ViewRoute from "@/components/ViewRoute";
+import CarePlanPage from "@/components/careplan/CarePlan";
+
 import CustomerDashboard from "@/components/customer/CustomerDashboard";
 
 /* /my and /my/<tab>  (replaces the old #my and #my-<tab> hash URLs). Home/Bookings is a React page; other tabs are the app's views. */
@@ -10,6 +12,7 @@ export default async function Page({ params }) {
     <>
       <ViewRoute view="my" tab={t} />
       <Suspense fallback={null}><CustomerDashboard tab={t} /></Suspense>
+      <CarePlanPage base="my" tab={t} />
     </>
   );
 }

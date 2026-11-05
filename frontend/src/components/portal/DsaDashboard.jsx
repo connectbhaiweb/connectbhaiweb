@@ -1,10 +1,11 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, CalendarDays, ChartColumn, ChevronRight, CircleCheck, CircleX, Clock, Coins, Database, Filter, MessageCircle, Phone, ThumbsUp, Ticket, UserPlus, Users, User, Wallet, CircleCheckBig } from "lucide-react";
+import { ArrowRight, BadgeCheck, CalendarDays, ChevronRight, CircleCheck, CircleX, Clock, Coins, Database, Filter, MessageCircle, Phone, ThumbsUp, Ticket, UserPlus, Users, User, Wallet, CircleCheckBig } from "lucide-react";
 import { useDashData } from "@/components/dashboard/useDashData";
-import { Ava, Bars, CallWa, Card, Chip, Counts, Failed, Kpi, Loading, More, Period, Pin, PortalHead } from "./parts";
-import { byMonth, fDate, fWhen, inr, partnerStats, planName, planPrice } from "./stats";
+import { Ava, CallWa, Card, Chip, Counts, Failed, Kpi, Loading, More, Pin, PortalHead } from "./parts";
+import { CarePlanCard } from "@/components/careplan/CarePlan";
+import { fDate, fWhen, inr, partnerStats, planName, planPrice } from "./stats";
 
 async function load(API) {
   const [leads, bookings, comms, partner, charges, threads] = await Promise.all([API.partnerLeads(), API.partnerBookings(), API.myCommissions(), API.myPartner(), API.myCharges(), API.myThreads().catch(() => [])]);
@@ -15,7 +16,6 @@ const PIPE = [["new", "New", UserPlus, "blue"], ["assigned", "Assigned", User, "
 
 export default function DsaDashboard({ tab }) {
   const { active, pending, data, error, loading, reload } = useDashData("dsa", load);
-  const [months, setMonths] = useState(6);
   const view = tab || "home";
   const s = useMemo(() => (data ? partnerStats(data.partner, data.leads, data.bookings, data.comms) : null), [data]);
   if (!OWN(tab) || (!active && !pending)) return null;
@@ -28,16 +28,15 @@ export default function DsaDashboard({ tab }) {
   return (
     <div className="dsh-page"><div className="pt">
       <Counts c={counts} />
-      {view === "home" && <Home {...{ data, s, months, setMonths, open, partner, comms }} />}
+      {view === "home" && <Home {...{ data, s, open, partner, comms }} />}
       {view === "customers" && <Customers leads={leads} comms={comms} partner={partner} />}
       {view === "tickets" && <Tickets threads={threads} />}
     </div></div>
   );
 }
 
-function Home({ data, s, months, setMonths, open, partner, comms }) {
+function Home({ data, s, open, partner, comms }) {
   const { leads } = data;
-  const chart = byMonth(months, s.given, l => l.assigned_at || l.created_at, s.inst, b => b.installed_at);
   const today = [...open].sort((a, b) => (a.next_follow_up || "9").localeCompare(b.next_follow_up || "9") || b.updated_at.localeCompare(a.updated_at)).slice(0, 5);
   const groups = Object.values(comms.reduce((g, c) => { const k = c.status + (c.payment_id || c.created_at.slice(0, 10)); (g[k] = g[k] || { date: c.created_at, n: 0, amt: 0, status: c.status }).n++; g[k].amt += Number(c.amount); if (c.created_at > g[k].date) g[k].date = c.created_at; return g; }, {}))
     .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
@@ -50,16 +49,11 @@ function Home({ data, s, months, setMonths, open, partner, comms }) {
         <Kpi tone="amber" Icon={Coins} label="Total earned" value={inr(s.comm.all)} sub={`${inr(partner.commission_per_install)} per installation`} />
         <Kpi tone="purple" Icon={Wallet} label="Paid to you" value={inr(s.comm.paid)} sub={`${inr(s.comm.approved)} approved · ${inr(s.comm.pending)} awaiting`} />
       </div>
-      <div className="pt-row pt-row-dsa1">
-        <Card title="Leads delivered and installed" Icon={ChartColumn} className="pt-chartcard" action={<Period value={months} onChange={setMonths} />}>
-          <Bars data={chart} series={[{ key: "leads", name: "Leads", color: "#2878FD" }, { key: "installs", name: "Installed", color: "#32B661" }]} />
-        </Card>
-        <Card title="Lead pipeline" Icon={Filter} action={<More href="/dsa/leads">All leads ({leads.length})</More>}>
-          <ol className="pt-pipe">
-            {PIPE.map(([k, l, I, tone]) => <li key={k} className={`tone-${tone}`}><Link href="/dsa/leads"><I aria-hidden="true" /><span>{l}</span><b>{leads.filter(x => x.status === k).length}</b></Link></li>)}
-          </ol>
-        </Card>
-      </div>
+      <Card title="Lead pipeline" Icon={Filter} className="pt-pipecard" action={<More href="/dsa/leads">All leads ({leads.length})</More>}>
+        <ol className="pt-pipe">
+          {PIPE.map(([k, l, I, tone]) => <li key={k} className={`tone-${tone}`}><Link href="/dsa/leads"><I aria-hidden="true" /><span>{l}</span><b>{leads.filter(x => x.status === k).length}</b></Link></li>)}
+        </ol>
+      </Card>
       <div className="pt-row pt-row-dsa2">
         <Card title="Leads to call today" Icon={Phone} action={<More href="/dsa/leads">View all leads</More>}>
           {today.length ? (
@@ -78,7 +72,7 @@ function Home({ data, s, months, setMonths, open, partner, comms }) {
             </div>
           ) : <p className="pt-muted">No open leads. New leads from your PIN codes appear here.</p>}
         </Card>
-        <Card title="My commission" Icon={Database} className="pt-comm">
+        <div className="pt-stack"><Card title="My commission" Icon={Database} className="pt-comm">
           <div className="pt-tiles">
             <div className="tone-amber"><span><Clock aria-hidden="true" />Pending</span><b>{inr(s.comm.pending)}</b></div>
             <div className="tone-blue"><span><BadgeCheck aria-hidden="true" />Approved</span><b>{inr(s.comm.approved)}</b></div>
@@ -93,6 +87,7 @@ function Home({ data, s, months, setMonths, open, partner, comms }) {
           ) : <p className="pt-muted">Commissions appear after your first installation.</p>}
           <Link className="pt-link" href="/dsa/payments">Fees to Connect Bhai<ArrowRight aria-hidden="true" /></Link>
         </Card>
+        <CarePlanCard role="dsa" /></div>
       </div>
     </>
   );

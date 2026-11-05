@@ -181,7 +181,7 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .reshead h3{font-size:20px}
 select.sel{padding:8px 10px;border-radius:9px;border:1.5px solid var(--line-strong);background:var(--surface);font-weight:600}
 .plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
-.plan{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:12px;align-content:start;position:relative;transition:border-color .15s,box-shadow .15s}
+.plan{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:18px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;min-width:0;align-content:start;position:relative;transition:border-color .15s,box-shadow .15s}
 .plan:hover{border-color:var(--line-strong);box-shadow:var(--shadow)}
 .plan.sel{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
 .plan .prov{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px}
@@ -190,7 +190,8 @@ select.sel{padding:8px 10px;border-radius:9px;border:1.5px solid var(--line-stro
 .speed{display:flex;align-items:baseline;gap:6px}
 .speed b{font-family:var(--display);font-size:38px;font-weight:800;line-height:1;color:var(--blue)}
 .speed span{font-weight:700;color:var(--muted)}
-.price{font-family:var(--display);font-size:22px;font-weight:800}
+.price{font-family:var(--display);font-size:22px;font-weight:800;white-space:nowrap}
+.plan>.row{flex-wrap:wrap;gap:4px 10px}.plan .acts{flex-wrap:wrap}   /* card content never pushes past the card edge */
 .price small{font-family:var(--body);font-size:13px;color:var(--muted);font-weight:600}
 .facts{display:grid;gap:6px;font-size:14px}
 .facts div{display:flex;justify-content:space-between;gap:10px;border-top:1px dashed var(--line);padding-top:6px}

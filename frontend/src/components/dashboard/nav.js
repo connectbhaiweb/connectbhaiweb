@@ -14,6 +14,7 @@ export const ROLES = {
   ] },
   dsa: { base: "dsa", title: "DSA", items: [
     { tab: "home", label: "Home", Icon: House },
+    { tab: "careplan", label: "Care plan", Icon: ShieldCheck },
     { tab: "leads", label: "Leads", Icon: Users, badge: "new" },
     { tab: "installs", label: "Installs", Icon: Wrench },
     { tab: "customers", label: "My customers", Icon: User },
@@ -23,6 +24,7 @@ export const ROLES = {
   ] },
   tip: { base: "tip", title: "TIP partner", items: [
     { tab: "home", label: "Home", Icon: House },
+    { tab: "careplan", label: "Care plan", Icon: ShieldCheck },
     { tab: "leads", label: "Leads", Icon: Users, badge: "new" },
     { tab: "bookings", label: "Installs", Icon: Wrench },
     { tab: "customers", label: "Customers", Icon: User, also: ["payments"] },
@@ -32,7 +34,9 @@ export const ROLES = {
   ] },
   admin: { base: "admin", title: "Administrator", items: [
     { tab: "overview", label: "Overview", Icon: House },
+    { tab: "careplan", label: "Care plan", Icon: ShieldCheck },
     { tab: "leads", label: "Leads", Icon: Users, badge: "new" },
+    { tab: "customers", label: "Customers", Icon: User },
     { tab: "partners", label: "Partners", Icon: Handshake, badge: "pending" },
     { tab: "team", label: "Team & logins", Icon: UserCog },
     { tab: "providers", label: "Providers", Icon: Radio },

@@ -168,7 +168,7 @@ const track = p => { busy++; document.documentElement.classList.add("is-loading"
 
 /* Dashboard pages that are React components (src/components/<role>/). The app clears #app for them and announces
    every re-render (after pay, restart, chat…) so the React page reloads its data. */
-const REACT_VIEWS = { my: t => !t || t === "bookings", dsa: t => !t || ["home", "customers", "tickets"].includes(t), tip: t => !t || ["home", "leads"].includes(t), admin: t => !t || t === "overview" };
+const REACT_VIEWS = { my: t => !t || ["bookings", "devices"].includes(t), dsa: t => !t || ["home", "careplan", "customers", "tickets"].includes(t), tip: t => !t || ["home", "careplan", "leads"].includes(t), admin: t => !t || ["overview", "careplan", "customers"].includes(t) };
 async function render() {
   const v = S.view;
   if (v === "home") { if (!app.children.length) app.innerHTML = skeleton("home"); return track(renderHome()); }

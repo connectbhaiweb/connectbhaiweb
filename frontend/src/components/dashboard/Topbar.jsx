@@ -11,11 +11,11 @@ import { search as runSearch } from "./search";
 
 const PLACEHOLDER = { customer: "Search plans, bookings or help (e.g. Airtel, 452010)...", dsa: "Search leads, customers, bookings (e.g. CB-104B2, mobile)...", tip: "Search leads, installations, customers or tickets...", admin: "Search leads, partners, plans, locations, tickets (e.g. CB-104B2, 452010)..." };
 
-function WhatsAppIcon() { return <svg viewBox="0 0 24 24" width="25" height="25" aria-hidden="true"><path fill="#fff" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>; }
+function WhatsAppIcon() { return <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#fff" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>; }
 
 export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, acctOpen, onAcct, onClose }) {
   const router = useRouter();
-  const [q, setQ] = useState(""), [res, setRes] = useState({ q: "", list: [] }), [open, setOpen] = useState(false), [hi, setHi] = useState(-1);
+  const [mOpen, setMOpen] = useState(false), [q, setQ] = useState(""), [res, setRes] = useState({ q: "", list: [] }), [open, setOpen] = useState(false), [hi, setHi] = useState(-1);
   const box = useRef(null), lid = useId();
   useEffect(() => {
     const t = q.trim(); if (!t) return;
@@ -28,7 +28,7 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
     document.addEventListener("pointerdown", away); return () => document.removeEventListener("pointerdown", away);
   }, [open]);
   const list = q.trim() && res.q === q.trim() ? res.list : [];
-  const go = r => { setOpen(false); setQ(""); router.push(r.href); };
+  const go = r => { setOpen(false); setMOpen(false); setQ(""); router.push(r.href); };
   const submit = async e => {
     e.preventDefault(); const t = q.trim(); if (!t) return;
     const l = res.q === t ? res.list : await runSearch(role, t);
@@ -36,15 +36,15 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
     import("@/lib/connectbhai/ui").then(m => m.speedBridge.toast(`Nothing found for "${t}".`));
   };
   const keys = e => {
-    if (e.key === "Escape") { setOpen(false); return; }
+    if (e.key === "Escape") { setOpen(false); setMOpen(false); return; }
     if (!list.length || !["ArrowDown", "ArrowUp"].includes(e.key)) return;
     e.preventDefault(); setOpen(true); setHi(h => (e.key === "ArrowDown" ? (h + 1) % list.length : (h - 1 + list.length) % list.length));
   };
   return (
     <header className="dsh-top">
       <button type="button" className="dsh-burger" aria-label="Open menu" aria-expanded={navOpen} onClick={onBurger}><Menu aria-hidden="true" /></button>
-      <Link href="/" className="dsh-logo" aria-label="Connect Bhai home"><Logo height={44} /></Link>
-      <form className="dsh-search" role="search" onSubmit={submit} ref={box}>
+      <Link href="/" className="dsh-logo" aria-label="Connect Bhai home"><Logo height={38} /></Link>
+      <form className={`dsh-search${mOpen ? " is-open" : ""}`} id="dsh-search" role="search" onSubmit={submit} ref={box}>
         <Search aria-hidden="true" />
         <input name="q" type="search" placeholder={PLACEHOLDER[role]} aria-label="Search" autoComplete="off" value={q}
           onChange={e => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={keys}
@@ -60,6 +60,7 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
         )}
       </form>
       <div className="dsh-right">
+        <button type="button" className="dsh-msearch" aria-label="Search" aria-expanded={mOpen} aria-controls="dsh-search" onClick={() => { setMOpen(v => !v); setTimeout(() => { const i = document.querySelector("#dsh-search input"); if (i) i.focus(); }, 30); }}><Search aria-hidden="true" /></button>
         <a className="dsh-wa" href={`https://wa.me/91${CONFIG.SUPPORT_PHONE}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp support"><WhatsAppIcon /></a>
         <Link className="dsh-bell" href={hrefOf(role, "chat")} aria-label={chatCount ? `Messages, ${chatCount} unread` : "Messages"}><Bell aria-hidden="true" />{chatCount ? <i /> : null}</Link>
         <span className="dsh-sep" aria-hidden="true" />

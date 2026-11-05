@@ -57,7 +57,7 @@ export function Chip({ s, label, Icon, tone }) {
   return <span className={`pt-chip tone-${tone || t}`}>{Icon ? <Icon aria-hidden="true" /> : null}{label || l}</span>;
 }
 
-const AV = ["#DCE8FE:#0A4AE1", "#E6E2FE:#5B3FD9", "#DCF3E2:#107422", "#FBE3F1:#B4247F", "#FFEBD5:#B25A00"];
+const AV = ["#DCE8FE:#0839B0", "#E6E2FE:#4A2FB8", "#DCF3E2:#0E5F1D", "#FBE3F1:#8E1A63", "#FFEBD5:#8A4500"];
 export function Ava({ name }) {
   const ini = String(name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
   const [bg, fg] = AV[[...String(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % AV.length].split(":");

@@ -12,6 +12,7 @@ import "./globals.css";
 import "./dashboard.css";
 import "./customer.css";
 import "./portal.css";
+import "./legacy-dash.css";
 import DemoBar from "@/components/DemoBar";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";

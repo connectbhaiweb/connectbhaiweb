@@ -175,7 +175,7 @@ function PastRequests({ leads }) {
   );
 }
 
-const RX = v => (v == null ? null : v >= -25 ? ["Good", 4, "#16A34A"] : v >= -27 ? ["Weak", 2, "#D97706"] : ["Bad", 1, "#DC2626"]);
+const RX = v => (v == null ? null : v >= -25 ? ["Good", 4, "#16A34A", "#15803D"] : v >= -27 ? ["Weak", 2, "#D97706", "#B45309"] : ["Bad", 1, "#DC2626", "#B91C1C"]);   // label, bars, bar colour, text colour (AA)
 
 function RouterCard({ booking, tests }) {
   const d = booking && booking.device, installed = booking && booking.status === "installed";
@@ -191,7 +191,7 @@ function RouterCard({ booking, tests }) {
         <div className="cu-rt-stats">
           <span>Internet speed</span>
           <b>{last ? `${Math.floor(last.download_mbps)} Mbps` : "—"}</b>
-          <span className="cu-signal">{rx ? <><SignalBars level={rx[1]} tone={rx[2]} />Signal: <em style={{ color: rx[2] }}>{rx[0]}</em></> : installed ? "Signal: not reported yet" : "Shows after installation"}</span>
+          <span className="cu-signal">{rx ? <><SignalBars level={rx[1]} tone={rx[2]} />Signal: <em style={{ color: rx[3] }}>{rx[0]}</em></> : installed ? "Signal: not reported yet" : "Shows after installation"}</span>
         </div>
       </div>
       <div className="cu-rt-acts">

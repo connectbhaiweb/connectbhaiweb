@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Building2, CalendarDays, ChartColumn, Check, CircleCheck, CircleX, Coins, Handshake, MapPin, Phone, Store, Ticket, UserRound, Users, Wrench } from "lucide-react";
 import { useDashData } from "@/components/dashboard/useDashData";
 import { Bars, Card, Chip, Counts, Failed, Kpi, Loading, More, Period, Pin, PortalHead } from "./parts";
+import { CarePlanCard } from "@/components/careplan/CarePlan";
 import { byMonth, inr, mKey, monthKeys, planName, sum } from "./stats";
 
 async function load(API, m) {
@@ -97,6 +98,7 @@ export default function AdminDashboard({ tab }) {
           </div>
         </Card>
       </div>
+      <CarePlanCard role="admin" />
     </div></div>
   );
 }

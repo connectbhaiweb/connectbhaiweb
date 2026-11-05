@@ -1,0 +1,28 @@
+/* Old dashboard views (the app's own #app pages) restyled to the new dashboard look. Shell only; markup unchanged. */
+html[data-shell] #app{--ink:#0A1B3D;--muted:#53617F;--line:#E6ECF7;--blue:#1043C8;color:#1E2A4A;font-size:14.5px}
+html[data-shell] #app .wrap{padding:18px 17px 30px 22px}
+html[data-shell] #app .dhead{margin-bottom:16px}
+html[data-shell] #app .dhead h1{font-size:clamp(22px,2vw,28px);font-weight:800;color:#0A1B3D;letter-spacing:-.02em}
+html[data-shell] #app .dhead p,html[data-shell] #app .muted{color:#53617F}
+html[data-shell] #app h2{font-size:clamp(17px,1.3vw,19px);color:#0A1B3D}
+html[data-shell] #app .card,html[data-shell] #app .item,html[data-shell] #app .kpi,html[data-shell] #app .tbl-wrap,html[data-shell] #app .empty{background:#fff;border:1px solid #E6ECF7;border-radius:16px;box-shadow:0 1px 2px rgba(10,27,61,.04),0 14px 34px -24px rgba(10,27,61,.3);transition:box-shadow .2s,border-color .2s}
+@media (hover:hover){html[data-shell] #app .card:hover,html[data-shell] #app .item:hover,html[data-shell] #app .kpi:hover{box-shadow:0 1px 2px rgba(10,27,61,.05),0 18px 38px -22px rgba(10,27,61,.36);border-color:#D5DFF0}}
+html[data-shell] #app .card h3{font-size:18px;color:#0A1B3D}
+html[data-shell] #app .kpis{gap:16px}
+html[data-shell] #app .kpi{padding:16px 18px}
+html[data-shell] #app .kpi span{font-size:13.5px;font-weight:600;letter-spacing:0;text-transform:none;color:#0A1B3D}
+html[data-shell] #app .kpi b{font-size:clamp(24px,2vw,31px);color:#0A1B3D}
+html[data-shell] #app .kpi small{color:#53617F}
+html[data-shell] #app .item{padding:14px 18px}
+html[data-shell] #app .item .ih h3{font-size:15.5px;color:#0A1B3D}
+html[data-shell] #app .item .meta{color:#53617F}
+html[data-shell] #app .tbl{font-size:13.5px}
+html[data-shell] #app .tbl th{font-size:13px;letter-spacing:0;text-transform:none;font-weight:600;color:#16224A;background:#EEF3FB;border-bottom:0}
+html[data-shell] #app .tbl td{border-bottom:1px solid #EEF2F8}
+html[data-shell] #app .pill{font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:10px}
+html[data-shell] #app .btn{border-radius:10px}
+html[data-shell] #app .btn-primary{background:#1043C8;border-color:#1043C8}
+@media (hover:hover){html[data-shell] #app .btn-primary:hover{background:#0050DC;border-color:#0050DC}}
+html[data-shell] #app :is(.btn,.linkbtn,a,input,select,textarea):focus-visible{outline:3px solid #8DB4FF;outline-offset:2px}
+@media (max-width:767px){html[data-shell] #app .wrap{padding:14px 12px 20px}html[data-shell] #app .kpis{gap:10px}}
+@media (prefers-reduced-motion:reduce){html[data-shell] #app :is(.card,.item,.kpi){transition:none}}

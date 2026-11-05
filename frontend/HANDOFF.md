@@ -47,3 +47,19 @@ All checks: `tests/shell_check.py` (43), `tests/customer_check.py` (23), `tests/
 
 ## Rules from the user
 Do not redesign; match the images exactly; no horizontal scroll at 360/390/768/1024/1440; token-efficient output (code + file paths); Hinglish replies.
+
+## Round 2 (care plan, font/contrast pass, admin lists)  <- DONE
+- Fonts ~10% smaller on React pages (titles 31px / 800, grey #53617F subtitles); contrast fixed to WCAG AA (chips, badges, links, bottom nav, WhatsApp circle now #048A3C instead of #07C253).
+- Home plan cards: content no longer pushes past the card edge (`globals.css` `.plan` grid + price nowrap).
+- Care plan (GenieACS mock): `src/lib/connectbhai/careplan.js` (only file to swap for the real NBI), UI `components/careplan/CarePlan.jsx`. Routes /dsa/careplan, /tip/careplan, /admin/careplan, customer /my/devices. Summary card on DSA/TIP/Admin home.
+- DSA: chart removed, pipeline full width. TIP: "Leads given N of 100", "Amount paid to Connect Bhai". Admin: "Customers" item (Customers / TIP partners / DSA agents), Billing GST/TDS breakdowns using `src/lib/connectbhai/rates.js` (GST 18%, TDS 10% placeholders).
+- Phones: search icon in the header. Old views restyled by `src/app/legacy-dash.css` (CSS only, markup unchanged).
+- Checks: shell 43/43, customer 23/23, roles 41/41, `tests/audit_layout.py` (all pages, 5 widths, light+dark): 0 issues.
+- Open: rates are placeholders; care plan data is mock; customer/DSA avatars are initials.
+
+## Round 2b (dark-OS + top bar size)  <- DONE
+- Dashboards now force the light token set (`:root[data-shell]` in dashboard.css), so old views stay readable when the OS/site is dark (was: dark cards with dark text).
+- Top bar ~15% smaller (66px high, 42px search, 44px avatar, 38px logo); page titles 28px.
+- AA contrast fixes: dashboard --blue #1043C8, --ok #0E6E3F, avatar initials, red sidebar badge #D92D35, signal text colours.
+- `tests/audit_layout.py` now also checks text contrast (WCAG AA) on every page; dashboards: 0 issues in OS dark and light.
+- Open (home page, not changed by request): in OS dark the story player labels ("Buffering…", controls) and the partner fee note measure below AA.
