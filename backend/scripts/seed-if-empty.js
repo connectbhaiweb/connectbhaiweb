@@ -16,13 +16,14 @@ const bcrypt = require('bcryptjs');
     const [r] = await c.query("UPDATE plan_categories SET logo_url = CONCAT('connectbhai/logos/', LOWER(name), '.svg') WHERE name IN ('BSNL','Jio','Airtel') AND (logo_url IS NULL OR logo_url LIKE '/logos/%')");
     if (r.affectedRows) console.log(`provider logos now served from Cloudinary (${r.affectedRows} rows)`);
   }
-  // Staging convenience: SEED_DEMO_PASSWORD gives ONE sample DSA, TIP and customer a password so they can be tried without a WhatsApp OTP
-  // (the sample phone numbers are fake). Unset it on a live system; those accounts then go back to OTP-only.
-  const demoPw = process.env.SEED_DEMO_PASSWORD;
-  if (demoPw && demoPw.length >= 10) {
+  // TESTING ONLY: while SEED_SAMPLE_DATA=true, the admin and one sample DSA, TIP and customer share one known password
+  // (SEED_DEMO_PASSWORD, default Demo@Connect2026) so they can be tried without a WhatsApp OTP. Turn SEED_SAMPLE_DATA off for a live system.
+  const demoPw = process.env.SEED_DEMO_PASSWORD || (process.env.SEED_SAMPLE_DATA === 'true' ? 'Demo@Connect2026' : '');
+  if (demoPw.length >= 10) {
     const hash = await bcrypt.hash(demoPw, 10);
-    const [r] = await c.query("UPDATE users SET password_hash = ? WHERE (role = 'dsa' AND phone = '9000000001') OR (role = 'tip' AND phone = '9100000001') OR (role = 'customer' AND phone = '9811000000')", [hash]);
-    if (r.affectedRows) console.log(`demo password set on ${r.affectedRows} sample accounts`);
+    const adminPhone = process.env.SEED_ADMIN_PHONE || '9999999999';
+    const [r] = await c.query("UPDATE users SET password_hash = ? WHERE (role = 'admin' AND phone = ?) OR (role = 'dsa' AND phone = '9000000001') OR (role = 'tip' AND phone = '9100000001') OR (role = 'customer' AND phone = '9811000000')", [hash, adminPhone]);
+    if (r.affectedRows) console.log(`demo password set on ${r.affectedRows} accounts`);
   }
   await c.end();
   const wantDemo = process.env.SEED_SAMPLE_DATA === 'true';
