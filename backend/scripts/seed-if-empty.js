@@ -10,6 +10,11 @@ const mysql = require('mysql2/promise');
   const c = await mysql.createConnection({ host: url.hostname, port: Number(url.port || 3306), user: decodeURIComponent(url.username), password: decodeURIComponent(url.password), database: url.pathname.slice(1) });
   const [[{ n }]] = await c.query('SELECT COUNT(*) AS n FROM plans');
   const [[{ demo }]] = await c.query("SELECT COUNT(*) AS demo FROM users WHERE role = 'customer' AND phone LIKE '981%'");
+  // Provider logos live in Cloudinary (connectbhai/logos/<brand>.svg, uploaded with `npm run logos:upload`). Point the catalogue at them when Cloudinary is configured.
+  if (process.env.CLOUDINARY_CLOUD_NAME) {
+    const [r] = await c.query("UPDATE plan_categories SET logo_url = CONCAT('connectbhai/logos/', LOWER(name), '.svg') WHERE name IN ('BSNL','Jio','Airtel') AND (logo_url IS NULL OR logo_url LIKE '/logos/%')");
+    if (r.affectedRows) console.log(`provider logos now served from Cloudinary (${r.affectedRows} rows)`);
+  }
   await c.end();
   const wantDemo = process.env.SEED_SAMPLE_DATA === 'true';
   if (n > 0 && !(wantDemo && demo < 20)) { console.log(`seed skipped: ${n} plans present${wantDemo ? `, ${demo} demo customers present` : ''}`); return; }
