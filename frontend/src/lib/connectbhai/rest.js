@@ -205,7 +205,8 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     /* ---- leads ---- */
     async myLeads() { need("customer"); return (await all("/leads")).items.map(mapLead); },
     async partnerLeads() { need("dsa", "tip"); return (await all("/leads")).items.map(mapLead); },
-    async adminLeads() { need("admin"); return (await all("/leads")).items.map(mapLead); },
+    async adminLeads(f) { need("admin"); return (await all("/leads", f && f.status ? { status: LSBACK[f.status] || f.status } : undefined)).items.map(mapLead); },
+    async adminBadges() { need("admin"); return get("/reports/badges"); },
     async leadDetail(id) {
       const [l, ev] = await Promise.all([get("/leads/" + id), get(`/leads/${id}/events`)]);
       return { ...mapLead(l), events: ev.map(e => ({ id: S(e.id), lead_id: S(e.lead_id), from_status: LS[e.from_status] || e.from_status, to_status: LS[e.to_status] || e.to_status, note: e.note || String(e.event_type || "").replace(/_/g, " "), created_at: e.created_at, actor_name: e.actor && e.actor.name })) };
@@ -287,7 +288,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
 
     /* ---- people ---- */
     async myPartner() { need("dsa", "tip"); return mapPartner(await get("/users/me")); },
-    async adminPartners() { need("admin"); const [a, b] = await Promise.all([all("/users", { role: "dsa" }), all("/users", { role: "tip" })]); return [...a.items, ...b.items].map(mapPartner).sort((x, y) => x.type.localeCompare(y.type) || x.name.localeCompare(y.name)); },
+    async adminPartners(f) { need("admin"); const ps = f && f.partner_status ? { partner_status: f.partner_status } : {}; const [a, b] = await Promise.all([all("/users", { role: "dsa", ...ps }), all("/users", { role: "tip", ...ps })]); return [...a.items, ...b.items].map(mapPartner).sort((x, y) => x.type.localeCompare(y.type) || x.name.localeCompare(y.name)); },
     async adminCustomers() { need("admin"); return (await all("/users", { role: "customer" })).items.map(mapUser); },
     async adminTeam() { need("admin"); return (await all("/users")).items.filter(u => u.role !== "customer").map(u => ({ ...mapUser(u), partner: ["dsa", "tip"].includes(u.role) ? pc(u) : null, pw_set_at: null })); },
     async savePartner() { fail("Partners join through the public registration form; approve them in the partner list."); },

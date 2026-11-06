@@ -747,11 +747,14 @@ function openTicketStatus(id, cur) {
 async function renderAdmin() {
   const tab = S.tab || "overview";
   await loadCities();
-  const [leads, partners] = await Promise.all([API.adminLeads(), API.adminPartners()]);
+  /* Load only what the open tab needs. The tab badges come from one cheap counts call, not from whole lists. */
+  const [bd, unread] = await Promise.all([API.adminBadges(), unreadCount()]);
+  let leads = [], partners = [];
+  if (tab === "overview") [leads, partners] = await Promise.all([API.adminLeads({ status: "new" }), API.adminPartners({ partner_status: "pending" })]);
+  else if (["leads", "partners", "reports"].includes(tab)) [leads, partners] = await Promise.all([API.adminLeads(), API.adminPartners()]);
   const newL = leads.filter(l => l.status === "new"), pendingP = partners.filter(p => p.status === "pending");
-  const [planList, waitList, unread] = await Promise.all([API.adminPlans(), API.adminWaitlist(), unreadCount()]);
-  const pendingPlans = planList.filter(p => p.status === "pending_review").length || null, waiting = waitList.filter(w => w.status === "waiting").length || null;
-  const tabs = [["overview", "Overview"], ["leads", "Leads", newL.length], ["partners", "DSA & TIP", pendingP.length], ["team", "Team & logins"], ["providers", "Providers"], ["plans", "Plans", pendingPlans], ["locations", "Locations"], ["cities", "Cities & waiting list", waiting], ["billing", "Billing & fees"], ["commissions", "DSA payouts"], ["payments", "Payout history"], ["chat", "Chat", await unreadCount()], ["messages", "WhatsApp log"], ["reports", "Reports"]];
+  const newCount = bd.new_leads, pendingCount = bd.pending_partners, pendingPlans = null, waiting = bd.waiting || null;
+  const tabs = [["overview", "Overview"], ["leads", "Leads", newCount], ["partners", "DSA & TIP", pendingCount], ["team", "Team & logins"], ["providers", "Providers"], ["plans", "Plans", pendingPlans], ["locations", "Locations"], ["cities", "Cities & waiting list", waiting], ["billing", "Billing & fees"], ["commissions", "DSA payouts"], ["payments", "Payout history"], ["chat", "Chat", await unreadCount()], ["messages", "WhatsApp log"], ["reports", "Reports"]];
   let body = "";
   if (tab === "overview") {
     const [bookings, tickets, cs] = await Promise.all([API.adminBookings(), API.adminTickets(), API.adminCommissions()]);

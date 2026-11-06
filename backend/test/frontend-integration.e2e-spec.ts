@@ -159,4 +159,14 @@ describe('frontend integration', () => {
       } finally { await c.prisma.planCategory.update({ where: { id: cat.id }, data: { logo_url: before } }); }
     });
   });
+
+  it('admin tab badges come from one cheap counts call; others cannot read it', async () => {
+    await newLead(c, a);
+    const r = await c.http().get(`${P}/reports/badges`).set(bearer(a.admin)).expect(200);
+    expect(r.body.new_leads).toBeGreaterThanOrEqual(1);
+    expect(typeof r.body.pending_partners).toBe('number');
+    expect(typeof r.body.waiting).toBe('number');
+    await c.http().get(`${P}/reports/badges`).set(bearer(a.dsa1)).expect(403);
+    await c.http().get(`${P}/reports/badges`).expect(401);
+  });
 });

@@ -30,6 +30,16 @@ export class ReportsController {
     return out;
   }
 
+  /** Just the numbers shown on the admin tabs (three COUNT queries), so the dashboard does not have to load whole lists. */
+  @Roles('admin') @Get('badges') async badges() {
+    const [new_leads, pending_partners, waiting] = await Promise.all([
+      this.prisma.lead.count({ where: { status: 'new' } }),
+      this.prisma.user.count({ where: { partner_status: 'pending' } }),
+      this.prisma.waitlist.count({ where: { notified_at: null } }),
+    ]);
+    return { new_leads, pending_partners, waiting };
+  }
+
   @Roles('admin') @Get('overview') async overview() {
     const [users, leads, charges, commissions, tickets, devices] = await Promise.all([
       this.prisma.user.groupBy({ by: ['role'], _count: { _all: true } }),
