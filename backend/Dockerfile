@@ -19,15 +19,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
 ENV NODE_ENV=production
 WORKDIR /app
 # prisma + ts-node are runtime dependencies on purpose: they run migrations and the first-time seed at start-up
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY package.json ./
-COPY prisma ./prisma
-COPY scripts ./scripts
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
+COPY --chown=node:node package.json ./
+COPY --chown=node:node prisma ./prisma
+COPY --chown=node:node scripts ./scripts
 # the first-time seed (prisma/seed.ts) imports a few helpers from src/, so the sources ship with the image too
-COPY src ./src
-COPY tsconfig.json ./
-RUN chown -R node:node /app
+COPY --chown=node:node src ./src
+COPY --chown=node:node tsconfig.json ./
+RUN chown node:node /app
 USER node
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4000)+'/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
