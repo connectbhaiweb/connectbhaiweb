@@ -24,6 +24,8 @@ COPY --from=build /app/dist ./dist
 COPY package.json ./
 COPY prisma ./prisma
 COPY scripts ./scripts
+# the first-time seed (prisma/seed.ts) imports a few helpers from src/, so the sources ship with the image too
+COPY src ./src
 COPY tsconfig.json ./
 RUN chown -R node:node /app
 USER node
