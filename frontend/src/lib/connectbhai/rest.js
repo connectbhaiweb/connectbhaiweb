@@ -17,7 +17,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
 
   /* ---------- tokens + HTTP ---------- */
   const loadTokens = () => { try { tokens = JSON.parse(localStorage.getItem(TOKEN_KEY) || "null"); } catch (e) { tokens = null; } return tokens; };
-  const saveTokens = t => { tokens = t; try { t ? localStorage.setItem(TOKEN_KEY, JSON.stringify(t)) : localStorage.removeItem(TOKEN_KEY); } catch (e) { /* private mode */ } };
+  const saveTokens = t => { tokens = t; getCache.clear(); try { t ? localStorage.setItem(TOKEN_KEY, JSON.stringify(t)) : localStorage.removeItem(TOKEN_KEY); } catch (e) { /* private mode */ } };
   const msgOf = b => (b && (Array.isArray(b.message) ? b.message.join(" · ") : b.message)) || "Something went wrong. Please try again.";
 
   async function raw(method, path, body, access) {
@@ -34,7 +34,19 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     if (!r.ok) { saveTokens(null); me = null; return false; }
     saveTokens({ access_token: data.access_token, refresh_token: data.refresh_token }); return true;
   }
-  async function req(method, path, body, opt) {
+  /* Speed: identical GETs made at the same time share one request, and recent answers are reused for a few seconds
+     (tab switches, re-renders). Any write clears the cache. Chat, notifications and live device data are never reused. */
+  const getCache = new Map(), GET_TTL = 8000, NO_CACHE = /\/(chat|messages|notifications|devices|care)/;
+  function req(method, path, body, opt) {
+    if (method !== "GET") { getCache.clear(); return send(method, path, body, opt); }
+    if (NO_CACHE.test(path)) return send(method, path, body, opt);
+    const key = (tokens && tokens.access_token ? "u:" : "a:") + path, hit = getCache.get(key);
+    if (hit && Date.now() - hit.t < GET_TTL) return hit.p;
+    const p = send(method, path, body, opt); getCache.set(key, { p, t: Date.now() });
+    p.catch(() => getCache.delete(key));
+    return p;
+  }
+  async function send(method, path, body, opt) {
     opt = opt || {};
     let { r, data } = await raw(method, path, body, opt.anon ? null : tokens && tokens.access_token);
     if (r.status === 401 && !opt.anon && tokens && await refresh()) ({ r, data } = await raw(method, path, body, tokens.access_token));
@@ -44,11 +56,10 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   const get = (p, o) => req("GET", p, undefined, o), post = (p, b, o) => req("POST", p, b || {}, o), patch = (p, b) => req("PATCH", p, b || {}), put = (p, b) => req("PUT", p, b || {}), del = p => req("DELETE", p);
   const qs = o => { const p = new URLSearchParams(); Object.entries(o || {}).forEach(([k, v]) => v != null && v !== "" && p.append(k, v)); const s = p.toString(); return s ? "?" + s : ""; };
   async function all(path, params) {   // follow pagination (limit 100) until everything is loaded
-    const items = []; let page = 1, total = 0, extra = null;
-    do {
-      const d = await get(path + qs({ ...params, page, limit: 100 })); items.push(...(d.items || [])); total = d.total || 0; extra = d; page++;
-    } while (items.length < total && page < 50);
-    return { items, extra };
+    const first = await get(path + qs({ ...params, page: 1, limit: 100 })), items = [...(first.items || [])], total = first.total || 0;
+    const pages = Math.min(Math.ceil(total / 100), 50);
+    if (pages > 1) { const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => get(path + qs({ ...params, page: i + 2, limit: 100 })))); rest.forEach(d => items.push(...(d.items || []))); }
+    return { items, extra: first };
   }
   const need = (...roles) => { if (!me || !roles.includes(me.role)) fail("You do not have access to this action."); };
 

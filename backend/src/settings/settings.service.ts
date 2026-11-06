@@ -20,9 +20,14 @@ export class SettingsService {
     const def = SETTING_DEFS[key];
     return def ? String(this.cfg.get(def[0]) ?? '0') : '';
   }
+  private cache = new Map<string, { v: string; t: number }>();   // settings are read on almost every request; 20s is plenty (writes clear it)
   async get(key: string): Promise<string> {
+    const hit = this.cache.get(key);
+    if (hit && Date.now() - hit.t < 20_000) return hit.v;
     const row = await this.prisma.appSetting.findUnique({ where: { key } });
-    return row ? row.value : this.envDefault(key);
+    const v = row ? row.value : this.envDefault(key);
+    this.cache.set(key, { v, t: Date.now() });
+    return v;
   }
   async getNumber(key: string): Promise<number> {
     const n = Number(await this.get(key));
@@ -50,6 +55,7 @@ export class SettingsService {
       if (!Number.isFinite(n) || n < 0) throw new BadRequestException('Value must be a non-negative number');
       if (key === 'gst_percent' && n > 100) throw new BadRequestException('GST cannot exceed 100');
     }
+    this.cache.clear();
     return this.prisma.appSetting.upsert({
       where: { key },
       update: { value: String(value), updated_by: userId },

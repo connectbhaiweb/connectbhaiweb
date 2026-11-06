@@ -474,7 +474,7 @@ async function renderCustomer() {
   const [leads, bookings, tickets] = await Promise.all([API.myLeads(), API.myBookings(), API.myTickets()]);
   const openT = tickets.filter(t => ["open", "in_progress"].includes(t.status)).length;
   const charges = await API.myCharges();
-  const tabs = [["bookings", "Bookings", leads.length], ["support", "Complaints & requests", openT], ["devices", "Care plan", bookings.filter(b => b.status === "installed").length], ["payments", "Payments", charges.filter(c => ["due", "failed"].includes(c.status)).length], ["chat", "Chat", await unreadCount()]];
+  const tabs = [["bookings", "Bookings", leads.length], ["support", "Complaints & requests", openT], ["devices", "Care plan", bookings.filter(b => b.status === "installed").length], ["payments", "Payments", charges.filter(c => ["due", "failed"].includes(c.status)).length], ["chat", "Chat", unread]];
   const u0 = me(), act = leads.find(l => l.status !== "lost") || leads[0];
   const pre = `<div class="contacts">${contactCard("You (customer)", { name: u0.full_name || "Customer", phone: u0.phone, email: u0.email }, { noBtns: true, extra: `<div class="cacts"><button class="cbtn" data-act="edit-profile" type="button">Edit name / email</button></div>` })}
     ${contactCard("Your agent (DSA)", act && act.dsa, { thread: act && "lead:" + act.id, text: act ? "Namaste, about my Connect Bhai request " + act.ref_code : "", empty: act ? "Assigned shortly. You get a WhatsApp message." : "Request a connection first." })}
@@ -749,7 +749,9 @@ async function renderAdmin() {
   await loadCities();
   const [leads, partners] = await Promise.all([API.adminLeads(), API.adminPartners()]);
   const newL = leads.filter(l => l.status === "new"), pendingP = partners.filter(p => p.status === "pending");
-  const tabs = [["overview", "Overview"], ["leads", "Leads", newL.length], ["partners", "DSA & TIP", pendingP.length], ["team", "Team & logins"], ["providers", "Providers"], ["plans", "Plans", (await API.adminPlans()).filter(p => p.status === "pending_review").length || null], ["locations", "Locations"], ["cities", "Cities & waiting list", (await API.adminWaitlist()).filter(w => w.status === "waiting").length || null], ["billing", "Billing & fees"], ["commissions", "DSA payouts"], ["payments", "Payout history"], ["chat", "Chat", await unreadCount()], ["messages", "WhatsApp log"], ["reports", "Reports"]];
+  const [planList, waitList, unread] = await Promise.all([API.adminPlans(), API.adminWaitlist(), unreadCount()]);
+  const pendingPlans = planList.filter(p => p.status === "pending_review").length || null, waiting = waitList.filter(w => w.status === "waiting").length || null;
+  const tabs = [["overview", "Overview"], ["leads", "Leads", newL.length], ["partners", "DSA & TIP", pendingP.length], ["team", "Team & logins"], ["providers", "Providers"], ["plans", "Plans", pendingPlans], ["locations", "Locations"], ["cities", "Cities & waiting list", waiting], ["billing", "Billing & fees"], ["commissions", "DSA payouts"], ["payments", "Payout history"], ["chat", "Chat", await unreadCount()], ["messages", "WhatsApp log"], ["reports", "Reports"]];
   let body = "";
   if (tab === "overview") {
     const [bookings, tickets, cs] = await Promise.all([API.adminBookings(), API.adminTickets(), API.adminCommissions()]);
