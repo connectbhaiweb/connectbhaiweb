@@ -64,7 +64,7 @@ export class AuthService {
 
   async passwordLogin(rawPhone: string, password: string, role?: UserRole) {
     const phone = normalizePhone(rawPhone);
-    if (phone && !role) role = await this.pickRole(phone, ['admin', 'tip', 'dsa']) ?? 'admin';
+    if (phone && !role) role = await this.pickRole(phone, ['admin', 'tip', 'dsa', 'customer']) ?? 'admin';
     const u = phone && role ? await this.prisma.user.findUnique({ where: { role_phone: { role, phone } } }) : null;
     const ok = u?.password_hash ? await bcrypt.compare(password, u.password_hash) : await bcrypt.compare(password, '$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvali');
     if (!u || !ok) throw new UnauthorizedException('Incorrect mobile number or password');

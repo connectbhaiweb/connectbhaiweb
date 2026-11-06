@@ -5,6 +5,7 @@
 require('dotenv').config({ path: process.env.ENV_FILE || '.env' });
 const { spawnSync } = require('child_process');
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 (async () => {
   const url = new URL(process.env.DATABASE_URL);
   const c = await mysql.createConnection({ host: url.hostname, port: Number(url.port || 3306), user: decodeURIComponent(url.username), password: decodeURIComponent(url.password), database: url.pathname.slice(1) });
@@ -14,6 +15,14 @@ const mysql = require('mysql2/promise');
   if (process.env.CLOUDINARY_CLOUD_NAME) {
     const [r] = await c.query("UPDATE plan_categories SET logo_url = CONCAT('connectbhai/logos/', LOWER(name), '.svg') WHERE name IN ('BSNL','Jio','Airtel') AND (logo_url IS NULL OR logo_url LIKE '/logos/%')");
     if (r.affectedRows) console.log(`provider logos now served from Cloudinary (${r.affectedRows} rows)`);
+  }
+  // Staging convenience: SEED_DEMO_PASSWORD gives ONE sample DSA, TIP and customer a password so they can be tried without a WhatsApp OTP
+  // (the sample phone numbers are fake). Unset it on a live system; those accounts then go back to OTP-only.
+  const demoPw = process.env.SEED_DEMO_PASSWORD;
+  if (demoPw && demoPw.length >= 10) {
+    const hash = await bcrypt.hash(demoPw, 10);
+    const [r] = await c.query("UPDATE users SET password_hash = ? WHERE (role = 'dsa' AND phone = '9000000001') OR (role = 'tip' AND phone = '9100000001') OR (role = 'customer' AND phone = '9811000000')", [hash]);
+    if (r.affectedRows) console.log(`demo password set on ${r.affectedRows} sample accounts`);
   }
   await c.end();
   const wantDemo = process.env.SEED_SAMPLE_DATA === 'true';

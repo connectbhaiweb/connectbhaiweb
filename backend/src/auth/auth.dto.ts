@@ -11,6 +11,6 @@ export class VerifyOtpDto extends RequestOtpDto {
 export class PasswordLoginDto {
   @IsString() phone: string;
   @IsString() @MinLength(6) @MaxLength(100) password: string;
-  @IsOptional() @IsIn(['dsa', 'tip', 'admin']) role?: 'dsa' | 'tip' | 'admin';
+  @IsOptional() @IsIn(['dsa', 'tip', 'admin', 'customer']) role?: 'dsa' | 'tip' | 'admin' | 'customer';   // customers only if a password was set on their account (demo/staging)
 }
 export class RefreshDto { @IsString() refresh_token: string; }

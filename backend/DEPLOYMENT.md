@@ -30,6 +30,7 @@ Health checks: `GET /health` (is the process up) and `GET /health/ready` (also c
 | `SEED_ADMIN_PHONE`, `SEED_ADMIN_PASSWORD` | first start | admin login. Production refuses a password shorter than 12 characters or the dev default |
 | `SEED_SAMPLE_DATA` | no | `true` also loads the 60 demo customers with leads, installs, payments, tickets and chat on the next start (added once, then skipped). Use `false` on a live system. Default `true` in development, `false` in production |
 | `SEED_SAMPLE_PARTNERS` | no | `true` loads the 21 TIPs / 16 DSAs from the sample sheets (fake phones). Set `false` on a live system: only the admin and the internal Connect Bhai TIP are created |
+| `SEED_DEMO_PASSWORD` | no | staging only: 10+ chars. Gives one sample DSA (`9000000001`), TIP (`9100000001`) and customer (`9811000000`) a password so they can be tried without a WhatsApp OTP (the sample phones are fake). Applied at each start; remove it on a live system |
 | `TIP_ONBOARDING_FEE`, `TIP_INSTALL_FEE`, `CARE_PLAN_FEE_PER_LEAD`, `DSA_PAYOUT_PER_LEAD`, `GST_PERCENT`, `GST_HOME_STATE_CODE` | first start | initial prices; admin can change them later in the app |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | yes | all uploads. Production refuses to start without them |
 | `CLOUDINARY_DELIVERY_URL`, `CLOUDINARY_API_URL` | no | defaults to Cloudinary's hosts; change for a custom domain / CDN |

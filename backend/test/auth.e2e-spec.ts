@@ -69,7 +69,7 @@ describe('auth', () => {
     expect(ok.body.user.role).toBe('admin');
     await c.http().post(`${P}/auth/login`).send({ phone: '9999999999', password: 'wrong-pass', role: 'admin' }).expect(401);
     await c.http().post(`${P}/auth/login`).send({ phone: '9999999999', password: 'Admin@12345', role: 'tip' }).expect(401);
-    await c.http().post(`${P}/auth/login`).send({ phone: '9999999999', password: 'Admin@12345', role: 'customer' }).expect(400);
+    await c.http().post(`${P}/auth/login`).send({ phone: '9999999999', password: 'Admin@12345', role: 'customer' }).expect(401);   // no customer account with that number
   });
 
   it('refresh issues new tokens; an access token cannot be used to refresh', async () => {
@@ -91,5 +91,17 @@ describe('auth', () => {
     const v = await c.http().post(`${P}/auth/otp/verify`).send({ phone, code: '123456' }).expect(200);
     await c.prisma.user.update({ where: { role_phone: { role: 'customer', phone } }, data: { is_active: false } });
     await c.http().post(`${P}/auth/refresh`).send({ refresh_token: v.body.refresh_token }).expect(401);
+  });
+
+  it('a customer or partner can use password login only when a password was set on that account', async () => {
+    const bcrypt = require('bcryptjs');
+    const { makeCustomer } = require('./helpers');
+    const cust = await makeCustomer(c);
+    await c.http().post(`${P}/auth/login`).send({ phone: cust.phone, password: 'Demo-Pass-12345' }).expect(401);          // no password set yet
+    await c.prisma.user.update({ where: { id: cust.user.id }, data: { password_hash: await bcrypt.hash('Demo-Pass-12345', 10) } });
+    const ok = await c.http().post(`${P}/auth/login`).send({ phone: cust.phone, password: 'Demo-Pass-12345' }).expect(200);   // role resolved from the phone number
+    expect(ok.body.user.role).toBe('customer');
+    expect(ok.body.user.password_hash).toBeUndefined();
+    await c.http().post(`${P}/auth/login`).send({ phone: cust.phone, password: 'wrong-password-1' }).expect(401);
   });
 });
