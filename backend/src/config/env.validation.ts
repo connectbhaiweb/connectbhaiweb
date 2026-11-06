@@ -59,10 +59,10 @@ export const envValidationSchema = Joi.object({
   .unknown(true)
   .custom((v, helpers) => {
     if (v.APP_ENV === 'production') {
-      if (/change-me/i.test(v.JWT_SECRET) || /change-me/i.test(v.JWT_REFRESH_SECRET)) return helpers.error('any.invalid', { message: 'JWT secrets must be changed in production' });
-      if (/^0+$/.test(v.DATA_ENCRYPTION_KEY)) return helpers.error('any.invalid', { message: 'DATA_ENCRYPTION_KEY must be set in production' });
-      if (v.OTP_DEV_CODE) return helpers.error('any.invalid', { message: 'OTP_DEV_CODE must be empty in production' });
-      if (!v.CLOUDINARY_CLOUD_NAME || !v.CLOUDINARY_API_KEY || !v.CLOUDINARY_API_SECRET) return helpers.error('any.invalid', { message: 'CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET are required in production (all uploads go to Cloudinary)' });
+      if (/change-me/i.test(v.JWT_SECRET) || /change-me/i.test(v.JWT_REFRESH_SECRET)) return helpers.message({ custom: 'JWT secrets must be changed in production' } as any);
+      if (/^0+$/.test(v.DATA_ENCRYPTION_KEY)) return helpers.message({ custom: 'DATA_ENCRYPTION_KEY must be set in production' } as any);
+      if (v.OTP_DEV_CODE) return helpers.message({ custom: 'OTP_DEV_CODE must be empty in production' } as any);
+      if (!v.CLOUDINARY_CLOUD_NAME || !v.CLOUDINARY_API_KEY || !v.CLOUDINARY_API_SECRET) return helpers.message({ custom: 'CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET are required in production (all uploads go to Cloudinary)' } as any);
     }
     return v;
   }, 'production safety checks');

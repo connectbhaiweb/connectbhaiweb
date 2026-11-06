@@ -22,6 +22,11 @@ describe('env validation', () => {
     expect(run({ APP_ENV: 'production', DATA_ENCRYPTION_KEY: '0'.repeat(64) }).error).toBeDefined();
     expect(run({ APP_ENV: 'production', OTP_DEV_CODE: '123456' }).error).toBeDefined();
     expect(run({ APP_ENV: 'production', CLOUDINARY_API_SECRET: '' }).error).toBeDefined();   // uploads must be configured in production
+    // the error must NAME the problem (never the value), so a failed deploy log is readable
+    expect(run({ APP_ENV: 'production', CLOUDINARY_API_SECRET: '' }).error?.message).toMatch(/CLOUDINARY_API_SECRET.*required in production/);
+    expect(run({ APP_ENV: 'production', OTP_DEV_CODE: '123456' }).error?.message).toMatch(/OTP_DEV_CODE must be empty/);
+    expect(run({ APP_ENV: 'production', DATA_ENCRYPTION_KEY: '0'.repeat(64) }).error?.message).toMatch(/DATA_ENCRYPTION_KEY must be set/);
+    expect(run({ APP_ENV: 'production', JWT_SECRET: 'change-me-change-me-change-me' }).error?.message).toMatch(/JWT secrets must be changed/);
     expect(run({ APP_ENV: 'production' }).error).toBeUndefined();
   });
   it('rejects bad values', () => {
