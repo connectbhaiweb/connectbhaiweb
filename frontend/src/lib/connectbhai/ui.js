@@ -863,6 +863,8 @@ async function openCoverage() {
 /* =====================================================================
    LOGIN
    ===================================================================== */
+const STAGING_PW = "Demo@Connect2026";   // staging only: must match SEED_DEMO_PASSWORD on the API
+const STAGING_LOGINS = (typeof location !== "undefined" && /staging/i.test(location.hostname)) ? [["Admin", "9999999999", ""], ["TIP", "9100000001", STAGING_PW], ["DSA", "9000000001", STAGING_PW], ["Customer", "9811000000", STAGING_PW]] : null;
 function openLogin(tab) {
   const acc = LIVE ? [] : API.demoAccounts(), otp = tab === "otp";
   const desc = { customer: "Bookings, complaints, my modem (restart, Wi-Fi), speed tests", dsa: "Leads, follow-ups, installation status, commission", tip: "Bookings, installations, tickets, modem control", admin: "DSAs &amp; TIPs, plans, team logins, payments, reports" };
@@ -875,6 +877,7 @@ function openLogin(tab) {
       ${field("pl-pw", "Password", `<input id="pl-pw" name="password" type="password" autocomplete="current-password">`)}
       <button class="btn btn-primary" type="submit">Log in</button></form>
       <p class="small" style="margin-top:10px"><button class="linkbtn" data-act="forgot-pw" type="button">Forgot password?</button> <span class="muted">Reset it with an OTP on WhatsApp.</span></p>`}
+    ${LIVE && STAGING_LOGINS ? `<div class="notice info" style="margin-top:14px;display:block"><b>Staging test logins</b> (tap to fill)<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${STAGING_LOGINS.map(a => `<button class="chip" type="button" data-act="fill-login" data-phone="${a[1]}" data-pw="${a[2]}">${a[0]} · ${a[1]}</button>`).join("")}</div><p class="small muted" style="margin-top:8px">Password for DSA, TIP and customer: <b>${STAGING_PW}</b>. Admin uses the admin's own password.</p></div>` : ""}
     ${LIVE ? "" : `<div class="notice info" style="margin-top:14px;display:block">Demo: password <b>Demo@1234</b> for 9876500001 (customer), 9876500101 (DSA), 9876500201 (TIP), 9876500999 (admin). WhatsApp OTP is always <b>123456</b>.</div>
     <details style="margin-top:12px"><summary class="linkbtn" style="display:inline">Or switch to a demo role in one tap</summary><div class="accts" style="margin-top:10px">${acc.filter(a => ["u-cust", "u-dsa", "u-tip", "u-admin"].includes(a.id)).map(a => `<button class="acct" data-act="demo-login" data-id="${a.id}" type="button"><span class="avatar">${esc(initials(a.full_name))}</span><span><b>${esc(a.full_name)} <span class="rolechip">${ROLE_NAME[a.role]}</span></b><small>${desc[a.role]}${a.partner ? " · " + esc(a.partner) : ""}</small></span></button>`).join("")}</div></details>`}`);
 }
@@ -1423,6 +1426,7 @@ const actions = {
   "close-modal": () => closeModal(),
   "chat": b => openChat(b.dataset.thread),
   "login-tab": b => openLogin(b.dataset.v),
+  "fill-login": b => { openLogin("pw"); const ph = document.getElementById("pl-phone"), pw = document.getElementById("pl-pw"); if (ph) ph.value = b.dataset.phone; if (pw) pw.value = b.dataset.pw; (b.dataset.pw ? pw : pw)?.focus(); },
   "login-otp": () => openLogin("otp"),
   "forgot-pw": () => openForgot(),
   "change-password": () => openSetPassword("change"),
