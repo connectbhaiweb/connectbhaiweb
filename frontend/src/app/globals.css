@@ -566,30 +566,31 @@ footer button.linkbtn:hover{color:#fff}
 @media (max-width:480px){.ph1,.ph2{width:56%}.app-phones{min-height:440px}.ph1{height:420px}.ph2{height:390px}}
 
 /* ---- FAQ ---- */
-.faqsec{padding-block:40px 56px}
-.faq-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.5fr);gap:40px;align-items:start}
+.faqsec{padding-block:28px 40px}
+.faq-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.5fr);gap:32px;align-items:start}
+.faq-side{position:sticky;top:88px}   /* left column stays in view while the list scrolls */
 .faq-pill{display:inline-block;padding:5px 14px;border:1.5px solid var(--blue);color:var(--blue);border-radius:999px;font-weight:800;font-size:13px}
-.faq-side h2{font-size:clamp(28px,3.4vw,42px);line-height:1.1;margin:14px 0 12px}
+.faq-side h2{font-size:clamp(26px,2.8vw,36px);line-height:1.12;margin:12px 0 10px}
 .help{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:22px;display:grid;gap:14px}
 .help-top{display:flex;gap:14px;align-items:flex-start}
 .help-ico{width:46px;height:46px;border-radius:12px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;flex:none}
 .help p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
 .help-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .help-btns .btn{justify-content:center;text-align:center;text-decoration:none}
-.faq-cats{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.faq-cats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .faq-cat{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 18px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
 .faq-cat[aria-selected="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
-.faq-list{display:grid;gap:12px}
-.faq-item{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.faq-list{display:grid;gap:8px}
+.faq-item{background:var(--surface);border:1px solid var(--line);border-radius:14px}
 .faq-item.open{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue) inset}
-.faq-item h3{margin:0;font-size:16px}
-.faq-item h3 button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;background:none;border:0;padding:20px 22px;font:inherit;font-family:var(--display);font-weight:700;color:var(--ink);text-align:left;cursor:pointer}
+.faq-item h3{margin:0;font-size:15px}
+.faq-item h3 button{width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;background:none;border:0;padding:14px 18px;font:inherit;font-family:var(--display);font-weight:700;color:var(--ink);text-align:left;cursor:pointer}
 .faq-item.open h3 button{color:var(--blue)}
-.faq-item h3 i{font-style:normal;flex:none;width:30px;height:30px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-size:18px;line-height:1}
+.faq-item h3 i{font-style:normal;flex:none;width:26px;height:26px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-size:18px;line-height:1}
 .faq-item.open h3 i{background:var(--blue);color:#fff}
-.faq-a{padding:0 22px 20px}
-.faq-a p{margin:0;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
-@media (max-width:900px){.faq-grid{grid-template-columns:minmax(0,1fr);gap:24px}}
+.faq-a{padding:0 18px 14px}
+.faq-a p{margin:0;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;font-size:14.5px}
+@media (max-width:900px){.faq-grid{grid-template-columns:minmax(0,1fr);gap:20px}.faq-side{position:static}}
 @media (max-width:700px){.hero-head .eyebrow{display:none}.hero .wrap{padding-block:12px 20px}.hero .cityrow{margin-bottom:8px}}
 @media (min-width:701px) and (max-width:900px){.hero .wrap{gap:14px 20px}.hero .lede{display:none}.hero-story .meet{display:none}.search .pinrow input{font-size:18px}.ptab{padding:9px 8px}}
 #faq,#get-app,#results,#partners,#router{scroll-margin-top:72px}
@@ -677,3 +678,10 @@ html.is-loading::after{content:"";position:fixed;left:0;top:0;height:3px;width:1
 .tt-pager button.on{background:#1043C8;border-color:#1043C8;color:#fff}
 .tt-pager button:disabled{opacity:.4;cursor:default}
 .tt-gap{padding:0 2px}
+
+/* ---- Partner application (#partners): long form scrolls inside its card, left card stays beside it ---- */
+@media (min-width:861px){
+  #partners .split>.card:first-child{position:sticky;top:88px}
+  #partners form[data-form="partner-apply"]{max-height:min(680px,calc(100svh - 120px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+  #partners form[data-form="partner-apply"]>button[type="submit"]{position:sticky;bottom:0;z-index:1;box-shadow:0 -12px 16px -4px var(--surface),0 24px 0 6px var(--surface)}
+}
