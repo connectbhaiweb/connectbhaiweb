@@ -23,19 +23,21 @@ describe('WhatsApp messages at each step', () => {
     expect(await sent(lead.customer_phone, 'lead_followup')).toHaveLength(1);
   });
 
-  it('technician start: tells the customer once, only the assigned TIP (or admin) can do it', async () => {
+  it('approved and booked: the customer gets "installation in progress" once, when the booking is made', async () => {
     const lead = await newLead(c, a, { tip: 'dream' });
+    await c.http().patch(`${P}/leads/${lead.id}/status`).set(bearer(a.admin)).send({ status: 'followup', followup_at: inDays(1) }).expect(200);
+    expect(await sent(lead.customer_phone, 'installation_in_progress')).toHaveLength(0);
     const b = await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: lead.id, scheduled_at: inDays(1) }).expect(201);
-    await c.http().post(`${P}/bookings/${b.body.id}/start`).set(bearer(a.doulat)).expect(404);   // another TIP cannot even see this booking
-    await c.http().post(`${P}/bookings/${b.body.id}/start`).set(bearer(a.dsa1)).expect(403);
-    const r1 = await c.http().post(`${P}/bookings/${b.body.id}/start`).set(bearer(a.dream)).expect(200);
-    expect(r1.body).toEqual({ started: true, notified: true });
-    const r2 = await c.http().post(`${P}/bookings/${b.body.id}/start`).set(bearer(a.dream)).expect(200);
-    expect(r2.body).toEqual({ started: true, notified: false });
     const n = await sent(lead.customer_phone, 'installation_in_progress');
     expect(n).toHaveLength(1);
     expect(n[0].payload).toMatchObject({ ref_code: lead.ref_code });
     expect((n[0].payload as any).technician).toBeTruthy();
+    // tapping "start" later does not send it again; only the assigned TIP or admin may call it
+    await c.http().post(`${P}/bookings/${b.body.id}/start`).set(bearer(a.doulat)).expect(404);
+    await c.http().post(`${P}/bookings/${b.body.id}/start`).set(bearer(a.dsa1)).expect(403);
+    const r = await c.http().post(`${P}/bookings/${b.body.id}/start`).set(bearer(a.dream)).expect(200);
+    expect(r.body).toEqual({ started: true, notified: false });
+    expect(await sent(lead.customer_phone, 'installation_in_progress')).toHaveLength(1);
   });
 
   it('installation done: customer gets "installed" (activation) and NOT the welcome; the TIP gets "install_fee_due" with a due date', async () => {

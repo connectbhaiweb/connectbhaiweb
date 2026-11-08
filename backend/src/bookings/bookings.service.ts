@@ -39,7 +39,23 @@ export class BookingsService {
       await tx.lead.update({ where: { id: lead.id }, data: { status: 'scheduled', followup_at: null } });
       await this.leads.log(tx, lead.id, u.id, 'status_changed', { from: lead.status, to: 'scheduled', note: `installation on ${when.toISOString()}` });
       return b;
+    }).then(async (b) => {
+      await this.tellInstallationStarted({ id: lead.id, plan_id: lead.plan_id, customer_user_id: lead.customer_user_id, customer_phone: lead.customer_phone, customer_name: lead.customer_name, ref_code: lead.ref_code }, lead.tip_user_id!, u.id);
+      return b;
     });
+  }
+
+  /** WhatsApp "installation in progress" to the customer, once per lead: when the lead is approved and booked (or, if that was missed, when the TIP starts). */
+  private async tellInstallationStarted(lead: { id: bigint | number; plan_id: bigint | number | null; customer_user_id: bigint | number | null; customer_phone: string; customer_name: string; ref_code: string }, tipId: bigint | number, actor: number) {
+    const already = await this.prisma.leadEvent.findFirst({ where: { lead_id: lead.id, event_type: 'install_started' } });
+    if (already) return false;
+    const [tip, plan] = await Promise.all([
+      this.prisma.user.findUniqueOrThrow({ where: { id: tipId } }),
+      lead.plan_id ? this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null,
+    ]);
+    await this.leads.log(this.prisma, lead.id, actor, 'install_started');
+    await this.notify.send({ user_id: lead.customer_user_id, phone: lead.customer_phone, template: 'installation_in_progress', payload: { name: lead.customer_name, technician: tip.name, product: productName(plan), ref_code: lead.ref_code } });
+    return true;
   }
 
   async list(q: BookingQuery, u: AuthUser) {
@@ -123,19 +139,12 @@ export class BookingsService {
     return out;
   }
 
-  /** Technician has started work: tells the customer once. (Booking status stays "scheduled" until the install is completed.) */
+  /** TIP taps "start" on site. Sends the message only if it was not already sent when the booking was approved. */
   async start(id: number, u: AuthUser) {
     const b = await this.getForUser(id, u);
     this.assertCanManage(b, u);
     if (b.status !== 'scheduled') throw new BadRequestException(`Booking is ${b.status}`);
-    const already = await this.prisma.leadEvent.findFirst({ where: { lead_id: b.lead_id, event_type: 'install_started' } });
-    if (already) return { started: true, notified: false };
-    const [tip, plan] = await Promise.all([
-      this.prisma.user.findUniqueOrThrow({ where: { id: b.tip_user_id } }),
-      b.lead.plan_id ? this.prisma.plan.findUnique({ where: { id: b.lead.plan_id }, include: { category: { select: { name: true } } } }) : null,
-    ]);
-    await this.leads.log(this.prisma, b.lead_id, u.id, 'install_started');
-    await this.notify.send({ user_id: b.lead.customer_user_id, phone: b.lead.customer_phone, template: 'installation_in_progress', payload: { name: b.lead.customer_name, technician: tip.name, product: productName(plan), ref_code: b.lead.ref_code } });
-    return { started: true, notified: true };
+    const notified = await this.tellInstallationStarted(b.lead, b.tip_user_id, u.id);
+    return { started: true, notified };
   }
 }
