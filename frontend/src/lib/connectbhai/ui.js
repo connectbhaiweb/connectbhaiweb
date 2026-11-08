@@ -1492,7 +1492,7 @@ const actions = {
     } catch (e) { if (out) out.textContent = errMsg(e); else toast(errMsg(e), true); }
     finally { if (document.body.contains(b)) { b.disabled = false; b.textContent = label; } }
   },
-  "otp-resend": async b => { await guard(b, () => API.sendOtp(b.dataset.phone)); toast("OTP sent again on WhatsApp."); openOtpStep(b.dataset.phone, (document.querySelector('[data-form="otp-verify"]') || { dataset: {} }).dataset.purpose || "login"); },
+  "otp-resend": async b => { await guard(b, () => API.sendOtp(b.dataset.phone, ((document.querySelector('[data-form="otp-verify"]') || { dataset: {} }).dataset.purpose === "request") ? "customer" : undefined)); toast("OTP sent again on WhatsApp."); openOtpStep(b.dataset.phone, (document.querySelector('[data-form="otp-verify"]') || { dataset: {} }).dataset.purpose || "login"); },
   "reload": () => render(),
   "login": () => openLogin(),
   "logout": async () => { await API.signOut(); try { localStorage.removeItem("cb-session"); } catch (e) {} toast("Logged out."); go("home"); },
@@ -1767,7 +1767,7 @@ const forms = {
     if (!isPin(d.pincode)) e["rq-pin"] = "Enter a valid 6-digit PIN code."; if (d.plan_id && d.address.length < 5) e["rq-addr"] = "Enter your installation address.";
     if (d.preferred_date && d.preferred_date < todayISO()) e["rq-date"] = "Choose today or a future date."; if (!d.consent) e["rq-consent"] = "Please agree so a TIP can contact you.";
     if (!setErr(f, e)) return;
-    if (!me()) { await guard(btn, () => API.sendOtp(d.phone)); S.pendingReq = d; openOtpStep(d.phone, "request"); return; }   // verify the number on WhatsApp first
+    if (!me()) { await guard(btn, () => API.sendOtp(d.phone, "customer")); S.pendingReq = d; openOtpStep(d.phone, "request"); return; }   // verify the number on WhatsApp first
     const r = await guard(btn, () => API.requestConnection(d));
     showRequestDone(r, d);
   },
@@ -1864,7 +1864,7 @@ const forms = {
     const otp = val(f, "otp"); if (!setErr(f, /^\d{6}$/.test(otp) ? {} : { "lg-otp": "Enter the 6-digit OTP." })) return;
     const purpose = f.dataset.purpose, pend = S.pendingReq;
     let u;
-    try { u = await guard(btn, () => API.verifyOtp(f.dataset.phone, otp, purpose === "request" && pend ? pend.name : "")); }
+    try { u = await guard(btn, () => API.verifyOtp(f.dataset.phone, otp, purpose === "request" && pend ? pend.name : "", purpose === "request" ? "customer" : undefined)); }
     catch (e) { setErr(f, { "lg-otp": errMsg(e) }); return; }
     clearInterval(otpTimer); try { localStorage.setItem("cb-session", u.id); } catch (e) {}
     renderHeader();

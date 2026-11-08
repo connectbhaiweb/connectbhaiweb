@@ -174,9 +174,9 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     async signOut() { saveTokens(null); me = null; },
 
     /* ---- auth ---- */
-    async sendOtp(phone) { await post("/auth/otp/request", { phone }, { anon: true }); return { channel: "whatsapp" }; },
-    async verifyOtp(phone, code, name) {
-      const d = await post("/auth/otp/verify", { phone, code, name: name || undefined }, { anon: true });
+    async sendOtp(phone, role) { await post("/auth/otp/request", { phone, role: role || undefined }, { anon: true }); return { channel: "whatsapp" }; },
+    async verifyOtp(phone, code, name, role) {   // role "customer" is passed when the OTP is only to confirm a connection request, so a number that is also a (pending) TIP or DSA is not mixed up
+      const d = await post("/auth/otp/verify", { phone, code, name: name || undefined, role: role || undefined }, { anon: true });
       saveTokens({ access_token: d.access_token, refresh_token: d.refresh_token }); me = mapUser(d.user); return me;
     },
     async signInPassword(phone, password) {
