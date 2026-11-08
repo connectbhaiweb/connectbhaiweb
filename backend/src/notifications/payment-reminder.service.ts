@@ -4,11 +4,13 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
 import { dateIST } from './whatsapp-campaigns';
 
-const TEMPLATE = 'registration_fee_due';
+const TEMPLATE = 'payment_due';
+/** The install fee already sends its own message when it is created, so it is not reminded. */
+const KINDS = ['tip_onboarding', 'tip_care_plan_fee', 'customer_payment', 'other'] as const;
 const WINDOW_DAYS = 7;       // only registrations newer than this are reminded
 const DUE_AFTER_DAYS = 7;    // due date written in the message
 
-/** A TIP who registered but has not paid the registration fee yet gets one WhatsApp reminder, PAYMENT_REMINDER_MINUTES after registering (default 30). */
+/** A TIP or customer with an unpaid charge (e.g. a TIP who registered but did not pay the fee) gets ONE WhatsApp payment reminder, PAYMENT_REMINDER_MINUTES after the charge was created (default 30). */
 @Injectable()
 export class PaymentReminderService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PaymentReminderService.name);
@@ -22,14 +24,14 @@ export class PaymentReminderService implements OnModuleInit, OnModuleDestroy {
   }
   onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
 
-  /** Returns how many TIPs were reminded. */
+  /** Returns how many people were reminded. */
   async run(now: Date = new Date()): Promise<number> {
     const minutes = Number(this.cfg.get('PAYMENT_REMINDER_MINUTES') ?? 30);
     if (!(minutes >= 0)) return 0;
     const due = new Date(now.getTime() - minutes * 60_000);
     const since = new Date(now.getTime() - WINDOW_DAYS * 86_400_000);
     const charges = await this.prisma.charge.findMany({
-      where: { kind: 'tip_onboarding', status: { in: ['pending', 'failed'] }, created_at: { lte: due, gte: since }, payer: { is_active: true, partner_status: { not: 'rejected' } } },
+      where: { kind: { in: [...KINDS] }, status: { in: ['pending', 'failed'] }, created_at: { lte: due, gte: since }, payer: { is_active: true, OR: [{ partner_status: null }, { partner_status: { not: 'rejected' } }] } },
       include: { payer: { select: { id: true, name: true, phone: true } } },
       orderBy: { created_at: 'asc' }, take: 50,
     });
@@ -37,10 +39,10 @@ export class PaymentReminderService implements OnModuleInit, OnModuleDestroy {
     for (const c of charges) {
       const done = await this.prisma.notification.findFirst({ where: { template: TEMPLATE, user_id: c.payer.id, payload: { path: '$.charge_id', equals: Number(c.id) } }, select: { id: true } });
       if (done) continue;   // one reminder per charge
-      await this.notify.send({ user_id: c.payer.id, phone: c.payer.phone, template: TEMPLATE, payload: { charge_id: Number(c.id), name: c.payer.name, what: 'TIP registration fee', amount: Number(c.total_amount), due: dateIST(new Date(c.created_at.getTime() + DUE_AFTER_DAYS * 86_400_000)) } });
+      await this.notify.send({ user_id: c.payer.id, phone: c.payer.phone, template: TEMPLATE, payload: { charge_id: Number(c.id), name: c.payer.name, what: c.description || 'ConnectBhai payment', amount: Number(c.total_amount), due: dateIST(new Date(c.created_at.getTime() + DUE_AFTER_DAYS * 86_400_000)) } });
       sent++;
     }
-    if (sent) this.logger.log(`registration fee reminder sent to ${sent} TIPs`);
+    if (sent) this.logger.log(`payment reminder sent to ${sent} people`);
     return sent;
   }
 }

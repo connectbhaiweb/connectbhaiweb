@@ -1,6 +1,6 @@
 import { PaymentReminderService } from '../src/notifications/payment-reminder.service';
 import { FeedbackRequestService } from '../src/notifications/feedback-request.service';
-import { actors, bearer, createCtx, Ctx, inDays, newLead, P, uniquePhone } from './helpers';
+import { actors, bearer, createCtx, Ctx, inDays, makeCustomer, newLead, P, uniquePhone } from './helpers';
 
 /** Which WhatsApp messages the app records at each step (nothing is really sent in tests: AISENSY_API_KEY is empty). */
 describe('WhatsApp messages at each step', () => {
@@ -99,7 +99,7 @@ describe('WhatsApp messages at each step', () => {
     expect(await sent(lead.customer_phone, 'lead_followup')).toHaveLength(1);
   });
 
-  describe('TIP registered but fee not paid', () => {
+  describe('payment reminders (TIP and customer)', () => {
     const tipBody = () => ({
       role: 'tip', name: 'Unpaid Networks', phone: uniquePhone(), address: '12 MG Road, Indore', pincode: '452001',
       aadhaar: '9999 1111 2222', pan: 'ABCDE1234F', bank_name: 'SBI', bank_account: '123456789012', bank_ifsc: 'SBIN0001234',
@@ -110,22 +110,47 @@ describe('WhatsApp messages at each step', () => {
       const reg = await c.http().post(`${P}/partners/register`).send(tipBody()).expect(201);
       const phone = reg.body.user.phone;
       await svc.run(new Date(Date.now() + 5 * 60_000));                    // 5 minutes: too early
-      expect(await sent(phone, 'registration_fee_due')).toHaveLength(0);
+      expect(await sent(phone, 'payment_due')).toHaveLength(0);
       await svc.run(new Date(Date.now() + 31 * 60_000));                   // 31 minutes: reminded
-      const n = await sent(phone, 'registration_fee_due');
+      const n = await sent(phone, 'payment_due');
       expect(n).toHaveLength(1);
-      expect(n[0].payload).toMatchObject({ name: 'Unpaid Networks', what: 'TIP registration fee', charge_id: Number(reg.body.charge.id) });
+      expect(n[0].payload).toMatchObject({ name: 'Unpaid Networks', what: 'TIP onboarding charge', charge_id: Number(reg.body.charge.id) });
       expect(Number((n[0].payload as any).amount)).toBeGreaterThan(0);
       expect((n[0].payload as any).due).toMatch(/^\d{2} \w{3} \d{4}$/);
       await svc.run(new Date(Date.now() + 60 * 60_000));                   // later: not twice
-      expect(await sent(phone, 'registration_fee_due')).toHaveLength(1);
+      expect(await sent(phone, 'payment_due')).toHaveLength(1);
     });
     it('a TIP who already paid is not reminded', async () => {
       const svc = c.app.get(PaymentReminderService);
       const reg = await c.http().post(`${P}/partners/register`).send(tipBody()).expect(201);
       await c.prisma.charge.update({ where: { id: reg.body.charge.id }, data: { status: 'paid', paid_at: new Date() } });
       await svc.run(new Date(Date.now() + 31 * 60_000));
-      expect(await sent(reg.body.user.phone, 'registration_fee_due')).toHaveLength(0);
+      expect(await sent(reg.body.user.phone, 'payment_due')).toHaveLength(0);
+    });
+    it('a customer with an unpaid charge gets the reminder too, once', async () => {
+      const svc = c.app.get(PaymentReminderService);
+      const cust = await makeCustomer(c);
+      const ch = await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ description: 'Router rental', amount: 590 }).expect(201);
+      await svc.run(new Date(Date.now() + 31 * 60_000));
+      await svc.run(new Date(Date.now() + 90 * 60_000));
+      const n = await sent(cust.phone, 'payment_due');
+      expect(n).toHaveLength(1);
+      expect(n[0].payload).toMatchObject({ what: 'Router rental', charge_id: Number(ch.body.id) });
+    });
+    it('a bill raised by admin on a TIP or a customer is announced at once and not reminded again', async () => {
+      const svc = c.app.get(PaymentReminderService);
+      const cust = await makeCustomer(c);
+      await c.http().post(`${P}/charges`).set(bearer(a.admin)).send({ payer_user_id: cust.user.id, base_amount: 500, description: 'Installation bill' }).expect(201);
+      const mine = await sent(cust.phone, 'payment_due');
+      expect(mine).toHaveLength(1);
+      expect(mine[0].payload).toMatchObject({ what: 'Installation bill' });
+      expect(Number((mine[0].payload as any).amount)).toBe(590);   // 500 + 18% GST
+      const dream = await c.prisma.user.findFirstOrThrow({ where: { id: a.ids.dream } });
+      const before = await c.prisma.notification.count({ where: { phone: dream.phone, template: 'payment_due' } });
+      await c.http().post(`${P}/charges`).set(bearer(a.admin)).send({ payer_user_id: a.ids.dream, base_amount: 1000, description: 'Extra service fee' }).expect(201);
+      expect(await c.prisma.notification.count({ where: { phone: dream.phone, template: 'payment_due' } })).toBe(before + 1);
+      await svc.run(new Date(Date.now() + 40 * 60_000));
+      expect(await sent(cust.phone, 'payment_due')).toHaveLength(1);
     });
   });
 });

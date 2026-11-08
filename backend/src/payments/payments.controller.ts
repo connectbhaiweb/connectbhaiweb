@@ -10,11 +10,13 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { ChargesService } from './charges.service';
 import { SettingsService } from '../settings/settings.service';
 import { CarePlanPurchaseDto, ChargeQuery, CreateChargeDto, CustomerChargeDto, OfflinePaidDto, PayDto, VerifyPaymentDto } from './payments.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { dateIST } from '../notifications/whatsapp-campaigns';
 import { RazorpayService } from './razorpay.service';
 
 @ApiTags('payments') @Controller()
 export class PaymentsController {
-  constructor(private prisma: PrismaService, private charges: ChargesService, private rzp: RazorpayService, private jwt: JwtService, private cfg: ConfigService, private settings: SettingsService) {}
+  constructor(private prisma: PrismaService, private charges: ChargesService, private rzp: RazorpayService, private jwt: JwtService, private cfg: ConfigService, private settings: SettingsService, private notify: NotificationsService) {}
 
   /** Payer or admin; or anyone holding the payment_token issued at TIP registration (they cannot log in before approval). */
   private async authorize(charge: Charge, user: AuthUser | undefined, token?: string) {
@@ -118,7 +120,10 @@ export class PaymentsController {
   async createCharge(@Body() d: CreateChargeDto) {
     const payer = await this.prisma.user.findUnique({ where: { id: d.payer_user_id } });
     if (!payer) throw new BadRequestException('Payer not found');
-    return this.prisma.$transaction((tx) => this.charges.create(tx, { kind: d.kind ?? 'other', payer, base: d.base_amount, description: d.description, lead_id: d.lead_id }));
+    const charge = await this.prisma.$transaction((tx) => this.charges.create(tx, { kind: d.kind ?? 'other', payer, base: d.base_amount, description: d.description, lead_id: d.lead_id }));
+    // tell the payer right away (TIP or customer); the 30-minute reminder then skips this charge
+    await this.notify.send({ user_id: payer.id, phone: payer.phone, template: 'payment_due', payload: { charge_id: Number(charge.id), name: payer.name, what: charge.description || 'ConnectBhai payment', amount: Number(charge.total_amount), due: dateIST(new Date(Date.now() + 7 * 86_400_000)) } });
+    return charge;
   }
 
   /** Customer starts a payment for themselves (rental, installation, bill). `amount` is the GST-inclusive total they will pay. */

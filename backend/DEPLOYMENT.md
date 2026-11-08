@@ -36,7 +36,7 @@ Health checks: `GET /health` (is the process up) and `GET /health/ready` (also c
 | `CLOUDINARY_DELIVERY_URL`, `CLOUDINARY_API_URL` | no | defaults to Cloudinary's hosts; change for a custom domain / CDN |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | for payments | without them online payments answer "not configured" in production |
 | `AISENSY_API_KEY` | for WhatsApp | without it messages are only logged |
-| `PAYMENT_REMINDER_MINUTES` | no | minutes after a TIP registers before the unpaid-fee WhatsApp reminder (default 30) |
+| `PAYMENT_REMINDER_MINUTES` | no | minutes after a TIP registers before the unpaid-payment WhatsApp reminder (default 30) |
 | `FEEDBACK_DELAY_HOURS` | no | hours after installation before the feedback WhatsApp is sent (default 24) |
 | `PORT` | no | most hosts set this for you |
 
@@ -71,7 +71,7 @@ All messages go through one map: `src/notifications/whatsapp-campaigns.ts`. It l
 | Lead becomes follow-up (status change, or an installation is cancelled) | `lead_followup` | `Connect Bhai_leadfollowup` |
 | Lead is approved and the installation is booked (once per lead; tapping Start later does not repeat it) | `installation_in_progress` | `Connect Bhai_installation WIP` |
 | Installation completed | `installed` | `Connect Bhai_activated` (the `welcome` message is defined but not sent) |
-| TIP registered but has not paid the fee after 30 minutes (`PAYMENT_REMINDER_MINUTES`), once, registrations from the last 7 days (to the TIP) | `registration_fee_due` | `Connect Bhai testing_payment` |
+| A TIP or customer has an unpaid charge: sent at once when admin raises a bill; otherwise once, 30 minutes after the charge was created (`PAYMENT_REMINDER_MINUTES`), for charges from the last 7 days (TIP registration fee, Care Plan fee, a payment the customer started) | `payment_due` | `Connect Bhai testing_payment` |
 | Installation completed (to the TIP) | `install_fee_due` | `Connect Bhai testing_payment` (due date = 7 days) |
 | Customer raises a ticket | `complaint_registered` | `BSNL Indore_complaint` (expected: within 24 hours) |
 | 24 hours after installation (`FEEDBACK_DELAY_HOURS`), once per customer, only for installs from the last 3 days | `installation_feedback` | `Connect Bhai testing campaign` |

@@ -30,7 +30,7 @@ describe('WhatsApp campaign map', () => {
     names.forEach((n) => expect(n.trim()).toBe(n));
     const dupes = names.filter((n, i) => names.indexOf(n) !== i);
     expect(dupes).toEqual(['Connect Bhai testing_payment']);
-    expect(buildCampaign('registration_fee_due', { name: 'A', what: 'TIP registration fee', amount: 1180, due: '14 Nov 2026' })).toEqual({ campaign: 'Connect Bhai testing_payment', params: ['A', 'TIP registration fee', '1180', '14 Nov 2026'], copyCode: undefined });
+    expect(buildCampaign('payment_due', { name: 'A', what: 'TIP registration fee', amount: 1180, due: '14 Nov 2026' })).toEqual({ campaign: 'Connect Bhai testing_payment', params: ['A', 'TIP registration fee', '1180', '14 Nov 2026'], copyCode: undefined });
   });
 
   it('helpers', () => {
