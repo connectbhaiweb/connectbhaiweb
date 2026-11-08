@@ -134,7 +134,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   async function payFlow(id, tokenForPublic, who) {
     const body = tokenForPublic ? { payment_token: tokenForPublic } : {}, opt = tokenForPublic ? { anon: !me } : undefined;
     const o = await post(`/charges/${id}/pay`, body, opt);
-    if (o.mock) { await sleep(900); await post(`/charges/${id}/mock-pay`, body, opt); return; }
+    if (o.mock) { await sleep(900); return post(`/charges/${id}/mock-pay`, body, opt); }
     await loadCheckout();
     const res = await new Promise((ok, no) => {
       const rz = new window.Razorpay({ key: o.key_id, order_id: o.order_id, amount: o.amount, currency: o.currency, name: "Connect Bhai", description: "ConnectBhai fee payment", theme: { color: "#2a55e5" },
@@ -142,7 +142,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       rz.on("payment.failed", r => no(new AppError((r.error && r.error.description) || "Payment failed. Please try again.")));
       rz.open();
     });
-    await post(`/charges/${id}/verify`, { ...body, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }, opt);
+    return post(`/charges/${id}/verify`, { ...body, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }, opt);   // the paid charge, with amount, invoice and payment id
   }
 
   const devices = async () => { try { return (await all("/care-plan/devices")).items; } catch (e) { return []; } };
@@ -213,7 +213,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       const charge = d.charge ? mapCharge(d.charge) : null; if (charge && d.payment_token) payTokens.set(charge.id, d.payment_token);
       return { partner_id: S(d.user.id), charge };
     },
-    async payPublicCharge(id, method, who) { await payFlow(id, payTokens.get(String(id)), who); const c = await get(`/charges/${id}`, { anon: !me }).catch(() => null); return c ? mapCharge(c) : { id: S(id), status: "paid" }; },
+    async payPublicCharge(id, method, who) { const paid = await payFlow(id, payTokens.get(String(id)), who); return mapCharge(paid); },
 
     /* ---- leads ---- */
     async myLeads() { need("customer"); return (await all("/leads")).items.map(mapLead); },
@@ -270,7 +270,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     /* ---- money ---- */
     async myCharges() { return (await all("/charges")).items.map(mapCharge); },
     async adminCharges() { need("admin"); return (await all("/charges")).items.map(mapCharge); },
-    async payCharge(id) { await payFlow(id); return mapCharge(await get("/charges/" + id)); },
+    async payCharge(id) { const paid = await payFlow(id); return mapCharge(await get("/charges/" + id).catch(() => paid)); },
     async customerPay(f) { need("customer"); const c = await post("/charges/customer", { description: f.description.trim(), amount: Number(f.amount), lead_id: N(f.lead_id) }); return mapCharge(c); },
     async adminCreateCharge(f) {
       need("admin"); const payer = f.payer_type === "partner" ? f.partner_id : f.customer_id; if (!payer) fail("Choose who pays.");

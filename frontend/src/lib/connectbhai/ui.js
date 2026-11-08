@@ -994,7 +994,7 @@ function openAppFee(c, d, existing) {
 function paySuccess(c) {
   openModal(`<div style="text-align:center;display:grid;gap:10px;justify-items:center;padding:8px 0"><span class="avatar" style="width:56px;height:56px;font-size:24px;background:var(--ok)">✓</span>
     <h2 style="padding:0">Payment successful</h2><p class="muted">${esc(c.description)}</p><p style="font-family:var(--display);font-size:28px;font-weight:800">${inr(c.amount)}</p>
-    <p class="muted small">Receipt <span class="mono">${esc(c.ref_code)}</span> · Payment ID <span class="mono">${esc(c.gateway_payment_id || "")}</span><br>A receipt has been sent on WhatsApp.</p>
+    <p class="muted small">Receipt <span class="mono">${esc(c.ref_code)}</span> · Payment ID <span class="mono">${esc(c.gateway_payment_id || "")}</span><br>Keep this reference for your records.</p>
     ${c.kind === "registration_fee" ? `<p class="notice info">${me() ? "Your account is now active." : (c.login ? "Registration confirmed. You can log in right away with the details below. Admin will verify your KYC and agreement, then leads open in your portal. You'll get a WhatsApp message." : "Registration fee received. Admin will verify your KYC and agreement and activate your account. You'll get a WhatsApp message.")}</p>` : ""}${c.login ? credBlock(c.login, "Your Connect Bhai login is ready") + `<button class="btn btn-primary" data-act="login" type="button">Log in now</button>` : `<button class="btn btn-primary" data-act="close-modal" type="button">Done</button>`}</div>`);
   render();
 }
