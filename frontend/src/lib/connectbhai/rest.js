@@ -123,14 +123,26 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
 
   /* ---------- Razorpay checkout (live keys only; the mock gateway settles on the server) ---------- */
   const loadCheckout = () => window.Razorpay ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://checkout.razorpay.com/v1/checkout.js"; s.onload = ok; s.onerror = () => no(new AppError("Could not load the payment window.")); document.head.appendChild(s); });
-  async function payFlow(id, tokenForPublic, who) {   // who: { name, phone, email } pre-fills Razorpay so it does not ask again
-    const body = tokenForPublic ? { payment_token: tokenForPublic } : {};
-    const o = await post(`/charges/${id}/pay`, body, tokenForPublic ? { anon: !me } : undefined);
-    if (o.mock) { await sleep(900); await post(`/charges/${id}/mock-pay`, body, tokenForPublic ? { anon: !me } : undefined); return; }
+  /* Pre-fills the Razorpay window with who is paying, so it never asks for contact details. Works for logged-in users and for the public registration payment. */
+  function checkoutPrefill(who) {
+    const w = who || (me && { name: me.full_name || me.name, phone: me.phone, email: me.email }) || null;
+    const digits = String((w && w.phone) || "").replace(/\D/g, "").slice(-10);
+    if (digits.length !== 10) return {};
+    const email = String((w && w.email) || "").trim();
+    return { prefill: { name: String((w && w.name) || "").trim(), contact: "+91" + digits, ...(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? { email } : {}) } };
+  }
+  async function payFlow(id, tokenForPublic, who) {
+    const body = tokenForPublic ? { payment_token: tokenForPublic } : {}, opt = tokenForPublic ? { anon: !me } : undefined;
+    const o = await post(`/charges/${id}/pay`, body, opt);
+    if (o.mock) { await sleep(900); await post(`/charges/${id}/mock-pay`, body, opt); return; }
     await loadCheckout();
-    const res = await new Promise((ok, no) => { const rz = new window.Razorpay({ key: o.key_id, order_id: o.order_id, amount: o.amount, currency: o.currency, name: "Connect Bhai", description: "ConnectBhai fee payment", theme: { color: "#2a55e5" },
-      ...(who && who.phone ? { prefill: { name: who.name || "", contact: "+91" + String(who.phone).replace(/\D/g, "").slice(-10), email: who.email || "" } } : {}), handler: ok, modal: { ondismiss: () => no(new AppError("Payment was cancelled.")) } }); rz.open(); });
-    await post(`/charges/${id}/verify`, { ...body, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }, tokenForPublic ? { anon: !me } : undefined);
+    const res = await new Promise((ok, no) => {
+      const rz = new window.Razorpay({ key: o.key_id, order_id: o.order_id, amount: o.amount, currency: o.currency, name: "Connect Bhai", description: "ConnectBhai fee payment", theme: { color: "#2a55e5" },
+        ...checkoutPrefill(who), handler: ok, modal: { ondismiss: () => no(new AppError("Payment was cancelled.")) } });
+      rz.on("payment.failed", r => no(new AppError((r.error && r.error.description) || "Payment failed. Please try again.")));
+      rz.open();
+    });
+    await post(`/charges/${id}/verify`, { ...body, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }, opt);
   }
 
   const devices = async () => { try { return (await all("/care-plan/devices")).items; } catch (e) { return []; } };
@@ -258,7 +270,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     /* ---- money ---- */
     async myCharges() { return (await all("/charges")).items.map(mapCharge); },
     async adminCharges() { need("admin"); return (await all("/charges")).items.map(mapCharge); },
-    async payCharge(id) { await payFlow(id, undefined, me && { name: me.full_name || me.name, phone: me.phone, email: me.email }); return mapCharge(await get("/charges/" + id)); },
+    async payCharge(id) { await payFlow(id); return mapCharge(await get("/charges/" + id)); },
     async customerPay(f) { need("customer"); const c = await post("/charges/customer", { description: f.description.trim(), amount: Number(f.amount), lead_id: N(f.lead_id) }); return mapCharge(c); },
     async adminCreateCharge(f) {
       need("admin"); const payer = f.payer_type === "partner" ? f.partner_id : f.customer_id; if (!payer) fail("Choose who pays.");
