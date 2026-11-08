@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
+import { JobsService } from '../common/jobs/jobs.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { sendAisensyCampaign } from './aisensy';
 import { buildCampaign } from './whatsapp-campaigns';
@@ -11,9 +12,14 @@ export interface NotifyInput { user_id?: number | bigint | null; phone?: string 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
-  constructor(private prisma: PrismaService, private cfg: ConfigService) {}
+  constructor(private prisma: PrismaService, private cfg: ConfigService, private jobs: JobsService) {}
 
-  async send(i: NotifyInput) {
+  /** Returns at once: recording and sending the message happen in the background, so the form the person submitted never waits for WhatsApp. */
+  async send(i: NotifyInput): Promise<void> {
+    await this.jobs.enqueue(`message:${i.template}`, async () => { await this.deliver(i); }, { retries: 0 });
+  }
+
+  private async deliver(i: NotifyInput) {
     const channel = i.channel ?? 'whatsapp';
     try {
       const row = await this.prisma.notification.create({
@@ -28,7 +34,12 @@ export class NotificationsService {
         if (!def) {
           status = 'queued'; error = 'No AiSensy campaign is set up for this message yet';   // recorded only; add it in whatsapp-campaigns.ts
         } else {
-          const res = await sendAisensyCampaign({ apiKey: aisensyKey, campaignName: def.campaign, phone: i.phone, params: def.params, copyCode: def.copyCode });
+          let res = await sendAisensyCampaign({ apiKey: aisensyKey, campaignName: def.campaign, phone: i.phone, params: def.params, copyCode: def.copyCode });
+          // a network problem or a 5xx from AiSensy is tried again twice; a 4xx (bad campaign or number) will not get better
+          for (let n = 1; !res.ok && n <= 2 && !/^aisensy 4\d\d/.test(res.error ?? ''); n++) {
+            await new Promise((r) => setTimeout(r, this.cfg.get('APP_ENV') === 'test' ? 0 : 1500 * n));
+            res = await sendAisensyCampaign({ apiKey: aisensyKey, campaignName: def.campaign, phone: i.phone, params: def.params, copyCode: def.copyCode });
+          }
           if (!res.ok) { status = 'failed'; error = res.error; }
         }
       } else if (channel === 'whatsapp' && url && i.phone) {

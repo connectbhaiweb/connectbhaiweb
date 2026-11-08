@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { buildCampaign, dateIST, productName, WHATSAPP_CAMPAIGNS } from './whatsapp-campaigns';
+import { JobsService } from '../common/jobs/jobs.service';
 import { NotificationsService } from './notifications.service';
 
 describe('WhatsApp campaign map', () => {
@@ -44,7 +45,7 @@ describe('NotificationsService with AiSensy configured', () => {
   const make = (key = 'k') => {
     const rows: any[] = [];
     const prisma: any = { notification: { create: async ({ data }: any) => { const r = { id: rows.length + 1, ...data }; rows.push(r); return r; }, update: async ({ where, data }: any) => Object.assign(rows[where.id - 1], data) } };
-    return { svc: new NotificationsService(prisma, new ConfigService({ AISENSY_API_KEY: key })), rows };
+    return { svc: new NotificationsService(prisma, new ConfigService({ AISENSY_API_KEY: key, APP_ENV: 'test' }), new JobsService(new ConfigService({ APP_ENV: 'test' }))), rows };
   };
   let calls: any[];
   beforeEach(() => { calls = []; (global as any).fetch = jest.fn(async (_u: string, init: any) => { calls.push(JSON.parse(init.body)); return { ok: true, status: 200 }; }); });
@@ -71,10 +72,19 @@ describe('NotificationsService with AiSensy configured', () => {
     expect(rows[0]).toMatchObject({ status: 'queued', error: expect.stringContaining('No AiSensy campaign') });
   });
 
+  it('a network error or a 5xx is tried again (twice); a 4xx is not', async () => {
+    let n = 0; (global as any).fetch = jest.fn(async () => { n++; return n < 3 ? { ok: false, status: 503 } : { ok: true, status: 200 }; });
+    const a = make(); await a.svc.send({ phone: '9811000000', template: 'welcome', payload: { name: 'A', product: 'B' } });
+    expect(n).toBe(3); expect(a.rows[0].status).toBe('sent');
+    n = 0; (global as any).fetch = jest.fn(async () => { n++; return { ok: false, status: 400 }; });
+    const b = make(); await b.svc.send({ phone: '9811000000', template: 'welcome', payload: { name: 'A', product: 'B' } });
+    expect(n).toBe(1); expect(b.rows[0].status).toBe('failed');
+  });
+
   it('an AiSensy error is recorded as failed and never thrown', async () => {
     (global as any).fetch = jest.fn(async () => ({ ok: false, status: 400 }));
     const { svc, rows } = make();
-    await expect(svc.send({ phone: '9811000000', template: 'welcome', payload: { name: 'A', product: 'B' } })).resolves.toBeTruthy();
+    await expect(svc.send({ phone: '9811000000', template: 'welcome', payload: { name: 'A', product: 'B' } })).resolves.toBeUndefined();
     expect(rows[0]).toMatchObject({ status: 'failed', error: 'aisensy 400' });
   });
 });

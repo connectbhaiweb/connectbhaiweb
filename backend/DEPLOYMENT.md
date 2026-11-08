@@ -75,3 +75,7 @@ All messages go through one map: `src/notifications/whatsapp-campaigns.ts`. It l
 | Installation completed (to the TIP) | `install_fee_due` | `Connect Bhai testing_payment` (due date = 7 days) |
 | Customer raises a ticket | `complaint_registered` | `BSNL Indore_complaint` (expected: within 24 hours) |
 | 24 hours after installation (`FEEDBACK_DELAY_HOURS`), once per customer, only for installs from the last 3 days | `installation_feedback` | `Connect Bhai testing campaign` |
+
+## Background jobs
+
+A form (connection request, DSA / TIP application, ticket, payment) answers as soon as its data is saved. Everything else, such as the WhatsApp messages, runs afterwards in a small in-process job queue (`src/common/jobs/jobs.service.ts`): four at a time, a network error or a 5xx from AiSensy is retried twice, and a failing job can never break the request. On shutdown the queue gets five seconds to finish. Because the queue lives inside the API process, a message that is still waiting at the instant the server is killed can be lost; the message log (status `queued`) shows it.

@@ -11,6 +11,7 @@ import { CarePlanModule } from './care-plan/care-plan.module';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { ChatModule } from './chat/chat.module';
 import { CommissionsModule } from './commissions/commissions.module';
+import { JobsModule } from './common/jobs/jobs.service';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -28,7 +29,7 @@ import { UsersModule } from './users/users.module';
 import { WaitlistModule } from './waitlist/waitlist.module';
 
 @Module({
-  imports: [
+  imports: [JobsModule, 
     ConfigModule.forRoot({ isGlobal: true, cache: true, envFilePath: ['.env'], validationSchema: envValidationSchema, validationOptions: { abortEarly: false } as any }),
     ThrottlerModule.forRoot([{ ttl: Number(process.env.THROTTLE_TTL_SECONDS ?? 60) * 1000, limit: Number(process.env.THROTTLE_LIMIT ?? 120) }]),
     PrismaModule, SettingsModule, UploadsModule, NotificationsModule, AuthModule,
