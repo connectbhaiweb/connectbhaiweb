@@ -10,13 +10,14 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { ChargesService } from './charges.service';
 import { SettingsService } from '../settings/settings.service';
 import { CarePlanPurchaseDto, ChargeQuery, CreateChargeDto, CustomerChargeDto, OfflinePaidDto, PayDto, VerifyPaymentDto } from './payments.dto';
+import { AuthService } from '../auth/auth.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { dateIST } from '../notifications/whatsapp-campaigns';
 import { RazorpayService } from './razorpay.service';
 
 @ApiTags('payments') @Controller()
 export class PaymentsController {
-  constructor(private prisma: PrismaService, private charges: ChargesService, private rzp: RazorpayService, private jwt: JwtService, private cfg: ConfigService, private settings: SettingsService, private notify: NotificationsService) {}
+  constructor(private prisma: PrismaService, private charges: ChargesService, private rzp: RazorpayService, private jwt: JwtService, private cfg: ConfigService, private settings: SettingsService, private notify: NotificationsService, private auth: AuthService) {}
 
   /** Payer or admin; or anyone holding the payment_token issued at TIP registration (they cannot log in before approval). */
   private async authorize(charge: Charge, user: AuthUser | undefined, token?: string) {
@@ -74,7 +75,7 @@ export class PaymentsController {
     const c = await this.load(id);
     await this.authorize(c, u, d.payment_token);
     if (c.status !== 'pending') throw new BadRequestException(`Charge is already ${c.status}`);
-    return this.charges.settle(id, { status: 'paid', pay_mode: 'razorpay', razorpay_payment_id: `pay_mock_${Date.now().toString(36)}`, razorpay_signature: 'mock' });
+    return this.withSession(await this.charges.settle(id, { status: 'paid', pay_mode: 'razorpay', razorpay_payment_id: `pay_mock_${Date.now().toString(36)}`, razorpay_signature: 'mock' }), u);
   }
 
   /** Step 2: browser returns payment id + signature after checkout. */
@@ -84,7 +85,13 @@ export class PaymentsController {
     await this.authorize(c, u, d.payment_token);
     if (!c.razorpay_order_id) throw new BadRequestException('No payment started for this charge');
     if (!this.rzp.verifyPayment(c.razorpay_order_id, d.razorpay_payment_id, d.razorpay_signature)) throw new BadRequestException('Payment signature is invalid');
-    return this.charges.settle(id, { status: 'paid', pay_mode: 'razorpay', razorpay_payment_id: d.razorpay_payment_id, razorpay_signature: d.razorpay_signature });
+    return this.withSession(await this.charges.settle(id, { status: 'paid', pay_mode: 'razorpay', razorpay_payment_id: d.razorpay_payment_id, razorpay_signature: d.razorpay_signature }), u);
+  }
+
+  /** A new TIP who just paid the registration fee (no login yet) is logged in straight away. */
+  private async withSession<T extends { kind: string; payer_user_id: bigint | number }>(charge: T, u?: AuthUser) {
+    if (u || charge.kind !== 'tip_onboarding') return charge;
+    return { ...charge, session: await this.auth.sessionAfterPayment(charge.payer_user_id) };
   }
 
   /** Razorpay -> server. Uses the RAW body for signature verification. This is the source of truth for payment. */

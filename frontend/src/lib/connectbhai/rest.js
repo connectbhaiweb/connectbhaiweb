@@ -213,7 +213,11 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       const charge = d.charge ? mapCharge(d.charge) : null; if (charge && d.payment_token) payTokens.set(charge.id, d.payment_token);
       return { partner_id: S(d.user.id), charge };
     },
-    async payPublicCharge(id, method, who) { const paid = await payFlow(id, payTokens.get(String(id)), who); return mapCharge(paid); },
+    async payPublicCharge(id, method, who) {
+      const paid = await payFlow(id, payTokens.get(String(id)), who);
+      if (paid && paid.session) { saveTokens({ access_token: paid.session.access_token, refresh_token: paid.session.refresh_token }); me = mapUser(paid.session.user); }   // a new TIP who just paid is logged in
+      return mapCharge(paid);
+    },
 
     /* ---- leads ---- */
     async myLeads() { need("customer"); return (await all("/leads")).items.map(mapLead); },

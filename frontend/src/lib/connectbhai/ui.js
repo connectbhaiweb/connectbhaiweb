@@ -960,7 +960,7 @@ function customerPayCard(leads) {
   o.push(["|Router / accessory purchase|", "Router / accessory purchase (enter amount)"], ["|Other payment to Connect Bhai|", "Other payment (enter amount)"]);
   const first = o[0][0].split("|")[2] || "";
   return `<form class="card paycard" data-form="cust-pay" novalidate style="margin-bottom:18px;border-left:4px solid var(--blue)">
-    <div><h3>Make a payment</h3><p class="muted small">Pay Connect Bhai online. The amount includes GST. You get a receipt on WhatsApp and the payment shows below under <b>Paid</b>.</p></div>
+    <div><h3>Make a payment</h3><p class="muted small">Pay Connect Bhai online. The amount includes GST. The payment then shows below under <b>Paid</b>.</p></div>
     <div class="grid2">${field("cp-what", "What are you paying for", `<select id="cp-what" name="what">${o.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join("")}</select>`)}
     ${field("cp-amt", "Amount (₹, incl. GST)", `<input id="cp-amt" name="amount" type="number" min="1" step="1" inputmode="numeric" value="${esc(first)}">`)}</div>
     <div class="methods" aria-label="Payment methods"><span>UPI · GPay, PhonePe, Paytm, BHIM</span><span>Debit / credit card</span><span>Net banking</span><span>Wallets</span></div>
@@ -995,7 +995,7 @@ function paySuccess(c) {
   openModal(`<div style="text-align:center;display:grid;gap:10px;justify-items:center;padding:8px 0"><span class="avatar" style="width:56px;height:56px;font-size:24px;background:var(--ok)">✓</span>
     <h2 style="padding:0">Payment successful</h2><p class="muted">${esc(c.description)}</p><p style="font-family:var(--display);font-size:28px;font-weight:800">${inr(c.amount)}</p>
     <p class="muted small">Receipt <span class="mono">${esc(c.ref_code)}</span> · Payment ID <span class="mono">${esc(c.gateway_payment_id || "")}</span><br>Keep this reference for your records.</p>
-    ${c.kind === "registration_fee" ? `<p class="notice info">${me() ? "Your account is now active." : (c.login ? "Registration confirmed. You can log in right away with the details below. Admin will verify your KYC and agreement, then leads open in your portal. You'll get a WhatsApp message." : "Registration fee received. Admin will verify your KYC and agreement and activate your account. You'll get a WhatsApp message.")}</p>` : ""}${c.login ? credBlock(c.login, "Your Connect Bhai login is ready") + `<button class="btn btn-primary" data-act="login" type="button">Log in now</button>` : `<button class="btn btn-primary" data-act="close-modal" type="button">Done</button>`}</div>`);
+    ${c.kind === "registration_fee" ? `<p class="notice info">${me() ? "Registration fee received and you are logged in. Admin will verify your KYC and agreement, then leads open in your portal." : (c.login ? "Registration confirmed. You can log in right away with the details below. Admin will verify your KYC and agreement, then leads open in your portal. Log in with your mobile number to see the status." : "Registration fee received. Admin will verify your KYC and agreement and activate your account.")}</p>` : ""}${c.login ? credBlock(c.login, "Your Connect Bhai login is ready") + `<button class="btn btn-primary" data-act="login" type="button">Log in now</button>` : (me() ? `<button class="btn btn-primary" data-go="${ROLE_HOME[me().role]}" type="button">Go to my dashboard</button>` : `<button class="btn btn-primary" data-act="close-modal" type="button">Done</button>`)}</div>`);
   render();
 }
 async function adminTeam() {
@@ -1724,7 +1724,7 @@ const forms = {
   },
   "pay-public": async (f, btn) => {
     const m = (f.querySelector("input[name=method]:checked") || {}).value || "upi"; btn.disabled = true; btn.textContent = "Processing payment…";
-    try { const c = await API.payPublicCharge(f.dataset.id, m, { name: f.dataset.name, phone: f.dataset.phone, email: f.dataset.email }); paySuccess(c); } catch (e) { btn.disabled = false; btn.textContent = "Try again"; toast(errMsg(e), true); }
+    try { const c = await API.payPublicCharge(f.dataset.id, m, { name: f.dataset.name, phone: f.dataset.phone, email: f.dataset.email }); if (me()) renderHeader(); paySuccess(c); } catch (e) { btn.disabled = false; btn.textContent = "Try again"; toast(errMsg(e), true); }
   },
   "partner-apply": async (f, btn) => {
     const d = { type: val(f, "type"), name: val(f, "name"), firm: val(f, "firm"), phone: val(f, "phone"), email: val(f, "email"), pincodes: val(f, "pincodes"), city_id: val(f, "city_id") }, e = {};

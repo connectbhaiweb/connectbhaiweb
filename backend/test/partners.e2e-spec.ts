@@ -80,11 +80,13 @@ describe('partner registration & approval', () => {
     const paid = await c.http().post(`${P}/charges/${charge.id}/verify`).send({ payment_token, razorpay_payment_id: 'pay_1', razorpay_signature: rzpSig(order.body.order_id, 'pay_1') }).expect(200);
     expect(paid.body).toMatchObject({ status: 'paid', pay_mode: 'razorpay' });
     expect(paid.body.invoice_no).toMatch(/^CB-INV-/);
+    expect(paid.body.session.user).toMatchObject({ role: 'tip' });   // paying the fee logs the TIP in right away
+    await c.http().get(`${P}/users/me`).set(bearer(paid.body.session.access_token)).expect(200);
     // token for charge A cannot pay charge B
     const other = await c.http().post(`${P}/partners/register`).send(partner('tip')).expect(201);
     await c.http().post(`${P}/charges/${other.body.charge.id}/pay`).send({ payment_token }).expect(403);
 
-    await c.http().post(`${P}/auth/otp/request`).send({ phone: user.phone, role: 'tip' }).expect(401); // still pending
+    await c.http().post(`${P}/auth/otp/request`).send({ phone: user.phone, role: 'tip' }).expect(200); // fee paid: can log in while admin approves
     const ok = await approve('approved').expect(200);
     expect(ok.body.partner_status).toBe('approved');
     expect((await c.prisma.tipPincodeMapping.findMany({ where: { tip_user_id: user.id } })).every((m) => m.is_active)).toBe(true);

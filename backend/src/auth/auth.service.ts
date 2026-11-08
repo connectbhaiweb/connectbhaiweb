@@ -20,7 +20,7 @@ export class AuthService {
     if (!phone) throw new BadRequestException('Enter a valid 10-digit mobile number');
     if (role && role !== 'customer') {
       const u = await this.prisma.user.findUnique({ where: { role_phone: { role, phone } } });
-      this.assertCanLogin(u);
+      await this.assertCanLogin(u);
     }
     const recent = await this.prisma.otpCode.count({ where: { phone, created_at: { gt: new Date(Date.now() - 10 * 60_000) } } });
     if (recent >= 5) throw new HttpException('Too many OTP requests. Try again in a few minutes.', HttpStatus.TOO_MANY_REQUESTS);
@@ -53,7 +53,7 @@ export class AuthService {
       if (role !== 'customer') throw new UnauthorizedException('No account found for this number');
       user = await this.prisma.user.create({ data: { role: 'customer', phone, name: name?.trim() || 'Customer' } });
     }
-    this.assertCanLogin(user);
+    await this.assertCanLogin(user);
     return this.issue(user);
   }
 
@@ -68,7 +68,7 @@ export class AuthService {
     const u = phone && role ? await this.prisma.user.findUnique({ where: { role_phone: { role, phone } } }) : null;
     const ok = u?.password_hash ? await bcrypt.compare(password, u.password_hash) : await bcrypt.compare(password, '$2a$10$invalidinvalidinvalidinvalidinvalidinvalidinvalidinvali');
     if (!u || !ok) throw new UnauthorizedException('Incorrect mobile number or password');
-    this.assertCanLogin(u);
+    await this.assertCanLogin(u);
     return this.issue(u);
   }
 
@@ -77,16 +77,18 @@ export class AuthService {
       const p = await this.jwt.verifyAsync(token, { secret: this.cfg.getOrThrow('JWT_REFRESH_SECRET') });
       if (p.typ !== 'refresh') throw new Error();
       const u = await this.prisma.user.findUnique({ where: { id: Number(p.sub) } });
-      this.assertCanLogin(u);
+      await this.assertCanLogin(u);
       return this.issue(u!);
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
 
-  private assertCanLogin(u: User | null) {
+  private async assertCanLogin(u: User | null) {
     if (!u || !u.is_active) throw new UnauthorizedException('Account not found or disabled');
     if ((u.role === 'tip' || u.role === 'dsa') && u.partner_status !== 'approved') {
+      // a TIP who has paid the registration fee may log in while admin approves the application
+      if (u.role === 'tip' && u.partner_status === 'pending' && (await this.prisma.charge.count({ where: { payer_user_id: u.id, kind: 'tip_onboarding', status: 'paid' } })) > 0) return;
       throw new UnauthorizedException(u.partner_status === 'pending' ? 'Your account is waiting for approval' : 'Your account is not active');
     }
   }
@@ -97,5 +99,12 @@ export class AuthService {
     const access_token = await this.jwt.signAsync({ ...base, typ: 'access' }, { secret: this.cfg.getOrThrow('JWT_SECRET'), expiresIn: this.cfg.get('JWT_EXPIRES_IN') as any });
     const refresh_token = await this.jwt.signAsync({ ...base, typ: 'refresh' }, { secret: this.cfg.getOrThrow('JWT_REFRESH_SECRET'), expiresIn: this.cfg.get('JWT_REFRESH_EXPIRES_IN') as any });
     return { access_token, refresh_token, user: publicUser(u) };
+  }
+
+  /** Logs a TIP in right after the registration fee is paid (the payment itself proves who is at the screen). */
+  async sessionAfterPayment(userId: number | bigint) {
+    const u = await this.prisma.user.findUnique({ where: { id: userId } });
+    await this.assertCanLogin(u);
+    return this.issue(u!);
   }
 }
