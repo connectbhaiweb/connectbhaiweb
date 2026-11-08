@@ -1,3 +1,4 @@
+import { PaymentReminderService } from '../src/notifications/payment-reminder.service';
 import { FeedbackRequestService } from '../src/notifications/feedback-request.service';
 import { actors, bearer, createCtx, Ctx, inDays, newLead, P, uniquePhone } from './helpers';
 
@@ -96,5 +97,35 @@ describe('WhatsApp messages at each step', () => {
     const b = await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: lead.id, scheduled_at: inDays(1) }).expect(201);
     await c.http().patch(`${P}/bookings/${b.body.id}`).set(bearer(a.dream)).send({ status: 'cancelled' }).expect(200);
     expect(await sent(lead.customer_phone, 'lead_followup')).toHaveLength(1);
+  });
+
+  describe('TIP registered but fee not paid', () => {
+    const tipBody = () => ({
+      role: 'tip', name: 'Unpaid Networks', phone: uniquePhone(), address: '12 MG Road, Indore', pincode: '452001',
+      aadhaar: '9999 1111 2222', pan: 'ABCDE1234F', bank_name: 'SBI', bank_account: '123456789012', bank_ifsc: 'SBIN0001234',
+      business_name: 'Unpaid Networks', gst_number: '23ABCDE1234F1Z5', service_pincodes: ['452001'],
+    });
+    it('gets one reminder after 30 minutes, not before, never twice', async () => {
+      const svc = c.app.get(PaymentReminderService);
+      const reg = await c.http().post(`${P}/partners/register`).send(tipBody()).expect(201);
+      const phone = reg.body.user.phone;
+      await svc.run(new Date(Date.now() + 5 * 60_000));                    // 5 minutes: too early
+      expect(await sent(phone, 'registration_fee_due')).toHaveLength(0);
+      await svc.run(new Date(Date.now() + 31 * 60_000));                   // 31 minutes: reminded
+      const n = await sent(phone, 'registration_fee_due');
+      expect(n).toHaveLength(1);
+      expect(n[0].payload).toMatchObject({ name: 'Unpaid Networks', what: 'TIP registration fee', charge_id: Number(reg.body.charge.id) });
+      expect(Number((n[0].payload as any).amount)).toBeGreaterThan(0);
+      expect((n[0].payload as any).due).toMatch(/^\d{2} \w{3} \d{4}$/);
+      await svc.run(new Date(Date.now() + 60 * 60_000));                   // later: not twice
+      expect(await sent(phone, 'registration_fee_due')).toHaveLength(1);
+    });
+    it('a TIP who already paid is not reminded', async () => {
+      const svc = c.app.get(PaymentReminderService);
+      const reg = await c.http().post(`${P}/partners/register`).send(tipBody()).expect(201);
+      await c.prisma.charge.update({ where: { id: reg.body.charge.id }, data: { status: 'paid', paid_at: new Date() } });
+      await svc.run(new Date(Date.now() + 31 * 60_000));
+      expect(await sent(reg.body.user.phone, 'registration_fee_due')).toHaveLength(0);
+    });
   });
 });

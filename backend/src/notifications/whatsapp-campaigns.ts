@@ -45,6 +45,9 @@ export const WHATSAPP_CAMPAIGNS: Record<string, CampaignDef> = {
   /** TIP: install fee to pay. Template payment_reminder: {{1}} name, {{2}} what the bill is for, {{3}} amount, {{4}} due date. */
   install_fee_due: { campaign: 'Connect Bhai testing_payment', params: (p) => [p.name, p.what, p.amount, p.due], about: 'TIP: install fee is due' },
 
+  /** TIP registered but has not paid the registration fee. Same template as above (payment_reminder): {{1}} name, {{2}} what the bill is for, {{3}} amount, {{4}} due date. */
+  registration_fee_due: { campaign: 'Connect Bhai testing_payment', params: (p) => [p.name, p.what, p.amount, p.due], about: 'TIP: registration fee is unpaid' },
+
   /** Customer: complaint received. Template complaint_registered: {{1}} name, {{2}} complaint about, {{3}} complaint ID, {{4}} expected resolution. */
   complaint_registered: { campaign: 'BSNL Indore_complaint', params: (p) => [p.name, p.topic, p.ticket_code, p.expected], about: 'Customer: complaint registered' },
 };
