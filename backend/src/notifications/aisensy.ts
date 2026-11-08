@@ -4,10 +4,7 @@
  */
 export const AISENSY_URL = 'https://backend.aisensy.com/campaign/t1/api/v2';
 
-/** Campaign names as created in AiSensy (Campaigns -> API Campaign). Add new ones here. */
-export const AISENSY_CAMPAIGNS = {
-  otp: 'connectbhai_otp_login',
-} as const;
+/** Which campaign sends which message: see ./whatsapp-campaigns.ts (the one place to add or change them). */
 
 export interface AisensyMessage {
   apiKey: string;

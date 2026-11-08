@@ -57,3 +57,18 @@ On a hosting platform: create a service from the repository with root directory 
 - Deploy the website (`frontend`) with `NEXT_PUBLIC_API_URL=https://YOUR-API-HOST/api/v1`, then set the API's `FRONTEND_URL` to the website address and redeploy the API.
 - Add the Razorpay webhook (`POST /api/v1/payments/razorpay/webhook`) in the Razorpay dashboard and set `RAZORPAY_WEBHOOK_SECRET`.
 - Take regular MySQL backups; they hold all business data.
+
+## WhatsApp messages (AiSensy)
+
+All messages go through one map: `src/notifications/whatsapp-campaigns.ts`. It lists, for each message, the AiSensy campaign name and what fills `{{1}} {{2}} ...`. To add a message, create the API campaign in AiSensy, add one line to that file and call `notify.send({ template, phone, payload })`. Campaign names must match AiSensy exactly. A message with no entry is only recorded (status `queued`), never sent.
+
+| When | Message key | AiSensy campaign |
+|---|---|---|
+| Login code | `otp` | `connectbhai_otp_login` (create this one in AiSensy) |
+| Customer request received | `lead_received` | `Lead Confirm` |
+| Lead set to follow-up | `lead_followup` | `Connect Bhai_leadfollowup` |
+| TIP starts the installation | `installation_in_progress` | `Connect Bhai_installation WIP` |
+| Installation completed | `installed`, `welcome` | `Connect Bhai_activated`, `Connect Bhai _welcome` |
+| Installation completed (to the TIP) | `install_fee_due` | `Connect Bhai testing_payment` (due date = 7 days) |
+| Customer raises a ticket | `complaint_registered` | `BSNL Indore_complaint` (expected: within 24 hours) |
+| Ready but not triggered yet | `installation_feedback` | `Connect Bhai testing campaign` |

@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { AISENSY_CAMPAIGNS, sendAisensyCampaign } from './aisensy';
+import { sendAisensyCampaign } from './aisensy';
+import { buildCampaign } from './whatsapp-campaigns';
 
 export interface NotifyInput { user_id?: number | bigint | null; phone?: string | null; template: string; payload?: Record<string, any>; channel?: 'whatsapp' | 'sms' | 'in_app' }
 
@@ -18,19 +19,18 @@ export class NotificationsService {
       const row = await this.prisma.notification.create({
         data: { user_id: i.user_id ?? null, phone: i.phone ?? null, channel, template: i.template, payload: (i.payload ?? {}) as Prisma.InputJsonValue },
       });
-      let status: 'sent' | 'failed' = 'sent';
+      let status: 'queued' | 'sent' | 'failed' = 'sent';
       let error: string | undefined;
       const url = this.cfg.get<string>('WHATSAPP_API_URL');
       const aisensyKey = this.cfg.get<string>('AISENSY_API_KEY');
-      const campaign = (AISENSY_CAMPAIGNS as Record<string, string>)[i.template] ?? i.template;
+      const def = buildCampaign(i.template, i.payload);
       if (channel === 'whatsapp' && aisensyKey && i.phone) {
-        const code = i.payload?.code != null ? String(i.payload.code) : undefined;
-        const res = await sendAisensyCampaign({
-          apiKey: aisensyKey, campaignName: campaign, phone: i.phone,
-          params: code ? [code] : Object.values(i.payload ?? {}).map(String),
-          copyCode: i.template === 'otp' ? code : undefined,
-        });
-        if (!res.ok) { status = 'failed'; error = res.error; }
+        if (!def) {
+          status = 'queued'; error = 'No AiSensy campaign is set up for this message yet';   // recorded only; add it in whatsapp-campaigns.ts
+        } else {
+          const res = await sendAisensyCampaign({ apiKey: aisensyKey, campaignName: def.campaign, phone: i.phone, params: def.params, copyCode: def.copyCode });
+          if (!res.ok) { status = 'failed'; error = res.error; }
+        }
       } else if (channel === 'whatsapp' && url && i.phone) {
         try {
           const r = await fetch(url, {

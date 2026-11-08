@@ -6,6 +6,7 @@ import { Type } from 'class-transformer';
 import { AuthUser, CurrentUser } from '../common/decorators';
 import { PageQuery, pageArgs, paged } from '../common/pagination';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { leadScope } from '../common/utils/scope';
 
 class CreateTicketDto {
@@ -29,7 +30,7 @@ export const ticketScope = (u: AuthUser): Prisma.TicketWhereInput =>
 
 @ApiTags('tickets') @ApiBearerAuth() @Controller('tickets')
 export class TicketsController {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private notify: NotificationsService) {}
 
   @Post() async create(@Body() d: CreateTicketDto, @CurrentUser() u: AuthUser) {
     let assigned_to: bigint | null = null;
@@ -41,7 +42,10 @@ export class TicketsController {
     const t = await this.prisma.ticket.create({
       data: { ticket_code: `TMP-${Date.now()}-${Math.floor(Math.random() * 1e6)}`, lead_id: d.lead_id, raised_by: u.id, assigned_to, category: d.category as any, subject: d.subject, description: d.description, priority: d.priority as any },
     });
-    return this.prisma.ticket.update({ where: { id: t.id }, data: { ticket_code: `TK-${String(t.id).padStart(6, '0')}` } });
+    const ticket = await this.prisma.ticket.update({ where: { id: t.id }, data: { ticket_code: `TK-${String(t.id).padStart(6, '0')}` } });
+    const raiser = await this.prisma.user.findUnique({ where: { id: u.id }, select: { name: true, phone: true } });
+    if (raiser?.phone) await this.notify.send({ user_id: u.id, phone: raiser.phone, template: 'complaint_registered', payload: { name: raiser.name, topic: ticket.subject, ticket_code: ticket.ticket_code, expected: 'within 24 hours' } });
+    return ticket;
   }
 
   @Get() async list(@Query() q: TicketQuery, @CurrentUser() u: AuthUser) {

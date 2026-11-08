@@ -7,6 +7,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { normalizePhone } from '../common/utils/phone';
 import { leadScope } from '../common/utils/scope';
 import { NotificationsService } from '../notifications/notifications.service';
+import { productName } from '../notifications/whatsapp-campaigns';
 import { SettingsService } from '../settings/settings.service';
 import { AssignDto, CreateLeadDto, LeadQuery, LeadStatusDto } from './leads.dto';
 
@@ -93,7 +94,7 @@ export class LeadsService {
       return l;
     });
 
-    await this.notify.send({ user_id: customer_user_id, phone, template: 'lead_received', payload: { ref_code: lead.ref_code, name: lead.customer_name } });
+    await this.notify.send({ user_id: customer_user_id, phone, template: 'lead_received', payload: { ref_code: lead.ref_code, name: lead.customer_name, product: productName(lead.plan), executive: lead.tip?.name ?? lead.dsa?.name ?? 'Connect Bhai' } });
     if (tip) {
       const t = await this.prisma.user.findUnique({ where: { id: tip } });
       await this.notify.send({ user_id: tip, phone: t?.phone, template: 'new_lead', payload: { ref_code: lead.ref_code, pincode: lead.pincode } });
@@ -142,6 +143,9 @@ export class LeadsService {
         include: leadInclude,
       });
       await this.log(tx, id, u.id, 'status_changed', { from: lead.status, to: d.status, note: d.note });
+      return updated;
+    }).then(async (updated) => {
+      if (d.status === 'followup') await this.notify.send({ user_id: updated.customer_user_id, phone: updated.customer_phone, template: 'lead_followup', payload: { name: updated.customer_name, product: productName(updated.plan), ref_code: updated.ref_code } });
       return updated;
     });
   }

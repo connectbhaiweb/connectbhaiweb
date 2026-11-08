@@ -6,6 +6,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { leadScope } from '../common/utils/scope';
 import { LeadsService } from '../leads/leads.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { dateIST, productName } from '../notifications/whatsapp-campaigns';
 import { ChargesService } from '../payments/charges.service';
 import { SettingsService } from '../settings/settings.service';
 import { BookingQuery, CompleteBookingDto, CreateBookingDto, UpdateBookingDto } from './bookings.dto';
@@ -106,12 +107,32 @@ export class BookingsService {
       return { booking, commission, charge };
     });
 
-    await this.notify.send({ user_id: lead.customer_user_id, phone: lead.customer_phone, template: 'installed', payload: { ref_code: lead.ref_code } });
+    const plan = lead.plan_id ? await this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null;
+    const product = productName(plan);
+    const to = { user_id: lead.customer_user_id, phone: lead.customer_phone };
+    await this.notify.send({ ...to, template: 'installed', payload: { ref_code: lead.ref_code, name: lead.customer_name, product, plan: plan?.name ?? product, connection_id: d.connection_id || lead.ref_code, date: dateIST() } });
+    await this.notify.send({ ...to, template: 'welcome', payload: { name: lead.customer_name, product } });
     if (out.commission) {
       const dsa = await this.prisma.user.findUnique({ where: { id: out.commission.dsa_user_id } });
       await this.notify.send({ user_id: dsa?.id, phone: dsa?.phone, template: 'dsa_payout_eligible', payload: { ref_code: lead.ref_code, amount: Number(out.commission.amount) } });
     }
-    if (out.charge) await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'install_fee_due', payload: { ref_code: lead.ref_code, amount: Number(out.charge.total_amount) } });
+    if (out.charge) await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'install_fee_due', payload: { ref_code: lead.ref_code, name: tip.name, what: `install fee for ${lead.ref_code}`, amount: Number(out.charge.total_amount), due: dateIST(new Date(Date.now() + 7 * 86_400_000)) } });
     return out;
+  }
+
+  /** Technician has started work: tells the customer once. (Booking status stays "scheduled" until the install is completed.) */
+  async start(id: number, u: AuthUser) {
+    const b = await this.getForUser(id, u);
+    this.assertCanManage(b, u);
+    if (b.status !== 'scheduled') throw new BadRequestException(`Booking is ${b.status}`);
+    const already = await this.prisma.leadEvent.findFirst({ where: { lead_id: b.lead_id, event_type: 'install_started' } });
+    if (already) return { started: true, notified: false };
+    const [tip, plan] = await Promise.all([
+      this.prisma.user.findUniqueOrThrow({ where: { id: b.tip_user_id } }),
+      b.lead.plan_id ? this.prisma.plan.findUnique({ where: { id: b.lead.plan_id }, include: { category: { select: { name: true } } } }) : null,
+    ]);
+    await this.leads.log(this.prisma, b.lead_id, u.id, 'install_started');
+    await this.notify.send({ user_id: b.lead.customer_user_id, phone: b.lead.customer_phone, template: 'installation_in_progress', payload: { name: b.lead.customer_name, technician: tip.name, product: productName(plan), ref_code: b.lead.ref_code } });
+    return { started: true, notified: true };
   }
 }

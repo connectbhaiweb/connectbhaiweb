@@ -236,7 +236,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     async updateBookingStatus(id, status, connRef, ont) {
       if (status === "installed") { if (!(connRef || "").trim()) fail("Enter the connection reference to mark as installed."); await post(`/bookings/${id}/complete`, { connection_id: connRef.trim(), router_serial: (ont || "").trim().toUpperCase() || undefined }); }
       else if (status === "cancelled") await patch("/bookings/" + id, { status: "cancelled" });
-      else if (status === "in_progress") return true;
+      else if (status === "in_progress") await post(`/bookings/${id}/start`);   // tells the customer the technician has started
       else fail("This status change is not supported.");
       return true;
     },
