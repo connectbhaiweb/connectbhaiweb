@@ -950,7 +950,6 @@ function chargeList(cs, emptyMsg) {
     ${["due", "failed"].includes(c.status) ? `<div class="row"><button class="btn btn-primary btn-sm" data-act="pay" data-id="${c.id}" type="button">Pay ${inr(c.amount)}</button><span class="muted small">UPI, cards, net banking via Razorpay</span></div>` : ""}</div>`).join("")}</div>`
     : `<div class="empty"><b>${emptyMsg}</b></div>`}`;
 }
-const PAY_METHODS = [["upi", "UPI (GPay, PhonePe, Paytm, BHIM)"], ["card", "Debit / credit card"], ["netbanking", "Net banking"], ["wallet", "Wallets (Paytm, Amazon Pay, Mobikwik)"]];
 function customerPayCard(leads) {
   const o = [];
   leads.filter(l => l.status !== "lost" && l.plan).forEach(l => {
@@ -981,17 +980,15 @@ async function openPay(id) {
   if (LIVE) { openModal(`<h2>Opening secure payment…</h2><p class="muted" style="margin-top:8px">Complete the payment in the Razorpay window.</p>`); try { const r = await API.payCharge(id); paySuccess(r); } catch (e) { closeModal(); toast(errMsg(e), true); } return; }
   openModal(`<h2>Pay ${inr(c.amount)}</h2><p class="notice" style="margin:10px 0 14px">Test checkout: no money is charged in this prototype. On the live site this opens Razorpay.</p>
     <div class="facts" style="margin-bottom:14px"><div><span>${esc(c.description)}</span><b>${inr(c.base_amount)}</b></div><div><span>GST</span><b>${inr(c.gst_amount)}</b></div><div><span>Total</span><b>${inr(c.amount)}</b></div><div><span>Reference</span><b class="mono">${esc(c.ref_code)}</b></div></div>
-    <form class="stack" data-form="pay-charge" data-id="${c.id}" novalidate><div class="fgroup"><label class="lbl" style="font-weight:800;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Pay with</label>
-      ${PAY_METHODS.map(([v, l], i) => `<label class="check"><input type="radio" name="method" value="${v}" ${i ? "" : "checked"}> ${l}</label>`).join("")}</div>
-      <button class="btn btn-primary btn-block" type="submit">Pay ${inr(c.amount)}</button></form>`);
+    <form class="stack" data-form="pay-charge" data-id="${c.id}" novalidate><button class="btn btn-primary btn-block" type="submit">Pay ${inr(c.amount)}</button>
+      <p class="muted small" style="text-align:center;margin:0">${LIVE ? "🔒 Secure payment by Razorpay. You choose UPI, card, net banking or wallet on the next screen." : "Test checkout: nothing is charged."}</p></form>`);
 }
 function openAppFee(c, d, existing) {
   openModal(`<h2>Pay registration fee</h2><p class="muted" style="margin:4px 0 12px">${existing ? "Your application is already with us" : "Application received"} for <b>${esc(d.name)}</b> (+91 ${esc(d.phone)}). Pay the registration fee now to complete your registration. Admin then checks your KYC and agreement and activates your account.</p>
     ${LIVE ? "" : `<p class="notice" style="margin-bottom:14px">Test checkout: no money is charged in this prototype. On the live site this opens Razorpay.</p>`}
     <div class="facts" style="margin-bottom:14px"><div><span>${esc(c.description)}</span><b>${inr(c.base_amount)}</b></div><div><span>GST</span><b>${inr(c.gst_amount)}</b></div><div><span>Total</span><b>${inr(c.amount)}</b></div><div><span>Reference</span><b class="mono">${esc(c.ref_code)}</b></div></div>
-    <form class="stack" data-form="pay-public" data-id="${c.id}" data-phone="${esc(d.phone)}" novalidate><div class="fgroup"><label class="lbl" style="font-weight:800;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Pay with</label>
-      ${PAY_METHODS.map(([v, l], i) => `<label class="check"><input type="radio" name="method" value="${v}" ${i ? "" : "checked"}> ${l}</label>`).join("")}</div>
-      <button class="btn btn-primary btn-block" type="submit">Pay ${inr(c.amount)}</button></form>
+    <form class="stack" data-form="pay-public" data-id="${c.id}" data-phone="${esc(d.phone)}" novalidate><button class="btn btn-primary btn-block" type="submit">Pay ${inr(c.amount)}</button>
+      <p class="muted small" style="text-align:center;margin:0">${LIVE ? "🔒 Secure payment by Razorpay. You choose UPI, card, net banking or wallet on the next screen." : "Test checkout: nothing is charged."}</p></form>
     <p class="muted small" style="margin-top:10px">You can also pay later: log in with WhatsApp OTP on this mobile number and open Payments.</p>`);
 }
 function paySuccess(c) {
