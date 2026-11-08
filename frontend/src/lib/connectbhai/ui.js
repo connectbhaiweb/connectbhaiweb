@@ -471,10 +471,10 @@ function tracker(status, product) {
 }
 async function renderCustomer() {
   const tab = S.tab || "bookings";
-  const [leads, bookings, tickets] = await Promise.all([API.myLeads(), API.myBookings(), API.myTickets()]);
+  const [leads, bookings, tickets, chatUnread] = await Promise.all([API.myLeads(), API.myBookings(), API.myTickets(), unreadCount()]);
   const openT = tickets.filter(t => ["open", "in_progress"].includes(t.status)).length;
   const charges = await API.myCharges();
-  const tabs = [["bookings", "Bookings", leads.length], ["support", "Complaints & requests", openT], ["devices", "Care plan", bookings.filter(b => b.status === "installed").length], ["payments", "Payments", charges.filter(c => ["due", "failed"].includes(c.status)).length], ["chat", "Chat", unread]];
+  const tabs = [["bookings", "Bookings", leads.length], ["support", "Complaints & requests", openT], ["devices", "Care plan", bookings.filter(b => b.status === "installed").length], ["payments", "Payments", charges.filter(c => ["due", "failed"].includes(c.status)).length], ["chat", "Chat", chatUnread]];
   const u0 = me(), act = leads.find(l => l.status !== "lost") || leads[0];
   const pre = `<div class="contacts">${contactCard("You (customer)", { name: u0.full_name || "Customer", phone: u0.phone, email: u0.email }, { noBtns: true, extra: `<div class="cacts"><button class="cbtn" data-act="edit-profile" type="button">Edit name / email</button></div>` })}
     ${contactCard("Your agent (DSA)", act && act.dsa, { thread: act && "lead:" + act.id, text: act ? "Namaste, about my Connect Bhai request " + act.ref_code : "", empty: act ? "Assigned shortly. You get a WhatsApp message." : "Request a connection first." })}
@@ -754,7 +754,7 @@ async function renderAdmin() {
   else if (["leads", "partners", "reports"].includes(tab)) [leads, partners] = await Promise.all([API.adminLeads(), API.adminPartners()]);
   const newL = leads.filter(l => l.status === "new"), pendingP = partners.filter(p => p.status === "pending");
   const newCount = bd.new_leads, pendingCount = bd.pending_partners, pendingPlans = null, waiting = bd.waiting || null;
-  const tabs = [["overview", "Overview"], ["leads", "Leads", newCount], ["partners", "DSA & TIP", pendingCount], ["team", "Team & logins"], ["providers", "Providers"], ["plans", "Plans", pendingPlans], ["locations", "Locations"], ["cities", "Cities & waiting list", waiting], ["billing", "Billing & fees"], ["commissions", "DSA payouts"], ["payments", "Payout history"], ["chat", "Chat", await unreadCount()], ["messages", "WhatsApp log"], ["reports", "Reports"]];
+  const tabs = [["overview", "Overview"], ["leads", "Leads", newCount], ["partners", "DSA & TIP", pendingCount], ["team", "Team & logins"], ["providers", "Providers"], ["plans", "Plans", pendingPlans], ["locations", "Locations"], ["cities", "Cities & waiting list", waiting], ["billing", "Billing & fees"], ["commissions", "DSA payouts"], ["payments", "Payout history"], ["chat", "Chat", unread], ["messages", "WhatsApp log"], ["reports", "Reports"]];
   let body = "";
   if (tab === "overview") {
     const [bookings, tickets, cs] = await Promise.all([API.adminBookings(), API.adminTickets(), API.adminCommissions()]);
