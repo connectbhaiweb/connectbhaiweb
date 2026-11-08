@@ -1,3 +1,4 @@
+import { FeedbackRequestService } from '../src/notifications/feedback-request.service';
 import { actors, bearer, createCtx, Ctx, inDays, newLead, P, uniquePhone } from './helpers';
 
 /** Which WhatsApp messages the app records at each step (nothing is really sent in tests: AISENSY_API_KEY is empty). */
@@ -59,5 +60,26 @@ describe('WhatsApp messages at each step', () => {
     const t = await c.http().post(`${P}/tickets`).set(bearer(login.body.access_token)).send({ category: 'no_internet', subject: 'No internet since morning' }).expect(201);
     const [n] = await sent(phone, 'complaint_registered');
     expect(n.payload).toMatchObject({ name: 'Complainer', topic: 'No internet since morning', ticket_code: t.body.ticket_code, expected: 'within 24 hours' });
+  });
+
+  it('feedback request goes out 24 hours after installation, once, and never for old installs', async () => {
+    const svc = c.app.get(FeedbackRequestService);
+    const lead = await newLead(c, a, { tip: 'dream' });
+    const b = await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: lead.id, scheduled_at: inDays(1) }).expect(201);
+    await c.http().post(`${P}/bookings/${b.body.id}/complete`).set(bearer(a.dream)).send({ connection_id: 'CID-88', router_serial: `SN-${Date.now()}` }).expect(200);
+    await svc.run(new Date(Date.now() + 3_600_000));                       // 1 hour later: too early
+    expect(await sent(lead.customer_phone, 'installation_feedback')).toHaveLength(0);
+    await svc.run(new Date(Date.now() + 25 * 3_600_000));                  // 25 hours later: asked
+    const n = await sent(lead.customer_phone, 'installation_feedback');
+    expect(n).toHaveLength(1);
+    expect(n[0].payload).toMatchObject({ name: 'Lead Person', ref_code: lead.ref_code });
+    expect((n[0].payload as any).technician).toBeTruthy();
+    await svc.run(new Date(Date.now() + 26 * 3_600_000));                  // again: not asked twice
+    expect(await sent(lead.customer_phone, 'installation_feedback')).toHaveLength(1);
+    const old = await newLead(c, a, { tip: 'dream' });                     // installed long ago: never asked
+    const ob = await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: old.id, scheduled_at: inDays(1) }).expect(201);
+    await c.http().post(`${P}/bookings/${ob.body.id}/complete`).set(bearer(a.dream)).send({ connection_id: 'CID-89', router_serial: `SN-${Date.now()}-o` }).expect(200);
+    await svc.run(new Date(Date.now() + 10 * 86_400_000));
+    expect(await sent(old.customer_phone, 'installation_feedback')).toHaveLength(0);
   });
 });

@@ -36,6 +36,7 @@ Health checks: `GET /health` (is the process up) and `GET /health/ready` (also c
 | `CLOUDINARY_DELIVERY_URL`, `CLOUDINARY_API_URL` | no | defaults to Cloudinary's hosts; change for a custom domain / CDN |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | for payments | without them online payments answer "not configured" in production |
 | `AISENSY_API_KEY` | for WhatsApp | without it messages are only logged |
+| `FEEDBACK_DELAY_HOURS` | no | hours after installation before the feedback WhatsApp is sent (default 24) |
 | `PORT` | no | most hosts set this for you |
 
 Production safety checks (the app refuses to start): placeholder JWT secrets, an all-zero encryption key, a dev OTP code, or missing Cloudinary keys. `OTP_DEV_CODE` must be empty. API docs (`/docs`) are not served in production.
@@ -71,4 +72,4 @@ All messages go through one map: `src/notifications/whatsapp-campaigns.ts`. It l
 | Installation completed | `installed`, `welcome` | `Connect Bhai_activated`, `Connect Bhai _welcome` |
 | Installation completed (to the TIP) | `install_fee_due` | `Connect Bhai testing_payment` (due date = 7 days) |
 | Customer raises a ticket | `complaint_registered` | `BSNL Indore_complaint` (expected: within 24 hours) |
-| Ready but not triggered yet | `installation_feedback` | `Connect Bhai testing campaign` |
+| 24 hours after installation (`FEEDBACK_DELAY_HOURS`), once per customer, only for installs from the last 3 days | `installation_feedback` | `Connect Bhai testing campaign` |

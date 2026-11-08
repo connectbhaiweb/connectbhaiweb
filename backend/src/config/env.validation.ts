@@ -50,6 +50,7 @@ export const envValidationSchema = Joi.object({
   /** where Cloudinary serves images from (change for a custom domain / CDN) and where the upload + download API lives */
   CLOUDINARY_DELIVERY_URL: Joi.string().uri().default('https://res.cloudinary.com'),
   CLOUDINARY_API_URL: Joi.string().uri().default('https://api.cloudinary.com/v1_1'),
+  FEEDBACK_DELAY_HOURS: Joi.number().min(0).max(240).default(24),   // hours after installation before the feedback WhatsApp is sent
   UPLOAD_MAX_MB: Joi.number().integer().min(1).max(25).default(5),
   AISENSY_API_KEY: Joi.string().allow('').default(''),
   GENIEACS_NBI_URL: Joi.string().allow('').default(''),
