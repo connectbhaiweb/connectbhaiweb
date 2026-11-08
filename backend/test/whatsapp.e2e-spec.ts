@@ -38,7 +38,7 @@ describe('WhatsApp messages at each step', () => {
     expect((n[0].payload as any).technician).toBeTruthy();
   });
 
-  it('installation done: customer gets "installed" (activation) and "welcome"; the TIP gets "install_fee_due" with a due date', async () => {
+  it('installation done: customer gets "installed" (activation) and NOT the welcome; the TIP gets "install_fee_due" with a due date', async () => {
     const lead = await newLead(c, a, { tip: 'dream' });
     const b = await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: lead.id, scheduled_at: inDays(1) }).expect(201);
     await c.http().post(`${P}/bookings/${b.body.id}/complete`).set(bearer(a.dream)).send({ connection_id: 'CID-77', router_serial: `SN-${Date.now()}` }).expect(200);
@@ -46,7 +46,7 @@ describe('WhatsApp messages at each step', () => {
     expect(inst.payload).toMatchObject({ name: 'Lead Person', connection_id: 'CID-77', ref_code: lead.ref_code });
     expect((inst.payload as any).date).toMatch(/^\d{2} \w{3} \d{4}$/);
     expect((inst.payload as any).plan).toBeTruthy();
-    expect(await sent(lead.customer_phone, 'welcome')).toHaveLength(1);
+    expect(await sent(lead.customer_phone, 'welcome')).toHaveLength(0);   // the welcome message is not sent
     const dream = await c.prisma.user.findFirstOrThrow({ where: { id: a.ids.dream } });
     const fees = await c.prisma.notification.findMany({ where: { phone: dream.phone, template: 'install_fee_due' }, orderBy: { id: 'desc' }, take: 1 });
     expect(fees[0].payload).toMatchObject({ what: `install fee for ${lead.ref_code}` });
@@ -87,5 +87,12 @@ describe('WhatsApp messages at each step', () => {
     const before = await c.prisma.notification.count({ where: { template: 'complaint_registered' } });
     await c.http().post(`${P}/tickets`).set(bearer(a.dream)).send({ category: 'other', subject: 'Question from the TIP' }).expect(201);
     expect(await c.prisma.notification.count({ where: { template: 'complaint_registered' } })).toBe(before);
+  });
+
+  it('a cancelled installation puts the lead back in follow-up and sends the follow-up message', async () => {
+    const lead = await newLead(c, a, { tip: 'dream' });
+    const b = await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: lead.id, scheduled_at: inDays(1) }).expect(201);
+    await c.http().patch(`${P}/bookings/${b.body.id}`).set(bearer(a.dream)).send({ status: 'cancelled' }).expect(200);
+    expect(await sent(lead.customer_phone, 'lead_followup')).toHaveLength(1);
   });
 });

@@ -36,7 +36,7 @@ export const WHATSAPP_CAMPAIGNS: Record<string, CampaignDef> = {
   /** Customer: connection is live. Template connection_activated: {{1}} name, {{2}} product, {{3}} plan, {{4}} user ID, {{5}} activation date. */
   installed: { campaign: 'Connect Bhai_activated', params: (p) => [p.name, p.product, p.plan, p.connection_id, p.date], about: 'Customer: your connection is active' },
 
-  /** Customer: welcome, sent together with the activation message. Template welcome_customer: {{1}} name, {{2}} product. */
+  /** Customer: welcome. Defined but NOT sent at the moment (only the activation message goes out at installation). Template welcome_customer: {{1}} name, {{2}} product. */
   welcome: { campaign: 'Connect Bhai _welcome', params: (p) => [p.name, p.product], about: 'Customer: welcome to ConnectBhai' },
 
   /** Customer: rate the installation (Excellent / Good / Needs improvement buttons). Template installation_feedback: {{1}} name, {{2}} product, {{3}} technician. */

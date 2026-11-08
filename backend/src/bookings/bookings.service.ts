@@ -61,6 +61,10 @@ export class BookingsService {
         await tx.lead.update({ where: { id: b.lead_id }, data: { status: 'followup', followup_at: new Date(Date.now() + 86_400_000) } });
         await this.leads.log(tx, b.lead_id, u.id, 'status_changed', { from: 'scheduled', to: 'followup', note: 'booking cancelled' });
         return x;
+      }).then(async (x) => {
+        const plan = b.lead.plan_id ? await this.prisma.plan.findUnique({ where: { id: b.lead.plan_id }, include: { category: { select: { name: true } } } }) : null;
+        await this.notify.send({ user_id: b.lead.customer_user_id, phone: b.lead.customer_phone, template: 'lead_followup', payload: { name: b.lead.customer_name, product: productName(plan), ref_code: b.lead.ref_code } });   // the lead is back in follow-up
+        return x;
       });
     }
     if (!d.scheduled_at) throw new BadRequestException('Provide scheduled_at or status=cancelled');
@@ -111,7 +115,6 @@ export class BookingsService {
     const product = productName(plan);
     const to = { user_id: lead.customer_user_id, phone: lead.customer_phone };
     await this.notify.send({ ...to, template: 'installed', payload: { ref_code: lead.ref_code, name: lead.customer_name, product, plan: plan?.name ?? product, connection_id: d.connection_id || lead.ref_code, date: dateIST() } });
-    await this.notify.send({ ...to, template: 'welcome', payload: { name: lead.customer_name, product } });
     if (out.commission) {
       const dsa = await this.prisma.user.findUnique({ where: { id: out.commission.dsa_user_id } });
       await this.notify.send({ user_id: dsa?.id, phone: dsa?.phone, template: 'dsa_payout_eligible', payload: { ref_code: lead.ref_code, amount: Number(out.commission.amount) } });

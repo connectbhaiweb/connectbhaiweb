@@ -67,9 +67,9 @@ All messages go through one map: `src/notifications/whatsapp-campaigns.ts`. It l
 |---|---|---|
 | Login code | `otp` | `connectbhai_otp_login` (create this one in AiSensy) |
 | Customer request received | `lead_received` | `Lead Confirm` |
-| Lead set to follow-up | `lead_followup` | `Connect Bhai_leadfollowup` |
+| Lead becomes follow-up (status change, or an installation is cancelled) | `lead_followup` | `Connect Bhai_leadfollowup` |
 | TIP starts the installation | `installation_in_progress` | `Connect Bhai_installation WIP` |
-| Installation completed | `installed`, `welcome` | `Connect Bhai_activated`, `Connect Bhai _welcome` |
+| Installation completed | `installed` | `Connect Bhai_activated` (the `welcome` message is defined but not sent) |
 | Installation completed (to the TIP) | `install_fee_due` | `Connect Bhai testing_payment` (due date = 7 days) |
 | Customer raises a ticket | `complaint_registered` | `BSNL Indore_complaint` (expected: within 24 hours) |
 | 24 hours after installation (`FEEDBACK_DELAY_HOURS`), once per customer, only for installs from the last 3 days | `installation_feedback` | `Connect Bhai testing campaign` |
