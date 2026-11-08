@@ -987,7 +987,7 @@ function openAppFee(c, d, existing) {
   openModal(`<h2>Pay registration fee</h2><p class="muted" style="margin:4px 0 12px">${existing ? "Your application is already with us" : "Application received"} for <b>${esc(d.name)}</b> (+91 ${esc(d.phone)}). Pay the registration fee now to complete your registration. Admin then checks your KYC and agreement and activates your account.</p>
     ${LIVE ? "" : `<p class="notice" style="margin-bottom:14px">Test checkout: no money is charged in this prototype. On the live site this opens Razorpay.</p>`}
     <div class="facts" style="margin-bottom:14px"><div><span>${esc(c.description)}</span><b>${inr(c.base_amount)}</b></div><div><span>GST</span><b>${inr(c.gst_amount)}</b></div><div><span>Total</span><b>${inr(c.amount)}</b></div><div><span>Reference</span><b class="mono">${esc(c.ref_code)}</b></div></div>
-    <form class="stack" data-form="pay-public" data-id="${c.id}" data-phone="${esc(d.phone)}" novalidate><button class="btn btn-primary btn-block" type="submit">Pay ${inr(c.amount)}</button>
+    <form class="stack" data-form="pay-public" data-id="${c.id}" data-phone="${esc(d.phone)}" data-name="${esc(d.name)}" data-email="${esc(d.email || "")}" novalidate><button class="btn btn-primary btn-block" type="submit">Pay ${inr(c.amount)}</button>
       <p class="muted small" style="text-align:center;margin:0">${LIVE ? "🔒 Secure payment by Razorpay. You choose UPI, card, net banking or wallet on the next screen." : "Test checkout: nothing is charged."}</p></form>
     <p class="muted small" style="margin-top:10px">You can also pay later: log in with WhatsApp OTP on this mobile number and open Payments.</p>`);
 }
@@ -1724,7 +1724,7 @@ const forms = {
   },
   "pay-public": async (f, btn) => {
     const m = (f.querySelector("input[name=method]:checked") || {}).value || "upi"; btn.disabled = true; btn.textContent = "Processing payment…";
-    try { const c = await API.payPublicCharge(f.dataset.id, m); paySuccess(c); } catch (e) { btn.disabled = false; btn.textContent = "Try again"; toast(errMsg(e), true); }
+    try { const c = await API.payPublicCharge(f.dataset.id, m, { name: f.dataset.name, phone: f.dataset.phone, email: f.dataset.email }); paySuccess(c); } catch (e) { btn.disabled = false; btn.textContent = "Try again"; toast(errMsg(e), true); }
   },
   "partner-apply": async (f, btn) => {
     const d = { type: val(f, "type"), name: val(f, "name"), firm: val(f, "firm"), phone: val(f, "phone"), email: val(f, "email"), pincodes: val(f, "pincodes"), city_id: val(f, "city_id") }, e = {};
