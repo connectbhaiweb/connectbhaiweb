@@ -114,4 +114,13 @@ describe('auth', () => {
     const v = await c.http().post(`${P}/auth/otp/verify`).send({ phone, role: 'customer', code: '123456', name: 'Same Person' }).expect(200);
     expect(v.body.user.role).toBe('customer');
   });
+
+  it('a number with a customer account AND a pending TIP logs in as the customer (no approval message)', async () => {
+    const phone = uniquePhone();
+    await c.prisma.user.create({ data: { role: 'tip', name: 'Pending TIP', phone, partner_status: 'pending' } });
+    await c.prisma.user.create({ data: { role: 'customer', name: 'Same Person', phone } });
+    await c.http().post(`${P}/auth/otp/request`).send({ phone }).expect(200);
+    const v = await c.http().post(`${P}/auth/otp/verify`).send({ phone, code: '123456' }).expect(200);   // no role: the phone-only login screen
+    expect(v.body.user.role).toBe('customer');
+  });
 });

@@ -47,7 +47,7 @@ export class AuthService {
     await this.prisma.otpCode.update({ where: { id: otp.id }, data: { used_at: new Date() } });
 
     // no role given (phone-only login screen): use the most privileged account on this number, else a customer
-    if (!role) role = await this.pickRole(phone, ['admin', 'tip', 'dsa', 'customer']) ?? 'customer';
+    if (!role) role = await this.pickRole(phone, ['admin', 'tip', 'dsa', 'customer']) ?? 'customer';   // skips a partner account that is still waiting for approval when the same number also has a customer account
     let user = await this.prisma.user.findUnique({ where: { role_phone: { role, phone } } });
     if (!user) {
       if (role !== 'customer') throw new UnauthorizedException('No account found for this number');
@@ -57,9 +57,18 @@ export class AuthService {
     return this.issue(user);
   }
 
+  /**
+   * The most privileged account on this number that can log in. A DSA / TIP application still waiting for approval is skipped
+   * when the same number is also a customer: a customer never needs approval. If nothing can log in, the most privileged account is
+   * returned so the person sees the real reason (for example "waiting for approval").
+   */
   private async pickRole(phone: string, order: UserRole[]) {
-    const rows = await this.prisma.user.findMany({ where: { phone }, select: { role: true } });
-    return order.find((r) => rows.some((x) => x.role === r));
+    const rows = await this.prisma.user.findMany({ where: { phone } });
+    const mine = order.map((r) => rows.find((x) => x.role === r)).filter((u): u is User => !!u);
+    for (const u of mine) {
+      try { await this.assertCanLogin(u); return u.role; } catch { /* try the next account on this number */ }
+    }
+    return mine[0]?.role;
   }
 
   async passwordLogin(rawPhone: string, password: string, role?: UserRole) {

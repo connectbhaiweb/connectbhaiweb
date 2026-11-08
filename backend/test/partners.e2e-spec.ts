@@ -156,6 +156,10 @@ describe('partner registration & approval', () => {
       await c.prisma.charge.update({ where: { id: reg.body.charge.id }, data: { status: 'paid', paid_at: new Date() } });
       await c.http().delete(`${P}/users/${reg.body.user.id}`).set(bearer(a.admin)).expect(409);      // money was paid
       expect(await c.prisma.user.findUnique({ where: { id: reg.body.user.id } })).not.toBeNull();
+      // admin can still clear a test application whose test payment was made, by asking for it explicitly
+      await c.http().delete(`${P}/users/${reg.body.user.id}?force=true`).set(bearer(a.admin)).expect(200);
+      expect(await c.prisma.user.findUnique({ where: { id: reg.body.user.id } })).toBeNull();
+      expect(await c.prisma.charge.count({ where: { payer_user_id: reg.body.user.id } })).toBe(0);
     });
   });
 });

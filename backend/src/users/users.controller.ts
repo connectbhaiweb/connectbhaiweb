@@ -59,7 +59,7 @@ export class UsersController {
   async setActive(@Param('id', ParseIntPipe) id: number, @Body() d: ActiveDto) { return publicUser(await this.prisma.user.update({ where: { id }, data: { is_active: d.is_active } })); }
 
   @ApiBearerAuth() @Roles('admin') @Delete('users/:id')
-  deletePending(@Param('id', ParseIntPipe) id: number) { return this.users.deletePendingPartner(id); }
+  deletePending(@Param('id', ParseIntPipe) id: number, @Query('force') force?: string) { return this.users.deletePendingPartner(id, force === 'true'); }
 
   @ApiBearerAuth() @Roles('admin') @Post('users/admins')
   createAdmin(@Body() d: CreateAdminDto) { return this.users.createAdmin(d); }

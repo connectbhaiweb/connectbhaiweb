@@ -95,9 +95,9 @@ export class UsersService {
 
   /**
    * Admin removes a DSA / TIP application that never went anywhere (still pending, no leads, bookings, tickets, chat,
-   * devices, payouts or paid money). Its unpaid fee, notifications and PIN mappings go with it. Anything with history is refused: disable it instead.
+   * devices or payouts, and no paid money unless force=true). Its unpaid fee, notifications and PIN mappings go with it. Anything with history is refused: disable it instead.
    */
-  async deletePendingPartner(id: number) {
+  async deletePendingPartner(id: number, force = false) {
     const u = await this.prisma.user.findUnique({ where: { id } });
     if (!u || !['dsa', 'tip'].includes(u.role)) throw new NotFoundException('DSA / TIP not found');
     if (u.partner_status !== 'pending') throw new ConflictException('Only a pending application can be deleted. Disable the account instead.');
@@ -111,14 +111,15 @@ export class UsersService {
       this.prisma.carePlanDevice.count({ where: { tip_user_id: uid } }),
       this.prisma.deviceAction.count({ where: { requested_by: uid } }),
       this.prisma.leadEvent.count({ where: { actor_user_id: uid } }),
-      this.prisma.charge.count({ where: { payer_user_id: uid, status: { in: ['paid', 'refunded'] } } }),
+      force ? 0 : this.prisma.charge.count({ where: { payer_user_id: uid, status: { in: ['paid', 'refunded'] } } }),   // force: test payments may go too
     ]);
     if (used.some((n) => n > 0)) throw new ConflictException('This account has activity (leads, payments or messages), so it cannot be deleted. Disable it instead.');
     await this.prisma.$transaction([
       this.prisma.tipPincodeMapping.deleteMany({ where: { tip_user_id: uid } }),
       this.prisma.chatRead.deleteMany({ where: { user_id: uid } }),
-      this.prisma.notification.deleteMany({ where: { user_id: uid } }),
-      this.prisma.charge.deleteMany({ where: { payer_user_id: uid } }),   // only unpaid ones can exist here (checked above); their lines go with them
+      this.prisma.notification.deleteMany({ where: { OR: [{ user_id: uid }, { phone: u.phone }] } }),   // includes the OTP messages sent to this number
+      this.prisma.otpCode.deleteMany({ where: { phone: u.phone } }),
+      this.prisma.charge.deleteMany({ where: { payer_user_id: uid } }),   // unpaid ones (and, with force, test payments); their lines go with them
       this.prisma.user.delete({ where: { id: uid } }),
     ]);
     return { deleted: true, id, phone: u.phone };
