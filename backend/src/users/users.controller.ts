@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Delete, Body, Controller, Get, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { AuthUser, CurrentUser, Public, Roles } from '../common/decorators';
@@ -57,6 +57,9 @@ export class UsersController {
 
   @ApiBearerAuth() @Roles('admin') @Patch('users/:id/active')
   async setActive(@Param('id', ParseIntPipe) id: number, @Body() d: ActiveDto) { return publicUser(await this.prisma.user.update({ where: { id }, data: { is_active: d.is_active } })); }
+
+  @ApiBearerAuth() @Roles('admin') @Delete('users/:id')
+  deletePending(@Param('id', ParseIntPipe) id: number) { return this.users.deletePendingPartner(id); }
 
   @ApiBearerAuth() @Roles('admin') @Post('users/admins')
   createAdmin(@Body() d: CreateAdminDto) { return this.users.createAdmin(d); }

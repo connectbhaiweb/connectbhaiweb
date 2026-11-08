@@ -92,4 +92,35 @@ export class UsersService {
     const u = await this.prisma.user.create({ data: { role: 'admin', name: d.name, phone, password_hash: await bcrypt.hash(d.password, 10) } });
     return publicUser(u);
   }
+
+  /**
+   * Admin removes a DSA / TIP application that never went anywhere (still pending, no leads, bookings, tickets, chat,
+   * devices, payouts or paid money). Its unpaid fee, notifications and PIN mappings go with it. Anything with history is refused: disable it instead.
+   */
+  async deletePendingPartner(id: number) {
+    const u = await this.prisma.user.findUnique({ where: { id } });
+    if (!u || !['dsa', 'tip'].includes(u.role)) throw new NotFoundException('DSA / TIP not found');
+    if (u.partner_status !== 'pending') throw new ConflictException('Only a pending application can be deleted. Disable the account instead.');
+    const uid = u.id;
+    const used = await Promise.all([
+      this.prisma.lead.count({ where: { OR: [{ customer_user_id: uid }, { brought_by_user_id: uid }, { tip_user_id: uid }] } }),
+      this.prisma.booking.count({ where: { tip_user_id: uid } }),
+      this.prisma.commission.count({ where: { dsa_user_id: uid } }),
+      this.prisma.ticket.count({ where: { OR: [{ raised_by: uid }, { assigned_to: uid }] } }),
+      this.prisma.chatMessage.count({ where: { sender_user_id: uid } }),
+      this.prisma.carePlanDevice.count({ where: { tip_user_id: uid } }),
+      this.prisma.deviceAction.count({ where: { requested_by: uid } }),
+      this.prisma.leadEvent.count({ where: { actor_user_id: uid } }),
+      this.prisma.charge.count({ where: { payer_user_id: uid, status: { in: ['paid', 'refunded'] } } }),
+    ]);
+    if (used.some((n) => n > 0)) throw new ConflictException('This account has activity (leads, payments or messages), so it cannot be deleted. Disable it instead.');
+    await this.prisma.$transaction([
+      this.prisma.tipPincodeMapping.deleteMany({ where: { tip_user_id: uid } }),
+      this.prisma.chatRead.deleteMany({ where: { user_id: uid } }),
+      this.prisma.notification.deleteMany({ where: { user_id: uid } }),
+      this.prisma.charge.deleteMany({ where: { payer_user_id: uid } }),   // only unpaid ones can exist here (checked above); their lines go with them
+      this.prisma.user.delete({ where: { id: uid } }),
+    ]);
+    return { deleted: true, id, phone: u.phone };
+  }
 }

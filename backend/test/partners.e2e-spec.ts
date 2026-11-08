@@ -133,4 +133,27 @@ describe('partner registration & approval', () => {
     await c.http().patch(`${P}/users/${u.id}/active`).set(bearer(a.admin)).send({ is_active: false }).expect(200);
     await c.http().post(`${P}/auth/login`).send({ phone, password: 'Str0ngPass!', role: 'admin' }).expect(401);
   });
+
+  describe('deleting an application', () => {
+    it('admin can delete a pending application that has no history; its unpaid fee goes with it', async () => {
+      const reg = await c.http().post(`${P}/partners/register`).send(partner('tip')).expect(201);
+      const id = reg.body.user.id;
+      await c.http().delete(`${P}/users/${id}`).set(bearer(a.dsa1)).expect(403);
+      await c.http().delete(`${P}/users/${id}`).expect(401);
+      const r = await c.http().delete(`${P}/users/${id}`).set(bearer(a.admin)).expect(200);
+      expect(r.body).toMatchObject({ deleted: true, id });
+      expect(await c.prisma.user.findUnique({ where: { id } })).toBeNull();
+      expect(await c.prisma.charge.count({ where: { payer_user_id: id } })).toBe(0);
+      await c.http().delete(`${P}/users/${id}`).set(bearer(a.admin)).expect(404);
+    });
+    it('refuses an approved partner, a customer, and an application that already paid', async () => {
+      await c.http().delete(`${P}/users/${a.ids.dream}`).set(bearer(a.admin)).expect(409);          // approved
+      const cust = await makeCustomer(c);
+      await c.http().delete(`${P}/users/${cust.user.id}`).set(bearer(a.admin)).expect(404);          // not a DSA / TIP
+      const reg = await c.http().post(`${P}/partners/register`).send(partner('tip')).expect(201);
+      await c.prisma.charge.update({ where: { id: reg.body.charge.id }, data: { status: 'paid', paid_at: new Date() } });
+      await c.http().delete(`${P}/users/${reg.body.user.id}`).set(bearer(a.admin)).expect(409);      // money was paid
+      expect(await c.prisma.user.findUnique({ where: { id: reg.body.user.id } })).not.toBeNull();
+    });
+  });
 });
