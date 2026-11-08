@@ -82,4 +82,10 @@ describe('WhatsApp messages at each step', () => {
     await svc.run(new Date(Date.now() + 10 * 86_400_000));
     expect(await sent(old.customer_phone, 'installation_feedback')).toHaveLength(0);
   });
+
+  it('a ticket raised by a TIP or admin does not send the customer complaint message', async () => {
+    const before = await c.prisma.notification.count({ where: { template: 'complaint_registered' } });
+    await c.http().post(`${P}/tickets`).set(bearer(a.dream)).send({ category: 'other', subject: 'Question from the TIP' }).expect(201);
+    expect(await c.prisma.notification.count({ where: { template: 'complaint_registered' } })).toBe(before);
+  });
 });

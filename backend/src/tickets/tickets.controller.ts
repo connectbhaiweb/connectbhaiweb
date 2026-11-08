@@ -44,7 +44,7 @@ export class TicketsController {
     });
     const ticket = await this.prisma.ticket.update({ where: { id: t.id }, data: { ticket_code: `TK-${String(t.id).padStart(6, '0')}` } });
     const raiser = await this.prisma.user.findUnique({ where: { id: u.id }, select: { name: true, phone: true } });
-    if (raiser?.phone) await this.notify.send({ user_id: u.id, phone: raiser.phone, template: 'complaint_registered', payload: { name: raiser.name, topic: ticket.subject, ticket_code: ticket.ticket_code, expected: 'within 24 hours' } });
+    if (u.role === 'customer' && raiser?.phone) await this.notify.send({ user_id: u.id, phone: raiser.phone, template: 'complaint_registered', payload: { name: raiser.name, topic: ticket.subject, ticket_code: ticket.ticket_code, expected: 'within 24 hours' } });
     return ticket;
   }
 
