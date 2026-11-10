@@ -66,7 +66,7 @@ All messages go through one map: `src/notifications/whatsapp-campaigns.ts`. It l
 
 | When | Message key | AiSensy campaign |
 |---|---|---|
-| Login code | `otp` | `connectbhai_otp_login` (create this one in AiSensy) |
+| Login code | `otp` | `connectbhai_otp_1` |
 | Customer request received | `lead_received` | `Lead Confirm` |
 | Lead becomes follow-up (status change, or an installation is cancelled) | `lead_followup` | `Connect Bhai_leadfollowup` |
 | Lead is approved and the installation is booked (once per lead; tapping Start later does not repeat it) | `installation_in_progress` | `Connect Bhai_installation WIP` |

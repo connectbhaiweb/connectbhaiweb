@@ -82,7 +82,8 @@ export class UsersService {
       if (u.role === 'tip') await tx.tipPincodeMapping.updateMany({ where: { tip_user_id: id }, data: { is_active: d.status === 'approved' } });
       return x;
     });
-    await this.notify.send({ user_id: id, phone: u.phone, template: `partner_${d.status}`, payload: { name: u.name, reason: d.reason, partner_code: u.partner_code } });
+    const city = u.city_id ? await this.prisma.city.findUnique({ where: { id: u.city_id } }) : null;
+    await this.notify.send({ user_id: id, phone: u.phone, template: `partner_${d.status}`, payload: { name: u.name, role: u.role, reason: d.reason, partner_code: u.partner_code, area: city?.name ?? u.pincode } });
     return publicUser(updated);
   }
 

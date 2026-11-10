@@ -47,7 +47,7 @@ export class CommissionsController {
     const r = await this.prisma.commission.updateMany({ where: { id, status: 'approved' }, data: { status: 'paid', paid_at: new Date(), paid_mode: d.mode, paid_reference: d.reference, paid_by: u.id } });
     if (!r.count) throw new BadRequestException('Only approved payouts can be marked paid');
     const c = await this.prisma.commission.findUniqueOrThrow({ where: { id }, include: { dsa: true } });
-    await this.notify.send({ user_id: c.dsa_user_id, phone: c.dsa.phone, template: 'dsa_paid', payload: { amount: Number(c.amount), reference: d.reference } });
+    await this.notify.send({ user_id: c.dsa_user_id, phone: c.dsa.phone, template: 'dsa_paid', payload: { name: c.dsa.name, amount: Number(c.amount), bank_last4: c.dsa.bank_account_last4, period: new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date()), reference: d.reference } });
     const { dsa, ...rest } = c;
     return rest;
   }

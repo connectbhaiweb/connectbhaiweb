@@ -5,7 +5,7 @@ import { NotificationsService } from './notifications.service';
 
 describe('WhatsApp campaign map', () => {
   it('OTP is unchanged: same campaign, the code is the only variable and the copy-code button text', () => {
-    expect(buildCampaign('otp', { code: '123456', minutes: 5 })).toEqual({ campaign: 'connectbhai_otp_login', params: ['123456'], copyCode: '123456' });
+    expect(buildCampaign('otp', { code: '123456', minutes: 5 })).toEqual({ campaign: 'connectbhai_otp_1', params: ['123456'], copyCode: '123456' });
   });
 
   it.each([
@@ -62,12 +62,12 @@ describe('NotificationsService with AiSensy configured', () => {
   it('OTP still sends the code with the copy-code button', async () => {
     const { svc } = make();
     await svc.send({ phone: '9811000000', template: 'otp', payload: { code: '482913', minutes: 5 } });
-    expect(calls[0]).toMatchObject({ campaignName: 'connectbhai_otp_login', templateParams: ['482913'], buttons: [{ type: 'button', sub_type: 'url', index: 0, parameters: [{ type: 'text', text: '482913' }] }] });
+    expect(calls[0]).toMatchObject({ campaignName: 'connectbhai_otp_1', templateParams: ['482913'], buttons: [{ type: 'button', sub_type: 'url', index: 0, parameters: [{ type: 'text', text: '482913' }] }] });
   });
 
   it('a message with no campaign is recorded as queued and nothing is sent', async () => {
     const { svc, rows } = make();
-    await svc.send({ phone: '9811000000', template: 'partner_approved', payload: { name: 'X' } });
+    await svc.send({ phone: '9811000000', template: 'partner_suspended', payload: { name: 'X' } });
     expect(calls).toHaveLength(0);
     expect(rows[0]).toMatchObject({ status: 'queued', error: expect.stringContaining('No AiSensy campaign') });
   });

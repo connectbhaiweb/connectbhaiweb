@@ -8,6 +8,7 @@ export const SETTING_DEFS: Record<string, [string, string]> = {
   tip_install_fee: ['TIP_INSTALL_FEE', 'TIP pays this (before GST) for each installed lead'],
   care_plan_fee_per_lead: ['CARE_PLAN_FEE_PER_LEAD', 'TIP pays this (before GST) per lead to enable Care Plan'],
   dsa_payout_per_lead: ['DSA_PAYOUT_PER_LEAD', 'Paid to DSA only when the lead is installed'],
+  tip_job_earning: ['TIP_JOB_EARNING', 'Amount shown in the "job completed" WhatsApp to the TIP (rupees per installed job)'],
   gst_percent: ['GST_PERCENT', 'GST on all TIP charges'],
   auto_assign: ['AUTO_ASSIGN', '1/true = assign new leads to a TIP by pincode automatically'],
 };
