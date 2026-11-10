@@ -4,7 +4,7 @@ import { LIVE } from "@/lib/connectbhai/config";
 export default function DemoBar() {
   const api = !!process.env.NEXT_PUBLIC_API_URL;
   return (
-    <div className="demobar" id="demobar" hidden={LIVE && !api}>
+    <div className="demobar" id="demobar" hidden={LIVE}>   {/* never shown on a live API: the old "OTP in development is 123456" text was wrong there */}
       <div className="wrap">
         {!api && (
           <>
