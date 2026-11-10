@@ -1,4 +1,4 @@
-import { INestApplication, LogLevel, ValidationPipe } from '@nestjs/common';
+import { INestApplication, Logger, LogLevel, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import compression from 'compression';
@@ -12,6 +12,20 @@ export function configureApp(app: INestApplication) {
   const origins = cfg.get<string>('FRONTEND_URL')!.split(',').map((s) => s.trim()).filter(Boolean);
 
   app.setGlobalPrefix(prefix, { exclude: ['health', 'health/ready'] });
+  // how long every request took, so a slow screen can be traced to the exact call (slow ones, over 400 ms, are logged as warnings)
+  if (cfg.get('APP_ENV') !== 'test') {
+    const log = new Logger('http');
+    app.use((req: any, res: any, next: () => void) => {
+      const t0 = process.hrtime.bigint();
+      res.on('finish', () => {
+        const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+        if (req.originalUrl?.startsWith('/health')) return;
+        const line = `${req.method} ${String(req.originalUrl).split('?')[0]} ${res.statusCode} ${Math.round(ms)}ms`;
+        ms > 400 ? log.warn(`SLOW ${line}`) : log.log(line);
+      });
+      next();
+    });
+  }
   app.use(helmet());
   app.use(compression());
   app.enableCors({ origin: origins, credentials: true, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] });
