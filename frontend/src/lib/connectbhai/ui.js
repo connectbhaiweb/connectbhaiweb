@@ -40,11 +40,11 @@ const errMsg = e => {
 const normPhone = v => { let d = String(v == null ? "" : v).replace(/\D/g, ""); if (d.length === 14 && d.startsWith("0091")) d = d.slice(4); else if (d.length === 12 && d.startsWith("91")) d = d.slice(2); else if (d.length === 11 && d.startsWith("0")) d = d.slice(1); return d; };
 const phoneError = v => { const d = normPhone(v); if (!d) return "Enter your 10-digit mobile number."; if (d.length !== 10) return "Enter a 10-digit mobile number without the country code."; if (!isPhone(d)) return "Indian mobile numbers start with 6, 7, 8 or 9. Only +91 numbers are supported."; return ""; };
 const GUARD_TIMEOUT_MS = 30000;
-async function guard(btn, fn) {
+async function guard(btn, fn, timeoutMs = GUARD_TIMEOUT_MS) {
   if (btn) { btn.disabled = true; btn.dataset.t = btn.textContent; btn.textContent = "Please wait…"; }
   try {
     if (LIVE && typeof navigator !== "undefined" && navigator.onLine === false) throw new AppError("You appear to be offline. Check your internet connection and try again.");
-    let timer; const slow = new Promise((_, rej) => { timer = setTimeout(() => rej(new AppError("This is taking too long. Check your internet and try again.")), GUARD_TIMEOUT_MS); });
+    let timer; const slow = new Promise((_, rej) => { timer = setTimeout(() => rej(new AppError("This is taking too long. Check your internet and try again.")), timeoutMs); });
     try { return await Promise.race([fn(), slow]); } finally { clearTimeout(timer); }
   } catch (e) { toast(errMsg(e), true); throw e; }
   finally { if (btn) { btn.disabled = false; btn.textContent = btn.dataset.t; } }
@@ -1641,7 +1641,31 @@ const onInput = e => {
   const k = el.dataset.filter;
   if (k === "price") { S.f.price = Number(el.value); $("#f-price-v").textContent = inr(el.value); clearTimeout(S.pt); S.pt = setTimeout(renderResults, 120); return; }
 };
+/* KYC documents: start uploading the moment a file is chosen (while the person keeps typing), so "Submit" only has to wait
+   for whatever is still in flight. Phone photos are shrunk first: a 4 MB Aadhaar photo becomes ~300 KB and uploads in a second or two. */
+const KYC_INPUTS = { doc_aadhaar: "aadhaar", doc_pan: "pan", doc_bank: "bank_proof" };
+async function shrinkImage(file) {
+  if (!/^image\/(jpeg|png)$/.test(file.type) || file.size < 600 * 1024 || typeof createImageBitmap !== "function") return file;
+  try {
+    const bmp = await createImageBitmap(file), k = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(ok => c.toBlob(ok, "image/jpeg", 0.82));
+    return blob && blob.size < file.size ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file;
+  } catch (e) { return file; }
+}
+function startKycUpload(input) {
+  const file = input.files && input.files[0], box = input.parentElement;
+  let note = box && box.querySelector("[data-up]");
+  if (box && !note) { note = document.createElement("span"); note.className = "muted small"; note.dataset.up = "1"; box.appendChild(note); }
+  if (!file) { input._up = null; if (note) note.textContent = ""; return; }
+  if (note) note.textContent = "Uploading…";
+  const p = shrinkImage(file).then(f => API.uploadFile(f, "kyc"));
+  input._up = { file, promise: p };
+  p.then(() => { if (note && input._up && input._up.promise === p) note.textContent = "Uploaded ✓"; }, err => { if (note) note.textContent = ""; toast(errMsg(err), true); });
+}
 const onChange = e => {
+  if (e.target.type === "file" && KYC_INPUTS[e.target.name] && e.target.closest("form[data-form=partner-apply]")) { startKycUpload(e.target); return; }
   if (e.target.id === "city-pick") { setCity(e.target.value); return; }
   if (e.target.id === "wl-filter") { S.wlCity = e.target.value; render(); return; }
   if (e.target.id === "lc-city") { const z = document.querySelector('[data-f="lc-zone"]'); if (z) z.hidden = e.target.value !== "indore"; return; }
@@ -1735,22 +1759,42 @@ const forms = {
       if (d.gst_number && !/^\d{2}[A-Z]{5}\d{4}[A-Z][A-Z\d]Z[A-Z\d]$/.test(d.gst_number)) e["pa-gst"] = "Enter a valid GSTIN.";
       if (d.bank_name.length < 2) e["pa-bank"] = "Enter the bank name."; if (!/^\d{6,20}$/.test(d.bank_account)) e["pa-acct"] = "Enter the account number (digits only).";
       if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(d.bank_ifsc)) e["pa-ifsc"] = "Enter a valid IFSC, e.g. SBIN0001234.";
+      // the server requires all three documents: say so on the form, not after the instant confirmation
+      for (const [id, name, label] of [["pa-doc-aadhaar", "doc_aadhaar", "Aadhaar card"], ["pa-doc-pan", "doc_pan", "PAN card"], ["pa-doc-bank", "doc_bank", "bank proof"]]) if (!(f[name] && f[name].files[0])) e[id] = `Upload your ${label} (photo or PDF).`;
     }
     if (d.name.length < 2) e["pa-name"] = "Enter your name."; if (!isPhone(d.phone)) e["pa-phone"] = "Enter a valid 10-digit mobile number.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) e["pa-email"] = d.email ? "Enter a valid email." : "Enter your email.";
     if (!d.pincodes || !d.pincodes.split(",").every(p => isPin(p.trim()))) e["pa-pins"] = "Enter 6-digit PIN codes separated by commas.";
     if (REST && f.querySelector("#pa-pins").dataset.bad === "1") e["pa-pins"] = "Some PIN codes were not found. Please correct them.";
     if (!setErr(f, e)) return;
-    const r = await guard(btn, async () => {
-      if (REST) {
-        const files = { aadhaar: f.doc_aadhaar && f.doc_aadhaar.files[0], pan: f.doc_pan && f.doc_pan.files[0], bank_proof: f.doc_bank && f.doc_bank.files[0] }, documents = {};
-        try { for (const [k, file] of Object.entries(files)) if (file) documents[k] = await API.uploadFile(file, "kyc"); }
-        catch (err) { if (!/not configured/i.test(err.message || "")) throw err; /* local development without Cloudinary keys: continue without files */ }
-        if (Object.keys(documents).length) d.documents = documents;
-      }
-      return API.applyPartner(d);
-    }); f.reset();
-    if (r && r.charge) openAppFee(r.charge, d, r.existing); else toast("Application received. Admin will verify and contact you.");
+    // Instant: confirm on screen right away, then do the slow parts (documents, saving, payment set-up) in the background.
+    if (btn) btn.disabled = true;
+    openModal(`<div style="text-align:center;display:grid;gap:10px;justify-items:center;padding:8px 0"><span class="avatar" style="width:56px;height:56px;font-size:24px;background:var(--ok)">✓</span>
+      <h2 style="padding:0">Application received</h2><p class="muted">Thank you, ${esc(d.name)}. We are saving your details${d.type === "tip" ? " and preparing your registration payment" : ""}. You can keep this window open, it takes a moment.</p>
+      <div class="sk-card" style="width:100%">${sk("w60", 14)}${sk("", 40)}</div></div>`);
+    (async () => {
+      try {
+        if (REST) {
+          const files = { aadhaar: f.doc_aadhaar && f.doc_aadhaar.files[0], pan: f.doc_pan && f.doc_pan.files[0], bank_proof: f.doc_bank && f.doc_bank.files[0] }, documents = {};
+          const inputs = { aadhaar: f.doc_aadhaar, pan: f.doc_pan, bank_proof: f.doc_bank };
+          try {
+            // all three together, reusing the uploads that already started when the files were chosen
+            await Promise.all(Object.entries(files).filter(([, file]) => file).map(async ([k, file]) => {
+              const up = inputs[k] && inputs[k]._up;
+              documents[k] = await (up && up.file === file ? up.promise : shrinkImage(file).then(x => API.uploadFile(x, "kyc")));
+            }));
+          } catch (err) { if (!/not configured/i.test(err.message || "")) throw err; /* local development without Cloudinary keys: continue without files */ }
+          if (Object.keys(documents).length) d.documents = documents;
+        }
+        const r = await API.applyPartner(d);
+        f.reset(); f.querySelectorAll("[data-up]").forEach(n => { n.textContent = ""; }); f.querySelectorAll("input[type=file]").forEach(i => { i._up = null; });
+        if (r && r.charge) openAppFee(r.charge, d, r.existing);
+        else openModal(`<div style="text-align:center;display:grid;gap:10px;justify-items:center;padding:8px 0"><span class="avatar" style="width:56px;height:56px;font-size:24px;background:var(--ok)">✓</span><h2 style="padding:0">Registration received</h2><p class="muted">Admin will verify your details and contact you on WhatsApp.</p><button class="btn btn-primary" data-act="close-modal" type="button">Done</button></div>`);
+      } catch (err) {
+        $("#modal").hidden = true; document.body.style.overflow = "";   // back to the form, nothing typed is lost
+        toast(errMsg(err), true);
+      } finally { if (btn) btn.disabled = false; }
+    })();
   },
   request: async (f, btn) => {
     const d = { name: val(f, "name"), phone: val(f, "phone"), email: val(f, "email"), pincode: val(f, "pincode"), area: val(f, "area"), address: val(f, "address"), preferred_date: val(f, "preferred_date"), consent: val(f, "consent"), plan_id: f.dataset.plan || null, lat: f.dataset.lat ? Number(f.dataset.lat) : null, lng: f.dataset.lng ? Number(f.dataset.lng) : null, product: f.dataset.product || "broadband" }, e = {};
