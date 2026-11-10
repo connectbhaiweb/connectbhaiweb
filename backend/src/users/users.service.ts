@@ -24,7 +24,6 @@ export class UsersService {
     const phone = normalizePhone(d.phone);
     if (!phone) throw new BadRequestException('Enter a valid 10-digit mobile number');
     if (d.role === 'tip' && !d.business_name) throw new BadRequestException('business_name is required for TIP');
-    if (await this.prisma.user.findUnique({ where: { role_phone: { role: d.role, phone } } })) throw new ConflictException('This mobile number is already registered');
     // KYC documents: when Cloudinary is configured all three are required, and each must be a genuine upload from our KYC folder
     const docs: Record<string, any> = {};
     for (const [k, label] of [['aadhaar', 'Aadhaar'], ['pan', 'PAN card'], ['bank_proof', 'bank proof']] as const) {
@@ -36,6 +35,7 @@ export class UsersService {
     const key = this.cfg.getOrThrow<string>('DATA_ENCRYPTION_KEY');
     const code = d.role === 'dsa' ? 'MP09DSA' : 'MP09TIP';
 
+    const fee = d.role === 'tip' ? await this.settings.getNumber('tip_onboarding_fee') : 0;   // read before the transaction so it stays short
     const { user, charge } = await this.prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
         data: {
@@ -53,13 +53,16 @@ export class UsersService {
       }
       let charge: Awaited<ReturnType<ChargesService['create']>> | null = null;
       if (d.role === 'tip') {
-        const fee = await this.settings.getNumber('tip_onboarding_fee');
         if (fee > 0) charge = await this.charges.create(tx, { kind: 'tip_onboarding', payer: user, base: fee, description: 'TIP onboarding charge' });
       }
       return { user, charge };
+    }).catch((e) => {
+      if (e?.code === 'P2002') throw new ConflictException('This mobile number is already registered');   // unique (role, phone): one query less than checking first
+      throw e;
     });
 
-    await this.notify.send({ user_id: user.id, phone, template: 'partner_registered', payload: { name: user.name, role: user.role, partner_code: user.partner_code } });
+    // A DSA pays nothing, so the registration message goes now. A TIP gets it only once the onboarding charge is paid (see ChargesService.settle).
+    if (!charge) await this.notify.send({ user_id: user.id, phone, template: 'partner_registered', payload: { name: user.name, role: user.role, partner_code: user.partner_code } });
     const payment_token = charge
       ? await this.jwt.signAsync({ typ: 'pay', charge_id: Number(charge.id) }, { secret: this.cfg.getOrThrow('JWT_SECRET'), expiresIn: '2d' })
       : null;
@@ -82,8 +85,10 @@ export class UsersService {
       if (u.role === 'tip') await tx.tipPincodeMapping.updateMany({ where: { tip_user_id: id }, data: { is_active: d.status === 'approved' } });
       return x;
     });
-    const city = u.city_id ? await this.prisma.city.findUnique({ where: { id: u.city_id } }) : null;
-    await this.notify.send({ user_id: id, phone: u.phone, template: `partner_${d.status}`, payload: { name: u.name, role: u.role, reason: d.reason, partner_code: u.partner_code, area: city?.name ?? u.pincode } });
+    await this.notify.defer(`partner_${d.status}`, async () => {
+      const city = u.city_id ? await this.prisma.city.findUnique({ where: { id: u.city_id } }) : null;
+      await this.notify.send({ user_id: id, phone: u.phone, template: `partner_${d.status}`, payload: { name: u.name, role: u.role, reason: d.reason, partner_code: u.partner_code, area: city?.name ?? u.pincode } });
+    });
     return publicUser(updated);
   }
 

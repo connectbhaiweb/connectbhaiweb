@@ -58,6 +58,9 @@ export class ChargesService {
     });
     if (result.applied) {
       const payer = await this.prisma.user.findUnique({ where: { id: result.charge.payer_user_id } });
+      if (payer && result.charge.kind === 'tip_onboarding') {   // a TIP is welcomed only once the onboarding fee is paid (or waived)
+        await this.notify.send({ user_id: payer.id, phone: payer.phone, template: 'partner_registered', payload: { name: payer.name, role: payer.role, partner_code: payer.partner_code } });
+      }
       await this.notify.send({ user_id: payer?.id, phone: payer?.phone, template: 'payment_received', payload: { kind: result.charge.kind, amount: Number(result.charge.total_amount), invoice_no: result.charge.invoice_no } });
     }
     return result.charge;

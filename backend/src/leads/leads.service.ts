@@ -96,8 +96,10 @@ export class LeadsService {
 
     await this.notify.send({ user_id: customer_user_id, phone, template: 'lead_received', payload: { ref_code: lead.ref_code, name: lead.customer_name, product: productName(lead.plan), executive: lead.tip?.name ?? lead.dsa?.name ?? 'Connect Bhai' } });
     if (tip) {
-      const t = await this.prisma.user.findUnique({ where: { id: tip } });
-      await this.notify.send({ user_id: tip, phone: t?.phone, template: 'new_lead', payload: { ref_code: lead.ref_code, pincode: lead.pincode } });
+      await this.notify.defer('new_lead', async () => {
+        const t = await this.prisma.user.findUnique({ where: { id: tip } });
+        await this.notify.send({ user_id: tip, phone: t?.phone, template: 'new_lead', payload: { ref_code: lead.ref_code, pincode: lead.pincode } });
+      });
     }
     return lead;
   }

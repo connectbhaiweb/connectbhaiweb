@@ -40,12 +40,14 @@ export class BookingsService {
       await this.leads.log(tx, lead.id, u.id, 'status_changed', { from: lead.status, to: 'scheduled', note: `installation on ${when.toISOString()}` });
       return b;
     }).then(async (b) => {
-      await this.tellInstallationStarted({ id: lead.id, plan_id: lead.plan_id, customer_user_id: lead.customer_user_id, customer_phone: lead.customer_phone, customer_name: lead.customer_name, ref_code: lead.ref_code }, lead.tip_user_id!, u.id);
-      const [tip, plan] = await Promise.all([
-        this.prisma.user.findUnique({ where: { id: lead.tip_user_id! } }),
-        lead.plan_id ? this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null,
-      ]);
-      await this.notify.send({ user_id: tip?.id, phone: tip?.phone, template: 'tip_job_assigned', payload: { name: tip?.name, ref_code: lead.ref_code, customer: lead.customer_name, customer_phone: lead.customer_phone, product: productName(plan), address: lead.address, when: dateIST(when) } });
+      await this.notify.defer('booking_created', async () => {
+        await this.tellInstallationStarted({ id: lead.id, plan_id: lead.plan_id, customer_user_id: lead.customer_user_id, customer_phone: lead.customer_phone, customer_name: lead.customer_name, ref_code: lead.ref_code }, lead.tip_user_id!, u.id);
+        const [tip, plan] = await Promise.all([
+          this.prisma.user.findUnique({ where: { id: lead.tip_user_id! } }),
+          lead.plan_id ? this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null,
+        ]);
+        await this.notify.send({ user_id: tip?.id, phone: tip?.phone, template: 'tip_job_assigned', payload: { name: tip?.name, ref_code: lead.ref_code, customer: lead.customer_name, customer_phone: lead.customer_phone, product: productName(plan), address: lead.address, when: dateIST(when) } });
+      });
       return b;
     });
   }
@@ -132,16 +134,18 @@ export class BookingsService {
       return { booking, commission, charge };
     });
 
-    const plan = lead.plan_id ? await this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null;
-    const product = productName(plan);
-    const to = { user_id: lead.customer_user_id, phone: lead.customer_phone };
-    await this.notify.send({ ...to, template: 'installed', payload: { ref_code: lead.ref_code, name: lead.customer_name, product, plan: plan?.name ?? product, connection_id: d.connection_id || lead.ref_code, date: dateIST() } });
-    if (out.commission) {
-      const dsa = await this.prisma.user.findUnique({ where: { id: out.commission.dsa_user_id } });
-      await this.notify.send({ user_id: dsa?.id, phone: dsa?.phone, template: 'dsa_payout_eligible', payload: { name: dsa?.name, customer: lead.customer_name, ref_code: lead.ref_code, amount: Number(out.commission.amount), cycle: new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date()) } });
-    }
-    await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'tip_job_completed', payload: { name: tip.name, ref_code: lead.ref_code, amount: await this.settings.getNumber('tip_job_earning'), cycle: new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date()) } });
-    if (out.charge) await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'install_fee_due', payload: { ref_code: lead.ref_code, name: tip.name, what: `install fee for ${lead.ref_code}`, amount: Number(out.charge.total_amount), due: dateIST(new Date(Date.now() + 7 * 86_400_000)) } });
+    await this.notify.defer('installation_completed', async () => {
+      const plan = lead.plan_id ? await this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null;
+      const product = productName(plan);
+      const to = { user_id: lead.customer_user_id, phone: lead.customer_phone };
+      await this.notify.send({ ...to, template: 'installed', payload: { ref_code: lead.ref_code, name: lead.customer_name, product, plan: plan?.name ?? product, connection_id: d.connection_id || lead.ref_code, date: dateIST() } });
+      if (out.commission) {
+        const dsa = await this.prisma.user.findUnique({ where: { id: out.commission.dsa_user_id } });
+        await this.notify.send({ user_id: dsa?.id, phone: dsa?.phone, template: 'dsa_payout_eligible', payload: { name: dsa?.name, customer: lead.customer_name, ref_code: lead.ref_code, amount: Number(out.commission.amount), cycle: new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date()) } });
+      }
+      await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'tip_job_completed', payload: { name: tip.name, ref_code: lead.ref_code, amount: await this.settings.getNumber('tip_job_earning'), cycle: new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date()) } });
+      if (out.charge) await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'install_fee_due', payload: { ref_code: lead.ref_code, name: tip.name, what: `install fee for ${lead.ref_code}`, amount: Number(out.charge.total_amount), due: dateIST(new Date(Date.now() + 7 * 86_400_000)) } });
+    });
     return out;
   }
 
