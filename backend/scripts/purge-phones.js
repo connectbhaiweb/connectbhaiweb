@@ -50,6 +50,10 @@ function plan(all, table, cond, seen = new Set(), out = []) {
   const all = await fks(db);
   const steps = [];
   for (const [t, c] of ROOTS) { plan(all, t, c, new Set(), steps); steps.push({ op: 'delete', table: t, cond: c }); }
+  if (args.includes('--print-sql')) {   // for pasting into a SQL console
+    for (const s of steps) console.log((s.op === 'null' ? `UPDATE ${s.table} SET ${s.col} = NULL WHERE ${s.cond}` : `DELETE FROM ${s.table} WHERE ${s.cond}`) + ';');
+    return;
+  }
   const counts = [];
   for (const s of steps) {
     const [{ n }] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) n FROM ${s.table} WHERE ${s.cond}`);
