@@ -130,6 +130,12 @@ enum NotifChannel {
   sms
   in_app
 }
+enum JobStatus {
+  pending
+  running
+  done
+  failed
+}
 enum NotifStatus {
   queued
   sent
@@ -611,4 +617,24 @@ model AppSetting {
   updated_by  BigInt?  @db.UnsignedBigInt
   updated_at  DateTime @default(now()) @updatedAt @db.DateTime(3)
   @@map("app_settings")
+}
+
+/// Durable background jobs (WhatsApp sends, post-save look-ups). A worker inside the API claims and runs them; a crash or restart loses nothing.
+model BackgroundJob {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name         String    @db.VarChar(80)
+  payload      Json?
+  status       JobStatus @default(pending)
+  priority     Int       @default(0)
+  attempts     Int       @default(0)
+  max_attempts Int       @default(3)
+  run_at       DateTime  @default(now()) @db.DateTime(3)
+  locked_at    DateTime? @db.DateTime(3)
+  locked_by    String?   @db.VarChar(80)
+  last_error   String?   @db.VarChar(255)
+  created_at   DateTime  @default(now()) @db.DateTime(3)
+  finished_at  DateTime? @db.DateTime(3)
+  @@index([status, run_at, priority], map: "ix_job_ready")
+  @@index([status, locked_at], map: "ix_job_locked")
+  @@map("background_jobs")
 }

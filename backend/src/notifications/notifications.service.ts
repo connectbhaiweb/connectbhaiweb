@@ -12,18 +12,18 @@ export interface NotifyInput { user_id?: number | bigint | null; phone?: string 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
-  constructor(private prisma: PrismaService, private cfg: ConfigService, private jobs: JobsService) {}
+  constructor(private prisma: PrismaService, private cfg: ConfigService, private jobs: JobsService) {
+    this.jobs.register('message', async (p) => { await this.deliver(p); });   // the worker calls this for every queued WhatsApp message
+  }
 
   /** Returns at once: recording and sending the message happen in the background, so the form the person submitted never waits for WhatsApp. */
   async send(i: NotifyInput): Promise<void> {
-    await this.jobs.enqueue(`message:${i.template}`, async () => { await this.deliver(i); }, { retries: 0, urgent: i.template === 'otp' });
+    // saved to the job table first (durable), so a restart before it is sent loses nothing
+    const job = { user_id: i.user_id == null ? null : Number(i.user_id), phone: i.phone ?? null, template: i.template, payload: i.payload ?? {}, channel: i.channel ?? 'whatsapp' };
+    await this.jobs.enqueue(`message:${i.template}`, job, { urgent: i.template === 'otp', maxAttempts: 3 });
   }
 
-  /** Runs `fn` (look up whatever the message needs, then call send) in the background, so a form never waits for those queries. Never throws. */
-  async defer(name: string, fn: () => Promise<void>): Promise<void> {
-    await this.jobs.enqueue(`prepare:${name}`, fn, { retries: 1 });
-  }
-
+  /** Runs inside the job worker. Provider problems are recorded on the notification row and never thrown. */
   private async deliver(i: NotifyInput) {
     const channel = i.channel ?? 'whatsapp';
     try {

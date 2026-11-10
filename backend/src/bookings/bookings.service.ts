@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { Prisma } from '@prisma/client';
 import { AuthUser } from '../common/decorators';
 import { pageArgs, paged } from '../common/pagination';
+import { JobsService } from '../common/jobs/jobs.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { leadScope } from '../common/utils/scope';
 import { LeadsService } from '../leads/leads.service';
@@ -11,12 +12,18 @@ import { ChargesService } from '../payments/charges.service';
 import { SettingsService } from '../settings/settings.service';
 import { BookingQuery, CompleteBookingDto, CreateBookingDto, UpdateBookingDto } from './bookings.dto';
 
+/** What the background job needs after an installation is marked complete (ids and numbers only: it is stored in the job table). */
+interface InstallationDone { lead_id: number; tip_user_id: number; connection_id?: string | null; commission: { dsa_user_id: number; amount: number } | null; charge: { total_amount: number } | null }
+
 @Injectable()
 export class BookingsService {
   constructor(
     private prisma: PrismaService, private leads: LeadsService, private charges: ChargesService,
-    private settings: SettingsService, private notify: NotificationsService,
-  ) {}
+    private settings: SettingsService, private notify: NotificationsService, private jobs: JobsService,
+  ) {
+    this.jobs.register('booking_created', (p: { lead_id: number; actor: number; when: string }) => this.afterBookingCreated(p));
+    this.jobs.register('installation_completed', (p: InstallationDone) => this.afterInstallationCompleted(p));
+  }
 
   private async getForUser(id: number, u: AuthUser) {
     const b = await this.prisma.booking.findFirst({ where: { id, lead: leadScope(u) }, include: { lead: true } });
@@ -40,16 +47,40 @@ export class BookingsService {
       await this.leads.log(tx, lead.id, u.id, 'status_changed', { from: lead.status, to: 'scheduled', note: `installation on ${when.toISOString()}` });
       return b;
     }).then(async (b) => {
-      await this.notify.defer('booking_created', async () => {
-        await this.tellInstallationStarted({ id: lead.id, plan_id: lead.plan_id, customer_user_id: lead.customer_user_id, customer_phone: lead.customer_phone, customer_name: lead.customer_name, ref_code: lead.ref_code }, lead.tip_user_id!, u.id);
-        const [tip, plan] = await Promise.all([
-          this.prisma.user.findUnique({ where: { id: lead.tip_user_id! } }),
-          lead.plan_id ? this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null,
-        ]);
-        await this.notify.send({ user_id: tip?.id, phone: tip?.phone, template: 'tip_job_assigned', payload: { name: tip?.name, ref_code: lead.ref_code, customer: lead.customer_name, customer_phone: lead.customer_phone, product: productName(plan), address: lead.address, when: dateIST(when) } });
-      });
+      await this.jobs.enqueue('booking_created', { lead_id: Number(lead.id), actor: u.id, when: when.toISOString() });
       return b;
     });
+  }
+
+  /** Background job after a booking is created: the customer's "installation in progress" message and the TIP's "new job" message. */
+  private async afterBookingCreated(p: { lead_id: number; actor: number; when: string }) {
+    const lead = await this.prisma.lead.findUnique({ where: { id: p.lead_id } });
+    if (!lead?.tip_user_id) return;
+    await this.tellInstallationStarted({ id: lead.id, plan_id: lead.plan_id, customer_user_id: lead.customer_user_id, customer_phone: lead.customer_phone, customer_name: lead.customer_name, ref_code: lead.ref_code }, lead.tip_user_id, p.actor);
+    const [tip, plan] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: lead.tip_user_id } }),
+      lead.plan_id ? this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null,
+    ]);
+    await this.notify.send({ user_id: tip?.id, phone: tip?.phone, template: 'tip_job_assigned', payload: { name: tip?.name, ref_code: lead.ref_code, customer: lead.customer_name, customer_phone: lead.customer_phone, product: productName(plan), address: lead.address, when: dateIST(new Date(p.when)) } });
+  }
+
+  /** Background job after an installation is marked complete: customer, DSA and TIP messages. */
+  private async afterInstallationCompleted(p: InstallationDone) {
+    const [lead, tip] = await Promise.all([
+      this.prisma.lead.findUnique({ where: { id: p.lead_id } }),
+      this.prisma.user.findUnique({ where: { id: p.tip_user_id } }),
+    ]);
+    if (!lead || !tip) return;
+    const plan = lead.plan_id ? await this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null;
+    const product = productName(plan);
+    const cycle = new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date());
+    await this.notify.send({ user_id: lead.customer_user_id, phone: lead.customer_phone, template: 'installed', payload: { ref_code: lead.ref_code, name: lead.customer_name, product, plan: plan?.name ?? product, connection_id: p.connection_id || lead.ref_code, date: dateIST() } });
+    if (p.commission) {
+      const dsa = await this.prisma.user.findUnique({ where: { id: p.commission.dsa_user_id } });
+      await this.notify.send({ user_id: dsa?.id, phone: dsa?.phone, template: 'dsa_payout_eligible', payload: { name: dsa?.name, customer: lead.customer_name, ref_code: lead.ref_code, amount: p.commission.amount, cycle } });
+    }
+    await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'tip_job_completed', payload: { name: tip.name, ref_code: lead.ref_code, amount: await this.settings.getNumber('tip_job_earning'), cycle } });
+    if (p.charge) await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'install_fee_due', payload: { ref_code: lead.ref_code, name: tip.name, what: `install fee for ${lead.ref_code}`, amount: p.charge.total_amount, due: dateIST(new Date(Date.now() + 7 * 86_400_000)) } });
   }
 
   /** WhatsApp "installation in progress" to the customer, once per lead: when the lead is approved and booked (or, if that was missed, when the TIP starts). */
@@ -134,17 +165,10 @@ export class BookingsService {
       return { booking, commission, charge };
     });
 
-    await this.notify.defer('installation_completed', async () => {
-      const plan = lead.plan_id ? await this.prisma.plan.findUnique({ where: { id: lead.plan_id }, include: { category: { select: { name: true } } } }) : null;
-      const product = productName(plan);
-      const to = { user_id: lead.customer_user_id, phone: lead.customer_phone };
-      await this.notify.send({ ...to, template: 'installed', payload: { ref_code: lead.ref_code, name: lead.customer_name, product, plan: plan?.name ?? product, connection_id: d.connection_id || lead.ref_code, date: dateIST() } });
-      if (out.commission) {
-        const dsa = await this.prisma.user.findUnique({ where: { id: out.commission.dsa_user_id } });
-        await this.notify.send({ user_id: dsa?.id, phone: dsa?.phone, template: 'dsa_payout_eligible', payload: { name: dsa?.name, customer: lead.customer_name, ref_code: lead.ref_code, amount: Number(out.commission.amount), cycle: new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date()) } });
-      }
-      await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'tip_job_completed', payload: { name: tip.name, ref_code: lead.ref_code, amount: await this.settings.getNumber('tip_job_earning'), cycle: new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }).format(new Date()) } });
-      if (out.charge) await this.notify.send({ user_id: tip.id, phone: tip.phone, template: 'install_fee_due', payload: { ref_code: lead.ref_code, name: tip.name, what: `install fee for ${lead.ref_code}`, amount: Number(out.charge.total_amount), due: dateIST(new Date(Date.now() + 7 * 86_400_000)) } });
+    await this.jobs.enqueue('installation_completed', {
+      lead_id: Number(lead.id), tip_user_id: Number(tip.id), connection_id: d.connection_id ?? null,
+      commission: out.commission ? { dsa_user_id: Number(out.commission.dsa_user_id), amount: Number(out.commission.amount) } : null,
+      charge: out.charge ? { total_amount: Number(out.charge.total_amount) } : null,
     });
     return out;
   }

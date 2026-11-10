@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { JobsService } from '../common/jobs/jobs.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { encrypt, last4 } from '../common/utils/crypto';
 import { normalizePhone } from '../common/utils/phone';
@@ -17,7 +18,16 @@ export class UsersService {
   constructor(
     private prisma: PrismaService, private cfg: ConfigService, private jwt: JwtService,
     private settings: SettingsService, private charges: ChargesService, private notify: NotificationsService, private uploads: UploadsService,
-  ) {}
+    private jobs: JobsService,
+  ) {
+    // background job: WhatsApp to a partner whose application was approved / rejected / suspended
+    this.jobs.register('partner_status', async (p: { user_id: number; status: string; reason?: string }) => {
+      const u = await this.prisma.user.findUnique({ where: { id: p.user_id } });
+      if (!u) return;
+      const city = u.city_id ? await this.prisma.city.findUnique({ where: { id: u.city_id } }) : null;
+      await this.notify.send({ user_id: p.user_id, phone: u.phone, template: `partner_${p.status}`, payload: { name: u.name, role: u.role, reason: p.reason, partner_code: u.partner_code, area: city?.name ?? u.pincode } });
+    });
+  }
 
   /** Public partner sign-up. DSA: free. TIP: an onboarding charge (+GST) is created and must be paid before approval. */
   async registerPartner(d: RegisterPartnerDto) {
@@ -85,10 +95,7 @@ export class UsersService {
       if (u.role === 'tip') await tx.tipPincodeMapping.updateMany({ where: { tip_user_id: id }, data: { is_active: d.status === 'approved' } });
       return x;
     });
-    await this.notify.defer(`partner_${d.status}`, async () => {
-      const city = u.city_id ? await this.prisma.city.findUnique({ where: { id: u.city_id } }) : null;
-      await this.notify.send({ user_id: id, phone: u.phone, template: `partner_${d.status}`, payload: { name: u.name, role: u.role, reason: d.reason, partner_code: u.partner_code, area: city?.name ?? u.pincode } });
-    });
+    await this.jobs.enqueue('partner_status', { user_id: id, status: d.status, reason: d.reason });
     return publicUser(updated);
   }
 

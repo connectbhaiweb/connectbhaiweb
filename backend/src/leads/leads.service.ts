@@ -3,6 +3,7 @@ import { Lead, LeadStatus, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { AuthUser } from '../common/decorators';
 import { pageArgs, paged } from '../common/pagination';
+import { JobsService } from '../common/jobs/jobs.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { normalizePhone } from '../common/utils/phone';
 import { leadScope } from '../common/utils/scope';
@@ -31,7 +32,13 @@ const leadInclude = {
 
 @Injectable()
 export class LeadsService {
-  constructor(private prisma: PrismaService, private settings: SettingsService, private notify: NotificationsService) {}
+  constructor(private prisma: PrismaService, private settings: SettingsService, private notify: NotificationsService, private jobs: JobsService) {
+    // background job: tell the assigned TIP about a new lead (looks the TIP up after the form has been saved)
+    this.jobs.register('new_lead', async (p: { tip_user_id: number; ref_code: string; pincode: string }) => {
+      const t = await this.prisma.user.findUnique({ where: { id: p.tip_user_id } });
+      await this.notify.send({ user_id: p.tip_user_id, phone: t?.phone, template: 'new_lead', payload: { ref_code: p.ref_code, pincode: p.pincode } });
+    });
+  }
 
   /** Picks the approved, active TIP serving this PIN with the fewest open leads; falls back to the internal TIP. */
   async pickTip(pincode: string): Promise<number | null> {
@@ -96,10 +103,7 @@ export class LeadsService {
 
     await this.notify.send({ user_id: customer_user_id, phone, template: 'lead_received', payload: { ref_code: lead.ref_code, name: lead.customer_name, product: productName(lead.plan), executive: lead.tip?.name ?? lead.dsa?.name ?? 'Connect Bhai' } });
     if (tip) {
-      await this.notify.defer('new_lead', async () => {
-        const t = await this.prisma.user.findUnique({ where: { id: tip } });
-        await this.notify.send({ user_id: tip, phone: t?.phone, template: 'new_lead', payload: { ref_code: lead.ref_code, pincode: lead.pincode } });
-      });
+      await this.jobs.enqueue('new_lead', { tip_user_id: Number(tip), ref_code: lead.ref_code, pincode: lead.pincode });
     }
     return lead;
   }
