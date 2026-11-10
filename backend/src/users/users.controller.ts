@@ -29,7 +29,7 @@ export class UsersController {
       ...(q.q ? { OR: [{ name: { contains: q.q } }, { phone: { contains: q.q } }, { partner_code: { contains: q.q } }] } : {}),
     };
     const [items, total] = await Promise.all([
-      this.prisma.user.findMany({ where, orderBy: { id: 'desc' }, ...pageArgs(q) }),
+      this.prisma.user.findMany({ where, orderBy: { id: 'desc' }, omit: { password_hash: true, aadhaar_enc: true, pan_enc: true, bank_account_enc: true }, ...pageArgs(q) }),
       this.prisma.user.count({ where }),
     ]);
     return paged(items.map((x) => publicUser(x)), total, q);

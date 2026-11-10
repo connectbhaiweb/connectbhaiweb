@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, NotFoundException, ServiceUnavailableException, Param, ParseIntPipe, Patch, Post, Query, BadRequestException } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { TtlCache } from '../common/utils/ttl-cache';
 import { Public, Roles } from '../common/decorators';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
@@ -10,17 +11,18 @@ import { CreateAreaDto, CreateCityDto, PINCODE_RE, TipPincodeDto, TipPincodeQuer
 
 @ApiTags('locations') @Controller()
 export class LocationsController {
+  private cache = new TtlCache(process.env.APP_ENV === 'test' ? 0 : 60_000);   // cities and areas barely change
   constructor(private prisma: PrismaService, private cfg: ConfigService, private pins: PincodeService) {}
 
   // ---------- public ----------
   @Public() @Get('cities')
   cities() {
-    return this.prisma.city.findMany({ where: { status: { in: ['live', 'soon'] } }, orderBy: [{ status: 'asc' }, { name: 'asc' }] });
+    return this.cache.get('cities', () => this.prisma.city.findMany({ where: { status: { in: ['live', 'soon'] } }, orderBy: [{ status: 'asc' }, { name: 'asc' }] }));
   }
 
   @Public() @Get('cities/:id/areas')
   async areas(@Param('id', ParseIntPipe) id: number) {
-    return this.prisma.area.findMany({ where: { city_id: id }, orderBy: [{ pincode: 'asc' }, { name: 'asc' }] });
+    return this.cache.get('areas:' + id, () => this.prisma.area.findMany({ where: { city_id: id }, orderBy: [{ pincode: 'asc' }, { name: 'asc' }] }));
   }
 
   /** PIN code lookup for forms (India Post directory + whether we serve it). Cached 24 h. */
@@ -33,7 +35,7 @@ export class LocationsController {
 
   /** Admin: type 2-3 PIN codes, fetch them from India Post and add their post offices as areas of a city. Safe to repeat. */
   @ApiBearerAuth() @Roles('admin') @Post('admin/pincodes/import')
-  async importPins(@Body() d: ImportPinsDto) {
+  async importPins(@Body() d: ImportPinsDto) { this.cache.clear();
     const city = await this.prisma.city.findUnique({ where: { id: d.city_id } });
     if (!city) throw new NotFoundException('City not found');
     const infos = await this.pins.lookupMany(d.pincodes);
@@ -84,19 +86,19 @@ export class LocationsController {
 
   // ---------- admin: cities / areas ----------
   @ApiBearerAuth() @Roles('admin') @Post('cities')
-  createCity(@Body() d: CreateCityDto) { return this.prisma.city.create({ data: { name: d.name.trim(), status: d.status ?? 'soon' } }); }
+  createCity(@Body() d: CreateCityDto) { this.cache.clear(); return this.prisma.city.create({ data: { name: d.name.trim(), status: d.status ?? 'soon' } }); }
 
   @ApiBearerAuth() @Roles('admin') @Patch('cities/:id')
-  updateCity(@Param('id', ParseIntPipe) id: number, @Body() d: UpdateCityDto) { return this.prisma.city.update({ where: { id }, data: d }); }
+  updateCity(@Param('id', ParseIntPipe) id: number, @Body() d: UpdateCityDto) { this.cache.clear(); return this.prisma.city.update({ where: { id }, data: d }); }
 
   @ApiBearerAuth() @Roles('admin') @Post('cities/:id/areas')
-  async createArea(@Param('id', ParseIntPipe) id: number, @Body() d: CreateAreaDto) {
+  async createArea(@Param('id', ParseIntPipe) id: number, @Body() d: CreateAreaDto) { this.cache.clear();
     if (!(await this.prisma.city.findUnique({ where: { id } }))) throw new NotFoundException('City not found');
     return this.prisma.area.create({ data: { city_id: id, name: d.name.trim(), pincode: d.pincode } });
   }
 
   @ApiBearerAuth() @Roles('admin') @Delete('areas/:id')
-  async deleteArea(@Param('id', ParseIntPipe) id: number) { await this.prisma.area.delete({ where: { id } }); return { ok: true }; }
+  async deleteArea(@Param('id', ParseIntPipe) id: number) { this.cache.clear(); await this.prisma.area.delete({ where: { id } }); return { ok: true }; }
 
   // ---------- admin: which TIP serves which PIN ----------
   @ApiBearerAuth() @Roles('admin') @Get('admin/tip-pincodes')
@@ -109,7 +111,7 @@ export class LocationsController {
   }
 
   @ApiBearerAuth() @Roles('admin') @Post('admin/tip-pincodes')
-  async addTipPincode(@Body() d: TipPincodeDto) {
+  async addTipPincode(@Body() d: TipPincodeDto) { this.cache.clear();
     const tip = await this.prisma.user.findFirst({ where: { id: d.tip_user_id, role: 'tip' } });
     if (!tip) throw new BadRequestException('tip_user_id is not a TIP');
     return this.prisma.tipPincodeMapping.upsert({
@@ -119,10 +121,10 @@ export class LocationsController {
   }
 
   @ApiBearerAuth() @Roles('admin') @Patch('admin/tip-pincodes/:id')
-  setTipPincodeActive(@Param('id', ParseIntPipe) id: number, @Body() d: TipPincodeUpdateDto) {
+  setTipPincodeActive(@Param('id', ParseIntPipe) id: number, @Body() d: TipPincodeUpdateDto) { this.cache.clear();
     return this.prisma.tipPincodeMapping.update({ where: { id }, data: { is_active: d.is_active } });
   }
 
   @ApiBearerAuth() @Roles('admin') @Delete('admin/tip-pincodes/:id')
-  async removeTipPincode(@Param('id', ParseIntPipe) id: number) { await this.prisma.tipPincodeMapping.delete({ where: { id } }); return { ok: true }; }
+  async removeTipPincode(@Param('id', ParseIntPipe) id: number) { this.cache.clear(); await this.prisma.tipPincodeMapping.delete({ where: { id } }); return { ok: true }; }
 }

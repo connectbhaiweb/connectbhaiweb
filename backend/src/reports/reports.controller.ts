@@ -14,20 +14,30 @@ export class ReportsController {
 
   /** Dashboard numbers for whoever is logged in (scoped by role). */
   @Get('me') async me(@CurrentUser() u: AuthUser) {
-    const byStatus = await this.prisma.lead.groupBy({ by: ['status'], where: leadScope(u), _count: { _all: true } });
+    const [byStatus, extra, open_tickets] = await Promise.all([
+      this.prisma.lead.groupBy({ by: ['status'], where: leadScope(u), _count: { _all: true } }),
+      this.roleExtras(u),
+      this.prisma.ticket.count({ where: { raised_by: u.id, status: { in: ['open', 'in_progress'] } } }),
+    ]);
     const leads = Object.fromEntries(byStatus.map((s) => [s.status, s._count._all]));
     const out: Record<string, any> = { leads, leads_total: byStatus.reduce((a, s) => a + s._count._all, 0) };
+    Object.assign(out, extra, { open_tickets });
+    return out;
+  }
+
+  private async roleExtras(u: AuthUser): Promise<Record<string, any>> {
     if (u.role === 'dsa') {
       const c = await this.prisma.commission.groupBy({ by: ['status'], where: { dsa_user_id: u.id }, _sum: { amount: true } });
-      out.commission = Object.fromEntries(c.map((x) => [x.status, Number(x._sum.amount ?? 0)]));
+      return { commission: Object.fromEntries(c.map((x) => [x.status, Number(x._sum.amount ?? 0)])) };
     }
     if (u.role === 'tip') {
-      const c = await this.prisma.charge.groupBy({ by: ['status'], where: { payer_user_id: u.id }, _sum: { total_amount: true } });
-      out.charges = Object.fromEntries(c.map((x) => [x.status, Number(x._sum.total_amount ?? 0)]));
-      out.care_plan_devices = await this.prisma.carePlanDevice.count({ where: { tip_user_id: u.id, is_active: true } });
+      const [c, devices] = await Promise.all([
+        this.prisma.charge.groupBy({ by: ['status'], where: { payer_user_id: u.id }, _sum: { total_amount: true } }),
+        this.prisma.carePlanDevice.count({ where: { tip_user_id: u.id, is_active: true } }),
+      ]);
+      return { charges: Object.fromEntries(c.map((x) => [x.status, Number(x._sum.total_amount ?? 0)])), care_plan_devices: devices };
     }
-    out.open_tickets = await this.prisma.ticket.count({ where: { raised_by: u.id, status: { in: ['open', 'in_progress'] } } });
-    return out;
+    return {};
   }
 
   /** Just the numbers shown on the admin tabs (three COUNT queries), so the dashboard does not have to load whole lists. */
@@ -41,15 +51,15 @@ export class ReportsController {
   }
 
   @Roles('admin') @Get('overview') async overview() {
-    const [users, leads, charges, commissions, tickets, devices] = await Promise.all([
+    const [users, leads, charges, commissions, tickets, devices, pendingPartners] = await Promise.all([
       this.prisma.user.groupBy({ by: ['role'], _count: { _all: true } }),
       this.prisma.lead.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.charge.groupBy({ by: ['kind', 'status'], _sum: { total_amount: true, base_amount: true }, _count: { _all: true } }),
       this.prisma.commission.groupBy({ by: ['status'], _sum: { amount: true }, _count: { _all: true } }),
       this.prisma.ticket.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.carePlanDevice.count({ where: { is_active: true } }),
+      this.prisma.user.count({ where: { partner_status: 'pending' } }),
     ]);
-    const pendingPartners = await this.prisma.user.count({ where: { partner_status: 'pending' } });
     return {
       users: Object.fromEntries(users.map((x) => [x.role, x._count._all])),
       pending_partner_approvals: pendingPartners,

@@ -295,6 +295,7 @@ model User {
 
   @@unique([role, phone], map: "uq_role_phone")
   @@index([role, partner_status], map: "ix_role_status")
+  @@index([partner_status, created_at], map: "ix_user_pstatus")
   @@map("users")
 }
 
@@ -353,6 +354,9 @@ model Lead {
   @@index([brought_by_user_id, status], map: "ix_lead_dsa")
   @@index([pincode], map: "ix_lead_pin")
   @@index([customer_phone], map: "ix_lead_phone")
+  @@index([status, id], map: "ix_lead_status")
+  @@index([customer_user_id], map: "ix_lead_cust")
+  @@index([status, updated_at], map: "ix_lead_status_upd")
   @@map("leads")
 }
 
@@ -389,6 +393,7 @@ model Booking {
   commissions Commission[]
   @@index([lead_id], map: "ix_bk_lead")
   @@index([tip_user_id, status], map: "ix_bk_tip")
+  @@index([status, scheduled_at], map: "ix_bk_status")
   @@map("bookings")
 }
 
@@ -452,6 +457,7 @@ model Charge {
   lead  Lead? @relation(fields: [lead_id], references: [id])
   charge_leads ChargeLead[]
   @@index([payer_user_id, kind, status], map: "ix_ch_payer")
+  @@index([status, kind, created_at], map: "ix_ch_status")
   @@map("charges")
 }
 
@@ -594,6 +600,7 @@ model Notification {
   created_at      DateTime     @default(now()) @db.DateTime(3)
   user User? @relation(fields: [user_id], references: [id])
   @@index([user_id, created_at], map: "ix_nt_user")
+  @@index([template, user_id], map: "ix_nt_tpl_user")
   @@map("notifications")
 }
 
