@@ -55,6 +55,7 @@ export const envValidationSchema = Joi.object({
   UPLOAD_MAX_MB: Joi.number().integer().min(1).max(25).default(5),
   AISENSY_API_KEY: Joi.string().allow('').default(''),
   GENIEACS_NBI_URL: Joi.string().allow('').default(''),
+  GENIEACS_API_TOKEN: Joi.string().allow('').default(''),
   GENIEACS_USERNAME: Joi.string().allow('').default(''),
   GENIEACS_PASSWORD: Joi.string().allow('').default(''),
 })

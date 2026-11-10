@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 export interface DeviceStatus { online: boolean; last_seen_at: Date; rx_power_dbm: number; wifi_ssid: string | null; connected_clients: number; raw?: any }
 export interface SpeedResult { download_mbps: number; upload_mbps: number; ping_ms: number }
 export interface ActionResult { ok: boolean; error?: string }
+export interface AcsHealth { status: 'up' | 'down' | 'mock'; reachable: boolean; mock: boolean; latency_ms?: number; checked_at: string; detail?: string }
 
 /**
  * GenieACS (TR-069) gateway. With GENIEACS_NBI_URL set it talks to the real NBI; otherwise it returns
@@ -16,10 +17,39 @@ export class GenieAcsProvider {
   private get base() { return this.cfg.get<string>('GENIEACS_NBI_URL') || ''; }
   get isMock() { return !this.base; }
   private headers() {
+    const token = this.cfg.get<string>('GENIEACS_API_TOKEN');
     const u = this.cfg.get<string>('GENIEACS_USERNAME');
-    return { 'content-type': 'application/json', ...(u ? { authorization: 'Basic ' + Buffer.from(`${u}:${this.cfg.get('GENIEACS_PASSWORD')}`).toString('base64') } : {}) };
+    // Token (Bearer) wins: it is what the gateway in front of the NBI checks. Basic auth kept for self-hosted ACS setups.
+    return { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : u ? { authorization: 'Basic ' + Buffer.from(`${u}:${this.cfg.get('GENIEACS_PASSWORD')}`).toString('base64') } : {}) };
   }
   private seed(s: string) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+
+  private healthCache: { at: number; value: AcsHealth } | null = null;
+
+  /**
+   * Is the GenieACS NBI (port 7557) reachable and answering? GenieACS has no health endpoint of its own,
+   * so we run the cheapest NBI query (one device id) with a short timeout. Cached for 10s so a public
+   * uptime monitor cannot hammer the ACS.
+   */
+  async health(): Promise<AcsHealth> {
+    if (this.isMock) return { status: 'mock', reachable: false, mock: true, checked_at: new Date().toISOString(), detail: 'GENIEACS_NBI_URL is not set; using mock device data' };
+    if (this.healthCache && Date.now() - this.healthCache.at < 10_000) return this.healthCache.value;
+    const started = Date.now();
+    let value: AcsHealth;
+    try {
+      const r = await fetch(`${this.base}/devices?limit=1&projection=${encodeURIComponent('_id')}`, { headers: this.headers(), signal: AbortSignal.timeout(3000) });
+      const latency_ms = Date.now() - started;
+      if (r.ok) value = { status: 'up', reachable: true, mock: false, latency_ms, checked_at: new Date().toISOString() };
+      else if (r.status === 401 || r.status === 403) value = { status: 'down', reachable: true, mock: false, latency_ms, checked_at: new Date().toISOString(), detail: `GenieACS rejected credentials (${r.status}); check GENIEACS_API_TOKEN` };
+      else value = { status: 'down', reachable: true, mock: false, latency_ms, checked_at: new Date().toISOString(), detail: `GenieACS answered HTTP ${r.status}` };
+    } catch (e: any) {
+      const timeout = e?.name === 'TimeoutError' || e?.name === 'AbortError';
+      this.logger.warn(`GenieACS health check failed: ${e?.message}`);
+      value = { status: 'down', reachable: false, mock: false, latency_ms: Date.now() - started, checked_at: new Date().toISOString(), detail: timeout ? 'GenieACS did not answer within 3s' : 'GenieACS unreachable' };
+    }
+    this.healthCache = { at: Date.now(), value };
+    return value;
+  }
 
   async fetchStatus(deviceId: string): Promise<DeviceStatus> {
     if (this.isMock) {
