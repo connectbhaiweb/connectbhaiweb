@@ -16,7 +16,7 @@ export class NotificationsService {
 
   /** Returns at once: recording and sending the message happen in the background, so the form the person submitted never waits for WhatsApp. */
   async send(i: NotifyInput): Promise<void> {
-    await this.jobs.enqueue(`message:${i.template}`, async () => { await this.deliver(i); }, { retries: 0 });
+    await this.jobs.enqueue(`message:${i.template}`, async () => { await this.deliver(i); }, { retries: 0, urgent: i.template === 'otp' });
   }
 
   /** Runs `fn` (look up whatever the message needs, then call send) in the background, so a form never waits for those queries. Never throws. */
@@ -27,9 +27,7 @@ export class NotificationsService {
   private async deliver(i: NotifyInput) {
     const channel = i.channel ?? 'whatsapp';
     try {
-      const row = await this.prisma.notification.create({
-        data: { user_id: i.user_id ?? null, phone: i.phone ?? null, channel, template: i.template, payload: (i.payload ?? {}) as Prisma.InputJsonValue },
-      });
+      // Send FIRST, write the log row after: the person waits for the message, not for our bookkeeping.
       let status: 'queued' | 'sent' | 'failed' = 'sent';
       let error: string | undefined;
       const url = this.cfg.get<string>('WHATSAPP_API_URL');
@@ -39,13 +37,14 @@ export class NotificationsService {
         if (!def) {
           status = 'queued'; error = 'No AiSensy campaign is set up for this message yet';   // recorded only; add it in whatsapp-campaigns.ts
         } else {
-          let res = await sendAisensyCampaign({ apiKey: aisensyKey, campaignName: def.campaign, phone: i.phone, params: def.params, copyCode: def.copyCode });
+          const send = () => sendAisensyCampaign({ apiKey: aisensyKey, campaignName: def.campaign, phone: i.phone!, params: def.params, copyCode: def.copyCode });
+          let res = await send();
           // a network problem or a 5xx from AiSensy is tried again twice; a 4xx (bad campaign or number) will not get better
           for (let n = 1; !res.ok && n <= 2 && !/^aisensy 4\d\d/.test(res.error ?? ''); n++) {
-            await new Promise((r) => setTimeout(r, this.cfg.get('APP_ENV') === 'test' ? 0 : 1500 * n));
-            res = await sendAisensyCampaign({ apiKey: aisensyKey, campaignName: def.campaign, phone: i.phone, params: def.params, copyCode: def.copyCode });
+            await new Promise((r) => setTimeout(r, this.cfg.get('APP_ENV') === 'test' ? 0 : 700 * n));
+            res = await send();
           }
-          if (!res.ok) { status = 'failed'; error = res.error; }
+          if (!res.ok) { status = 'failed'; error = res.error; this.logger.warn(`WhatsApp ${i.template} to ${i.phone} failed: ${res.error}`); }
         }
       } else if (channel === 'whatsapp' && url && i.phone) {
         try {
@@ -53,14 +52,16 @@ export class NotificationsService {
             method: 'POST',
             headers: { 'content-type': 'application/json', authorization: `Bearer ${this.cfg.get('WHATSAPP_API_TOKEN')}` },
             body: JSON.stringify({ to: `91${i.phone}`, template: i.template, params: i.payload ?? {} }),
+            signal: AbortSignal.timeout(10_000),
           });
           if (!r.ok) { status = 'failed'; error = `provider ${r.status}`; }
         } catch (e: any) { status = 'failed'; error = String(e?.message ?? e).slice(0, 250); }
       } else {
         this.logger.debug(`[${channel}] ${i.template} -> ${i.phone ?? i.user_id}`);
       }
-      await this.prisma.notification.update({ where: { id: row.id }, data: { status, error } });
-      return row;
+      return await this.prisma.notification.create({
+        data: { user_id: i.user_id ?? null, phone: i.phone ?? null, channel, template: i.template, payload: (i.payload ?? {}) as Prisma.InputJsonValue, status, error: error?.slice(0, 250) },
+      });
     } catch (e: any) {
       this.logger.error(`notification failed: ${e?.message}`);
       return null;

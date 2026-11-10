@@ -27,8 +27,13 @@ export async function sendAisensyCampaign(m: AisensyMessage): Promise<{ ok: bool
   };
   if (m.copyCode) body.buttons = [{ type: 'button', sub_type: 'url', index: 0, parameters: [{ type: 'text', text: m.copyCode }] }];
   try {
-    const r = await fetch(AISENSY_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-    return r.ok ? { ok: true } : { ok: false, error: `aisensy ${r.status}` };
+    // 10 s at most: a hung AiSensy call must never keep an OTP (or the queue) waiting
+    const r = await fetch(AISENSY_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10_000) });
+    if (r.ok) return { ok: true };
+    // keep AiSensy's own reason (e.g. "Campaign does not exist"): "aisensy 400" alone says nothing
+    let why = '';
+    try { const j: any = await r.json(); why = String(j?.errorMessage ?? j?.message ?? '').slice(0, 150); } catch { /* no body */ }
+    return { ok: false, error: why ? `aisensy ${r.status}: ${why}` : `aisensy ${r.status}` };
   } catch (e: any) {
     return { ok: false, error: String(e?.message ?? e).slice(0, 250) };
   }

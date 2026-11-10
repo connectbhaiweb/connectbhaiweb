@@ -87,4 +87,11 @@ describe('NotificationsService with AiSensy configured', () => {
     await expect(svc.send({ phone: '9811000000', template: 'welcome', payload: { name: 'A', product: 'B' } })).resolves.toBeUndefined();
     expect(rows[0]).toMatchObject({ status: 'failed', error: 'aisensy 400' });
   });
+
+  it('keeps AiSensy\'s own reason in the error so a 400 can be diagnosed', async () => {
+    (global as any).fetch = jest.fn(async () => ({ ok: false, status: 400, json: async () => ({ errorMessage: 'Campaign does not exist' }) }));
+    const { svc, rows } = make();
+    await svc.send({ phone: '9811000000', template: 'welcome', payload: { name: 'A', product: 'B' } });
+    expect(rows[0]).toMatchObject({ status: 'failed', error: 'aisensy 400: Campaign does not exist' });
+  });
 });

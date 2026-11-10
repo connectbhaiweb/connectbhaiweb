@@ -18,11 +18,11 @@ export class AuthService {
   async requestOtp(rawPhone: string, role?: UserRole) {
     const phone = normalizePhone(rawPhone);
     if (!phone) throw new BadRequestException('Enter a valid 10-digit mobile number');
-    if (role && role !== 'customer') {
-      const u = await this.prisma.user.findUnique({ where: { role_phone: { role, phone } } });
-      await this.assertCanLogin(u);
-    }
-    const recent = await this.prisma.otpCode.count({ where: { phone, created_at: { gt: new Date(Date.now() - 10 * 60_000) } } });
+    const [u, recent] = await Promise.all([   // independent look-ups: one round trip instead of two
+      role && role !== 'customer' ? this.prisma.user.findUnique({ where: { role_phone: { role, phone } } }) : null,
+      this.prisma.otpCode.count({ where: { phone, created_at: { gt: new Date(Date.now() - 10 * 60_000) } } }),
+    ]);
+    if (role && role !== 'customer') await this.assertCanLogin(u);
     if (recent >= 5) throw new HttpException('Too many OTP requests. Try again in a few minutes.', HttpStatus.TOO_MANY_REQUESTS);
 
     const dev = this.cfg.get<string>('OTP_DEV_CODE');

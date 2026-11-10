@@ -21,10 +21,10 @@ export class JobsService implements OnModuleDestroy {
   constructor(cfg: ConfigService) { this.inline = cfg.get('APP_ENV') === 'test'; }
 
   /** Returns at once (in tests: after the job ran). Never throws. */
-  async enqueue(name: string, fn: () => Promise<void>, opts: { retries?: number } = {}): Promise<void> {
+  async enqueue(name: string, fn: () => Promise<void>, opts: { retries?: number; urgent?: boolean } = {}): Promise<void> {
     const job = { name, fn, retries: opts.retries ?? 0, attempt: 0 };
     if (this.inline) { await this.exec(job, false); return; }
-    this.queue.push(job);
+    if (opts.urgent) this.queue.unshift(job); else this.queue.push(job);   // urgent (login codes) go first
     setImmediate(() => this.pump());
   }
 
