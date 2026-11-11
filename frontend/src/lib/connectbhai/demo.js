@@ -83,7 +83,7 @@ function seedDemo() {
       ["lc-4", "pv-a", "pt-t1", "ftth"], ["lc-4", "pv-c", null, "cable"],
       ["lc-5", "pv-a", "pt-t2", "ftth"]
     ].map(([location_id, provider_id, tip_partner_id, technology], i) => ({ id: "cv-" + i, location_id, provider_id, tip_partner_id, technology, is_active: true })),
-    settings: { registration_fee_tip: 5000, registration_fee_dsa: 1000, gst_percent: 18, auto_assign: 1, lead_target_default: 20, tip_share_percent: 0 },
+    settings: { registration_fee_tip: 5000, registration_fee_dsa: 0, gst_percent: 18, auto_assign: 1, lead_target_default: 20, tip_share_percent: 0 },
     leads: [], lead_events: [], bookings: [], tickets: [], commissions: [], payments: [], device_status: [], device_actions: [], speed_tests: [], charges: [], notifications: [], messages: [], reads: {}, waitlist: [],
     cities: MP_CITIES.map(([id, name, tier]) => ({ id, name, district: name, tier, status: id === "indore" ? "live" : "soon", launched_at: id === "indore" ? ago(30) : null, created_at: ago(30) }))
   };
@@ -129,8 +129,6 @@ function seedDemo() {
     gateway_payment_id: status === "paid" ? "pay_DEMO" + id.slice(3) : null, paid_via: status === "paid" ? "razorpay" : null, paid_at: status === "paid" ? ago(days - 0.5) : null, created_at: ago(days) });
   ch("ch-1", "registration_fee", "pt-t1", null, null, "TIP registration fee", 5000, "paid", 90);
   ch("ch-2", "registration_fee", "pt-t2", null, null, "TIP registration fee", 5000, "paid", 80);
-  ch("ch-3", "registration_fee", "pt-d1", null, null, "DSA registration fee", 1000, "paid", 60);
-  ch("ch-4", "registration_fee", "pt-d2", null, null, "DSA registration fee", 1000, "paid", 45);
   ch("ch-5", "registration_fee", "pt-t3", null, null, "TIP registration fee", 5000, "due", 1);
   ch("ch-6", "platform_fee", "pt-t1", null, "bk-1", "Platform fee · CB261001-1001 · Ramesh Sharma", 300, "paid", 8);
   ch("ch-7", "platform_fee", "pt-t1", null, "bk-3", "Platform fee · CB260928-0981 · Suresh Patidar", 300, "due", 16);
@@ -189,7 +187,7 @@ function seedDemo() {
 let DB;
 function resetDemoData() { DB = seedDemo(); saveDemo(); }
 function loadDemo() {
-  try { const s = localStorage.getItem(DEMO_KEY); if (s) { DB = JSON.parse(s); DB.speed_tests = DB.speed_tests || []; DB.device_actions = DB.device_actions || []; DB.charges = DB.charges || []; DB.notifications = DB.notifications || []; DB.settings = DB.settings || { registration_fee_tip: 5000, registration_fee_dsa: 1000, gst_percent: 18 }; if (DB.settings.auto_assign === undefined) DB.settings.auto_assign = 1; DB.messages = DB.messages || []; DB.reads = DB.reads || {}; if (DB.settings.lead_target_default === undefined) DB.settings.lead_target_default = 20; DB.locations.forEach(l => { if (l.zone === undefined) l.zone = ZONE_BY_PIN[l.pincode] || null; });
+  try { const s = localStorage.getItem(DEMO_KEY); if (s) { DB = JSON.parse(s); DB.speed_tests = DB.speed_tests || []; DB.device_actions = DB.device_actions || []; DB.charges = DB.charges || []; DB.notifications = DB.notifications || []; DB.settings = DB.settings || { registration_fee_tip: 5000, registration_fee_dsa: 0, gst_percent: 18 }; DB.settings.registration_fee_dsa = 0;   // a DSA pays no registration fee, only a commission after install if (DB.settings.auto_assign === undefined) DB.settings.auto_assign = 1; DB.messages = DB.messages || []; DB.reads = DB.reads || {}; if (DB.settings.lead_target_default === undefined) DB.settings.lead_target_default = 20; DB.locations.forEach(l => { if (l.zone === undefined) l.zone = ZONE_BY_PIN[l.pincode] || null; });
     [["452015", "Pologround Industrial Area", "Indore", "pologround"], ["453551", "Sanwer", "Sanwer", "sanwer"], ["453115", "Depalpur", "Depalpur", "depalpur"], ["453441", "Mhow", "Mhow", "mhow"]].forEach(([pincode, area, city, zone]) => { if (!DB.locations.some(l => l.pincode === pincode)) DB.locations.push({ id: uuid(), pincode, area, city, zone }); }); if (DB.settings.tip_share_percent === undefined) DB.settings.tip_share_percent = 0; DB.profiles.forEach(p => { if (p.pw === undefined && ["u-cust", "u-cust2", "u-dsa", "u-tip", "u-admin"].includes(p.id)) { p.pw = demoHash("Demo@1234", p.id); p.must_change = false; } }); return; } } catch (e) {}
   DB = seedDemo();
 }
@@ -564,7 +562,7 @@ const Demo = (() => {
       if (tip) queueWA(partnerPhone(tip), "cb_new_lead", [l.ref_code, l.name, l.phone, l.pincode], l.id);
       return done({ ref_code: l.ref_code, tip: tip ? byId("partners", tip).name : null });
     }),
-    saveSettings: wrap(o => { need("admin"); ["registration_fee_tip", "registration_fee_dsa", "gst_percent", "lead_target_default", "tip_share_percent"].forEach(k => { const v = Number(o[k]); if (!(v >= 0)) fail("Enter 0 or more."); DB.settings[k] = v; }); return done(true); }),
+    saveSettings: wrap(o => { need("admin"); ["registration_fee_tip", "gst_percent", "lead_target_default", "tip_share_percent"].forEach(k => { const v = Number(o[k]); if (!(v >= 0)) fail("Enter 0 or more."); DB.settings[k] = v; }); return done(true); }),
     myCharges: wrap(() => { if (!me) fail("Log in first."); return DB.charges.filter(c => (me.role === "customer" && c.customer_id === me.id) || (me.partner_id && c.partner_id === me.partner_id)).sort((a, b) => b.created_at.localeCompare(a.created_at)); }),
     payCharge: (id, method) => new Promise((res, rej) => setTimeout(() => {
       try {
@@ -915,7 +913,7 @@ const Live = (() => {
     async setAutoAssign(on) { chk(await sb.from("app_settings").update({ value: on ? 1 : 0 }).eq("key", "auto_assign")); return true; },
     async dsaAddLead(f) { const r = one(chk(await sb.rpc("dsa_add_lead", { p_name: f.name, p_phone: f.phone, p_pincode: f.pincode, p_area: f.area || null, p_address: f.address || null, p_plan_id: f.plan_id || null, p_consent: !!f.consent }))); return { ref_code: r.ref_code, tip: null }; },
     async getSettings() { const o = {}; chk(await sb.from("app_settings").select("key,value")).forEach(r => (o[r.key] = Number(r.value))); return o; },
-    async saveSettings(o) { for (const k of ["registration_fee_tip", "registration_fee_dsa", "gst_percent", "lead_target_default", "tip_share_percent"]) chk(await sb.from("app_settings").update({ value: Number(o[k]) }).eq("key", k)); return true; },
+    async saveSettings(o) { for (const k of ["registration_fee_tip", "gst_percent", "lead_target_default", "tip_share_percent"]) chk(await sb.from("app_settings").update({ value: Number(o[k]) }).eq("key", k)); return true; },
     async myCharges() { return chk(await sb.from("charges").select("*").order("created_at", { ascending: false })); },
     async payCharge(id, isPublic) {   // Razorpay Checkout; the webhook confirms the payment, we then poll until the charge shows paid
       if (!window.Razorpay) await new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://checkout.razorpay.com/v1/checkout.js"; s.onload = ok; s.onerror = () => no(new AppError("Could not load the payment page.")); document.head.appendChild(s); });

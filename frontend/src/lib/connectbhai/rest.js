@@ -122,7 +122,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   const mapCity = c => ({ id: S(c.id), name: c.name, district: c.name, tier: 2, status: c.status });
 
   /* ---------- settings ---------- */
-  const settingsOut = d => ({ registration_fee_tip: num(d.tip_onboarding_fee), registration_fee_dsa: 0, gst_percent: num(d.gst_percent), tip_install_fee: num(d.tip_install_fee), care_plan_fee_per_lead: num(d.care_plan_fee_per_lead),
+  const settingsOut = d => ({ registration_fee_tip: num(d.tip_onboarding_fee), gst_percent: num(d.gst_percent), tip_install_fee: num(d.tip_install_fee), care_plan_fee_per_lead: num(d.care_plan_fee_per_lead),
     dsa_payout_per_lead: num(d.dsa_payout_per_lead), tip_job_earning: num(d.tip_job_earning), auto_assign: num(d.auto_assign), lead_target_default: 20, tip_share_percent: 0 });
   const kv = rows => Object.fromEntries(rows.map(r => [r.key, r.value]));
 

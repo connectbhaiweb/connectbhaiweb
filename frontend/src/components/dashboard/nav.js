@@ -18,7 +18,7 @@ export const ROLES = {
     { tab: "leads", label: "Leads", Icon: Users, badge: "new" },
     { tab: "installs", label: "Installs", Icon: Wrench },
     { tab: "customers", label: "My customers", Icon: User },
-    { tab: "commission", label: "Commission", Icon: Database, also: ["payments"] },
+    { tab: "commission", label: "Commission", Icon: Database },
     { tab: "tickets", label: "Tickets", Icon: Ticket },
     { tab: "chat", label: "Chat", Icon: ChatBubbles, badge: "dot-blue" },
   ] },
@@ -54,7 +54,7 @@ export const ROLES = {
 };
 export const ROLE_BY_BASE = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" };
 export const BADGE_TEXT = { new: n => `${n} new`, pending: n => `${n} pending`, due: n => `${n} due`, plain: n => String(n) };
-export const FEES = { dsa: ["payments", "Fees to Connect Bhai"], tip: ["payments", "Payments to Connect Bhai"] };
+export const FEES = { tip: ["payments", "Payments to Connect Bhai"] };   // a DSA pays nothing: only a commission after install
 /* sidebar item that is active for a URL tab (fee pages sit under Commission / Customers) */
 export const activeTab = (cfg, tab) => (cfg.items.find(i => i.tab === tab || (i.also || []).includes(tab)) || {}).tab;
 export const hrefOf = (role, tab) => `/${ROLES[role].base}/${tab}`;

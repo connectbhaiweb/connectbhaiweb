@@ -86,7 +86,6 @@ function Home({ data, s, partner }) {
               {groups.map((g, i) => <div className="pt-tr" role="row" key={i}><span role="cell">{fDate(g.date)}</span><span role="cell">{g.n}</span><span role="cell"><b>{inr(g.amt)}</b></span><span role="cell"><Chip s={g.status} Icon={g.status === "pending" ? Clock : CircleCheck} /></span></div>)}
             </div>
           ) : <p className="pt-muted">Commissions appear after your first installation.</p>}
-          <Link className="pt-link" href="/dsa/payments">Fees to Connect Bhai<ArrowRight aria-hidden="true" /></Link>
         </Card>
         <CarePlanCard role="dsa" /></div>
       </div>

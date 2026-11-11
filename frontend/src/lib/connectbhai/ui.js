@@ -275,7 +275,7 @@ async function renderHome() {
     </form>
   </div></section>`;
   if (S.results) renderResults();
-  API.getSettings().then(st => { const el = document.getElementById("pa-fee"); if (el && st) el.innerHTML = `Registration fee is paid online when you submit: <b>TIP ${inr(st.registration_fee_tip)}</b> and <b>DSA ${inr(st.registration_fee_dsa)}</b>, plus ${st.gst_percent || 18}% GST. Pay by UPI, card, net banking or wallet.`; }).catch(() => {});
+  API.getSettings().then(st => { const el = document.getElementById("pa-fee"); if (el && st) el.innerHTML = `TIP registration fee, paid online when you submit: <b>${inr(st.registration_fee_tip)}</b> plus ${st.gst_percent || 18}% GST (UPI, card, net banking or wallet). <b>DSA registration is free</b>: a DSA earns a commission on every installed lead.`; }).catch(() => {});
 }
 
 /* ---------- products on the customer site ---------- */
@@ -626,7 +626,7 @@ async function renderDSA() {
   if (tab === "payments") body = chargeList(charges, "Nothing due to Connect Bhai.");
   if (partner.status !== "active" && !["payments", "chat"].includes(tab)) body = activationCard(partner, charges);
   if (tab === "chat") body = await chatTab();
-  app.innerHTML = dashShell(esc(partner.name), "DSA portal · " + esc(partner.firm || ""), [["home", "Dashboard"], ["leads", "Leads & follow-ups", open], ["installs", "Installation status", st.bookings.scheduled + st.bookings.installed + st.bookings.cancelled], ["commission", "My earnings", st.commission_count], ["payments", "Fees to Connect Bhai", 0], ["chat", "Chat", await unreadCount()]], tab, body, partner.status === "active" ? `<button class="btn btn-primary" data-act="dsa-add" type="button">Add lead</button>` : "", partnerPre(partner));
+  app.innerHTML = dashShell(esc(partner.name), "DSA portal · " + esc(partner.firm || ""), [["home", "Dashboard"], ["leads", "Leads & follow-ups", open], ["installs", "Installation status", st.bookings.scheduled + st.bookings.installed + st.bookings.cancelled], ["commission", "My earnings", st.commission_count], ["chat", "Chat", await unreadCount()]], tab, body, partner.status === "active" ? `<button class="btn btn-primary" data-act="dsa-add" type="button">Add lead</button>` : "", partnerPre(partner));
 }
 async function renderTIP() {
   const tab = S.tab || "home";
@@ -1009,7 +1009,7 @@ function feeFields(st) {
       ${field("st-pay", "DSA payout per installed lead (₹)", `<input id="st-pay" name="dsa_payout_per_lead" type="number" min="0" value="${esc(st.dsa_payout_per_lead)}">`, "Paid to the DSA only when the lead is installed")}
       ${field("st-job", "TIP earning per installed job (₹)", `<input id="st-job" name="tip_job_earning" type="number" min="0" value="${esc(st.tip_job_earning)}">`, "Amount shown in the “job completed” WhatsApp to the TIP")}
       ${field("st-gst", "GST (%)", `<input id="st-gst" name="gst_percent" type="number" min="0" max="100" value="${esc(st.gst_percent)}">`, "Added to all TIP charges")}</div>`;
-  return `<div class="grid2">${field("st-tip", "TIP registration fee (₹)", `<input id="st-tip" name="registration_fee_tip" type="number" min="0" value="${esc(st.registration_fee_tip)}">`)}${field("st-dsa", "DSA registration fee (₹)", `<input id="st-dsa" name="registration_fee_dsa" type="number" min="0" value="${esc(st.registration_fee_dsa)}">`)}
+  return `<div class="grid2">${field("st-tip", "TIP registration fee (₹)", `<input id="st-tip" name="registration_fee_tip" type="number" min="0" value="${esc(st.registration_fee_tip)}">`)}
       ${field("st-gst", "GST (%)", `<input id="st-gst" name="gst_percent" type="number" min="0" max="28" value="${esc(st.gst_percent)}">`)}
       ${field("st-target", "Leads promised per DSA/TIP / month", `<input id="st-target" name="lead_target_default" type="number" min="0" value="${esc(st.lead_target_default ?? 20)}">`, "Default; set per DSA/TIP in the DSA & TIP list")}
       ${field("st-share", "TIP share of monthly rental (%)", `<input id="st-share" name="tip_share_percent" type="number" min="0" max="100" value="${esc(st.tip_share_percent ?? 0)}">`, "Used to estimate TIP income on their dashboard")}</div>`;
@@ -1919,9 +1919,9 @@ const forms = {
       keys.forEach(([k, id]) => { d[k] = val(f, k); const n = Number(d[k]); if (d[k] === "" || !(n >= 0) || (k === "gst_percent" && n > 100)) e[id] = k === "gst_percent" ? "Enter 0 to 100." : "Enter 0 or more."; });
       if (!setErr(f, e)) return; await guard(btn, () => API.saveSettings(d)); toast("Settings saved."); return;
     }
-    const d = { registration_fee_tip: val(f, "registration_fee_tip"), registration_fee_dsa: val(f, "registration_fee_dsa"), gst_percent: val(f, "gst_percent"), lead_target_default: val(f, "lead_target_default"), tip_share_percent: val(f, "tip_share_percent") }, e = {};
+    const d = { registration_fee_tip: val(f, "registration_fee_tip"), gst_percent: val(f, "gst_percent"), lead_target_default: val(f, "lead_target_default"), tip_share_percent: val(f, "tip_share_percent") }, e = {};
     if (!(Number(d.lead_target_default) >= 0) || d.lead_target_default === "") e["st-target"] = "Enter 0 or more."; if (!(Number(d.tip_share_percent) >= 0 && Number(d.tip_share_percent) <= 100) || d.tip_share_percent === "") e["st-share"] = "Enter 0 to 100.";
-    if (!(Number(d.registration_fee_tip) >= 0) || d.registration_fee_tip === "") e["st-tip"] = "Enter 0 or more."; if (!(Number(d.registration_fee_dsa) >= 0) || d.registration_fee_dsa === "") e["st-dsa"] = "Enter 0 or more."; if (!(Number(d.gst_percent) >= 0 && Number(d.gst_percent) <= 28)) e["st-gst"] = "Enter 0 to 28.";
+    if (!(Number(d.registration_fee_tip) >= 0) || d.registration_fee_tip === "") e["st-tip"] = "Enter 0 or more."; if (!(Number(d.gst_percent) >= 0 && Number(d.gst_percent) <= 28)) e["st-gst"] = "Enter 0 to 28.";
     if (!setErr(f, e)) return; await guard(btn, () => API.saveSettings(d)); toast("Fees saved."); },
   "new-charge": async (f, btn) => { const d = { payer_type: val(f, "payer_type"), partner_id: val(f, "partner_id"), customer_id: val(f, "customer_id"), kind: val(f, "kind"), description: val(f, "description"), base: val(f, "base") }, e = {};
     if (d.payer_type === "partner" && !d.partner_id) e["nc-partner"] = "Choose the DSA or TIP."; if (d.payer_type === "customer" && !d.customer_id) e["nc-customer"] = "Choose the customer.";
