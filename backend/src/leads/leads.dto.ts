@@ -24,6 +24,8 @@ export class LeadQuery extends PageQuery {
   @IsOptional() @IsString() q?: string;
   /** admin: only leads nobody has been assigned to yet (no DSA and no TIP) */
   @IsOptional() @IsIn(['1', 'true']) unassigned?: string;
+  /** admin: only leads that have a DSA or a TIP */
+  @IsOptional() @IsIn(['1', 'true']) assigned?: string;
   /** only leads still being worked (not installed / lost / cancelled) */
   @IsOptional() @IsIn(['1', 'true']) open?: string;
   /** 'followup': next follow-up first, then the most recently updated (page 1 only, for the "call today" list) */
@@ -43,5 +45,9 @@ export class LeadStatusDto {
   @IsOptional() @IsDateString() followup_at?: string;
   @IsOptional() @IsString() @MaxLength(255) lost_reason?: string;
 }
-export class AssignDto { @Type(() => Number) @IsInt() tip_user_id: number; }
+/** Admin assignment. Send at least one field. dsa_user_id: a DSA id, or null to remove the DSA. */
+export class AssignDto {
+  @IsOptional() @Type(() => Number) @IsInt() dsa_user_id?: number | null;
+  @IsOptional() @Type(() => Number) @IsInt() tip_user_id?: number;
+}
 export class NoteDto { @IsString() @MinLength(1) @MaxLength(500) note: string; }

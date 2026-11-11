@@ -24,15 +24,10 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   async function raw(method, path, body, access) {
     let r;
     try {
-      r = await fetch(API_URL + path, { method, headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...(access ? { authorization: "Bearer " + access } : {}) }, body: body !== undefined ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(method === "GET" ? 15000 : 30000) });   // never wait forever: a stalled request ends the "Loading…" screen
-    } catch (e) { const to = e && e.name === "TimeoutError", er = new AppError(to ? "The server is taking too long to answer. Please try again." : "Cannot reach the Connect Bhai server. Check that the API is running."); er.code = to ? "timeout" : "network"; throw er; }
+      r = await fetch(API_URL + path, { method, headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...(access ? { authorization: "Bearer " + access } : {}) }, body: body !== undefined ? JSON.stringify(body) : undefined });
+    } catch (e) { throw new AppError("Cannot reach the Connect Bhai server. Check that the API is running."); }
     let data = null; try { data = await r.json(); } catch (e) { /* empty body */ }
     return { r, data };
-  }
-  /* reads are safe to repeat: one automatic second try when the first one timed out or the connection dropped (server waking up, brief restart) */
-  async function rawRetry(method, path, body, access) {
-    try { return await raw(method, path, body, access); }
-    catch (e) { if (method !== "GET" || !(e && (e.code === "timeout" || e.code === "network"))) throw e; await new Promise(r => setTimeout(r, 800)); return raw(method, path, body, access); }
   }
   async function refresh() {
     if (!tokens || !tokens.refresh_token) return false;
@@ -54,7 +49,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   }
   async function send(method, path, body, opt) {
     opt = opt || {};
-    let { r, data } = await rawRetry(method, path, body, opt.anon ? null : tokens && tokens.access_token);
+    let { r, data } = await raw(method, path, body, opt.anon ? null : tokens && tokens.access_token);
     if (r.status === 401 && !opt.anon && tokens && await refresh()) ({ r, data } = await raw(method, path, body, tokens.access_token));
     if (!r.ok) throw new AppError(r.status === 401 && !opt.anon ? "Please log in again." : r.status === 429 ? "Too many attempts. Please wait a minute and try again." : msgOf(data));
     return data;
@@ -86,11 +81,15 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     ott_apps: (p.ott_apps || []).map(o => (typeof o === "string" ? o : o.name)), tv_channels: p.tv_channels || 0, is_active: p.is_active !== false, status: "live", verified_at: p.created_at, source_url: "", notes: "", benefits: p.benefits || null, technology: "ftth", is_demo: false });
   const LS = { new: "new", contacted: "contacted", followup: "follow_up", scheduled: "booked", installed: "installed", lost: "lost", cancelled: "lost" };
   const LSBACK = { follow_up: "followup" };
+  // UI status -> /leads query. "new" = nobody assigned yet; "assigned" = still new on the server but has a DSA or TIP
+  const leadStatusQuery = st => st === "assigned" ? { status: "new", assigned: 1 } : st === "new" ? { status: "new", unassigned: 1 } : { status: LSBACK[st] || (st === "booked" ? "scheduled" : st) };
+  // server notes "dsa_user_id=5 (was 3)", "dsa removed (was 3)", "tip_user_id=7" -> words a customer can read
+  const assignNote = n => /^dsa removed/.test(n || "") ? { to: null, note: "Agent removed" } : /^dsa_user_id=/.test(n || "") ? { to: "assigned", note: "Agent assigned" } : { to: "assigned", note: "Installer assigned" };
   const mapLead = l => {
     if (!l) return l;
     const b = l.booking || null;
     return { id: S(l.id), ref_code: l.ref_code, customer_id: S(l.customer_user_id), name: l.customer_name, phone: l.customer_phone, email: l.customer_email || "", pincode: l.pincode, area: l.area ? l.area.name : null, address: l.address,
-      plan_id: S(l.plan_id), plan: l.plan ? mapPlan({ ...l.plan, category: l.plan.category }) : null, preferred_date: null, source: l.source, product: l.plan && l.plan.category && ["ott"].includes(l.plan.category.type) ? "ott" : "broadband", status: LS[l.status] || l.status,
+      plan_id: S(l.plan_id), plan: l.plan ? mapPlan({ ...l.plan, category: l.plan.category }) : null, preferred_date: null, source: l.source, product: l.plan && l.plan.category && ["ott"].includes(l.plan.category.type) ? "ott" : "broadband", status: l.status === "new" && (l.brought_by_user_id || l.tip_user_id) ? "assigned" : (LS[l.status] || l.status),   // the API has no "assigned" status: a new lead with a DSA or TIP is shown as Assigned
       assigned_dsa_id: S(l.brought_by_user_id), assigned_tip_id: S(l.tip_user_id), dsa: pc(l.dsa), tip: pc(l.tip), next_follow_up: l.followup_at ? String(l.followup_at).slice(0, 10) : null, lost_reason: l.lost_reason, notes: l.notes,
       care_plan: !!l.care_plan, consent: true, created_at: l.created_at, updated_at: l.updated_at, installed_at: l.installed_at, booking: b };
   };
@@ -228,17 +227,17 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     /* ---- leads ---- */
     async myLeads() { need("customer"); return (await all("/leads")).items.map(mapLead); },
     async partnerLeads() { need("dsa", "tip"); return (await all("/leads")).items.map(mapLead); },
-    async adminLeads(f) { need("admin"); return (await all("/leads", f && f.status ? { status: LSBACK[f.status] || f.status } : undefined)).items.map(mapLead); },
+    async adminLeads(f) { need("admin"); return (await all("/leads", f && f.status ? leadStatusQuery(f.status) : undefined)).items.map(mapLead); },
     async adminBadges() { need("admin"); return get("/reports/badges"); },
     async leadDetail(id) {
       const [l, ev] = await Promise.all([get("/leads/" + id), get(`/leads/${id}/events`)]);
-      return { ...mapLead(l), events: ev.map(e => ({ id: S(e.id), lead_id: S(e.lead_id), from_status: LS[e.from_status] || e.from_status, to_status: LS[e.to_status] || e.to_status, note: e.note || String(e.event_type || "").replace(/_/g, " "), created_at: e.created_at, actor_name: e.actor && e.actor.name })) };
+      return { ...mapLead(l), events: ev.map(e => { const as = e.event_type === "assigned" ? assignNote(e.note) : null; return { id: S(e.id), lead_id: S(e.lead_id), from_status: LS[e.from_status] || e.from_status, to_status: as ? as.to : (LS[e.to_status] || e.to_status), note: as ? as.note : (e.note || String(e.event_type || "").replace(/_/g, " ")), created_at: e.created_at, actor_name: e.actor && e.actor.name }; }) };
     },
     async updateLeadStatus(id, status, note, next) {
       if (status === "follow_up" && !next) fail("Choose a follow-up date.");
       await patch(`/leads/${id}/status`, { status: LSBACK[status] || status, note: note || undefined, followup_at: next ? new Date(next + "T09:00:00").toISOString() : undefined, lost_reason: status === "lost" ? (note || undefined) : undefined }); return true;
     },
-    async assignLead(id, dsa, tip) { need("admin"); if (!tip) fail("Choose a TIP partner. A lead's DSA is fixed to whoever brought it."); await patch(`/leads/${id}/assign`, { tip_user_id: Number(tip) }); return true; },
+    async assignLead(id, dsa, tip) { need("admin"); await patch(`/leads/${id}/assign`, { dsa_user_id: dsa ? Number(dsa) : null, tip_user_id: tip ? Number(tip) : undefined }); return true; },   // dsa "" = no DSA (clears it); unchanged DSA is a no-op on the server
     async dsaAddLead(f) {
       need("dsa"); if (!f.consent) fail("Confirm the customer agreed to be contacted.");
       const l = await post("/leads", { customer_name: f.name.trim(), customer_phone: f.phone, address: f.address || undefined, pincode: f.pincode, plan_id: N(f.plan_id), notes: f.area ? "Area: " + f.area : undefined });
@@ -272,8 +271,8 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     },
     /* One page of a list, filtered by the server: { items, total, page, limit }. f = { page, limit, status, q, ... } in UI status names. */
     async pageLeads(f) {
-      f = f || {}; if (f.status === "assigned") return { items: [], total: 0, page: 1, limit: f.limit || 10 };   // the API has no separate "assigned" status
-      const p = { page: f.page || 1, limit: f.limit || 10, statuses: f.status === "tobook" ? "contacted,followup" : undefined, status: f.status && !["all", "open", "due", "tobook"].includes(f.status) ? (LSBACK[f.status] || (f.status === "booked" ? "scheduled" : f.status)) : undefined, q: f.q, open: f.status === "open" ? 1 : undefined, unassigned: f.unassigned ? 1 : undefined, due: f.status === "due" ? 1 : undefined, sort: f.sort, pincode: f.pincode };
+      f = f || {};
+      const p = { page: f.page || 1, limit: f.limit || 10, statuses: f.status === "tobook" ? "contacted,followup" : undefined, ...(f.status && !["all", "open", "due", "tobook"].includes(f.status) ? leadStatusQuery(f.status) : {}), q: f.q, open: f.status === "open" ? 1 : undefined, unassigned: f.unassigned || f.status === "new" ? 1 : undefined, due: f.status === "due" ? 1 : undefined, sort: f.sort, pincode: f.pincode };
       const d = await get("/leads" + qs(p)); return { items: d.items.map(mapLead), total: d.total, page: d.page, limit: d.limit };
     },
     async pageBookings(f) {
@@ -499,11 +498,6 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     routerTest(bookingId, onQueued) {
       return deviceFor(bookingId).then(async d => { if (onQueued) onQueued(); const t = await post(`/care-plan/devices/${d.id}/speed-test`);
         return { id: S(t.id), booking_id: S(bookingId), kind: "router", status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: true, created_at: t.created_at }; });
-    },
-    /* real modems for the React Care plan screens (one page of up to 100, in that screen's shape) */
-    async carePlanDevices() {
-      const d = await get("/care-plan/devices" + qs({ page: 1, limit: 100 })), q = v => v >= -25 ? "Good" : v >= -27 ? "Weak" : "Bad";
-      return (d.items || []).map(x => { const rx = num(x.rx_power_dbm); return { id: S(x.id), serialNumber: x.serial_number || "", manufacturer: "", model: x.model || "Modem", firmwareVersion: "—", customer: { userId: null, name: (x.lead && x.lead.customer_name) || "", mobile: "" }, status: x.online ? "online" : "offline", lastInform: x.last_seen_at || null, wifi: { ssid: x.wifi_ssid || "—", band: "", channel: "—", connectedDevices: x.connected_clients == null ? 0 : x.connected_clients, speedMbps: null }, signal: { quality: rx == null ? "Bad" : q(rx), rxPowerDbm: rx }, ip: null, uptimeSeconds: 0, partner: {} }; });
     },
     async carePlanSummary() { const d = await get("/care-plan/summary"); return { ...d, zones: d.zones || [] }; },
     async adminAcs() { need("admin"); const [p, sm] = await Promise.all([this.adminPartners(), get("/care-plan/summary")]); return p.filter(x => x.type === "tip").map(x => ({ ...x, linked: (sm.tips || {})[x.id] || 0 })); },

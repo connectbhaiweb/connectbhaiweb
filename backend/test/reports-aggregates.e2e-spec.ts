@@ -37,6 +37,20 @@ describe('dashboard aggregates and paging params', () => {
     });
   });
 
+  describe('monthly buckets use IST', () => {
+    it('this month\'s lead count equals leads created since IST midnight on the 1st', async () => {
+      const ist = new Date(Date.now() + 330 * 60_000);
+      const key = ist.getUTCFullYear() + '-' + String(ist.getUTCMonth() + 1).padStart(2, '0');
+      const start = new Date(Date.parse(key + '-01T00:00:00.000Z') - 330 * 60_000);
+      // a lead at 00:10 IST on the 1st (= previous day in UTC) must count in this month
+      const edge = await c.prisma.lead.findFirst({ orderBy: { id: 'desc' } });
+      if (edge) await c.prisma.lead.update({ where: { id: edge.id }, data: { created_at: new Date(start.getTime() + 10 * 60_000) } });
+      const r = await get('/reports/dashboard?months=1').expect(200);
+      const row = r.body.by_month.find((m: any) => m.month === key);
+      expect(row.leads).toBe(await c.prisma.lead.count({ where: { created_at: { gte: start } } }));
+    });
+  });
+
   describe('leads query params', () => {
     it('unassigned=1 returns only leads with no DSA and no TIP', async () => {
       const r = await get('/leads?unassigned=1&limit=200').expect(200);

@@ -8,6 +8,18 @@ import { Prisma } from '@prisma/client';
 import { ticketScope } from '../tickets/tickets.controller';
 import { leadScope } from '../common/utils/scope';
 
+/* Reports group by IST calendar month (Connect Bhai runs in India). Times are stored in UTC, so a lead made at
+   00:30 IST on the 1st must count in the new month, not the old one. */
+const IST_MS = 330 * 60_000;
+/** the current IST wall clock, read it with getUTC* */
+const istNow = () => new Date(Date.now() + IST_MS);
+/** the UTC instant of IST midnight on the 1st of month key 'YYYY-MM' */
+const istMonthStart = (key: string) => new Date(Date.parse(key + '-01T00:00:00.000Z') - IST_MS);
+/** 'YYYY-MM' of an IST date shifted `back` months from now */
+const istKey = (back: number) => { const n = istNow(); const d = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() - back, 1)); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0'); };
+/** SQL: the IST 'YYYY-MM' of a UTC datetime column (fixed column names only, never user input) */
+const istMonth = (col: string) => Prisma.sql`DATE_FORMAT(CONVERT_TZ(${Prisma.raw(col)}, '+00:00', '+05:30'), '%Y-%m')`;
+
 class DashQuery { @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(24) months?: number = 6; @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) pins?: number = 4; }
 class IdsQuery { @IsString() ids: string; }
 class TopQuery { @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit?: number = 20; }
@@ -39,18 +51,18 @@ export class ReportsController {
     const months = q.months ?? 6, topPins = q.pins ?? 4;
     const keys: string[] = [];
     const now = new Date();
-    for (let i = months - 1; i >= 0; i--) { const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)); keys.push(d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0')); }
-    const from = new Date(keys[0] + '-01T00:00:00.000Z');
+    for (let i = months - 1; i >= 0; i--) keys.push(istKey(i));
+    const from = istMonthStart(keys[0]);
     const scope = leadScope(u);
     const bookingWhere: Prisma.BookingWhereInput = u.role === 'admin' ? {} : { lead: scope };
-    const monthStart = new Date(keys[keys.length - 1] + '-01T00:00:00.000Z');
+    const monthStart = istMonthStart(keys[keys.length - 1]);
 
     // raw GROUP BY helpers (MySQL). Scope is applied through lead ids / partner columns, never string-built from input.
     const leadCond = u.role === 'admin' ? Prisma.sql`1=1` : u.role === 'tip' ? Prisma.sql`l.tip_user_id = ${u.id}` : u.role === 'dsa' ? Prisma.sql`l.brought_by_user_id = ${u.id}`
       : Prisma.sql`(l.customer_user_id = ${u.id}${u.phone ? Prisma.sql` OR l.customer_phone = ${u.phone}` : Prisma.empty})`;
     const [leadMonths, installMonths, pinLeads, pinInstalls, leadStatus, bookingStatus, ticketStatus, extra, partnersTotals] = await Promise.all([
-      this.prisma.$queryRaw<{ m: string; n: bigint }[]>`SELECT DATE_FORMAT(l.created_at, '%Y-%m') m, COUNT(*) n FROM leads l WHERE ${leadCond} AND l.created_at >= ${from} GROUP BY m`,
-      this.prisma.$queryRaw<{ m: string; n: bigint }[]>`SELECT DATE_FORMAT(b.completed_at, '%Y-%m') m, COUNT(*) n FROM bookings b JOIN leads l ON l.id = b.lead_id WHERE ${leadCond} AND b.status = 'completed' AND b.completed_at >= ${from} GROUP BY m`,
+      this.prisma.$queryRaw<{ m: string; n: bigint }[]>`SELECT ${istMonth('l.created_at')} m, COUNT(*) n FROM leads l WHERE ${leadCond} AND l.created_at >= ${from} GROUP BY m`,
+      this.prisma.$queryRaw<{ m: string; n: bigint }[]>`SELECT ${istMonth('b.completed_at')} m, COUNT(*) n FROM bookings b JOIN leads l ON l.id = b.lead_id WHERE ${leadCond} AND b.status = 'completed' AND b.completed_at >= ${from} GROUP BY m`,
       this.prisma.$queryRaw<{ pincode: string; n: bigint }[]>`SELECT l.pincode, COUNT(*) n FROM leads l WHERE ${leadCond} GROUP BY l.pincode ORDER BY n DESC, l.pincode LIMIT ${topPins}`,
       this.prisma.$queryRaw<{ pincode: string; n: bigint }[]>`SELECT l.pincode, COUNT(*) n FROM bookings b JOIN leads l ON l.id = b.lead_id WHERE ${leadCond} AND b.status = 'completed' GROUP BY l.pincode`,
       this.prisma.lead.groupBy({ by: ['status'], where: scope, _count: { _all: true } }),
@@ -161,7 +173,7 @@ export class ReportsController {
 
   /** Per-partner lead statuses plus installs, fees paid (TIP) and commission (DSA), so the admin people lists need no full tables. */
   @Roles('admin') @Get('partners') async partners() {
-    const mStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+    const mStart = istMonthStart(istKey(0));
     const [tips, dsas, tipInst, dsaInst, tipPaid, dsaComm, tipMonth, dsaMonth] = await Promise.all([
       this.prisma.lead.groupBy({ by: ['tip_user_id', 'status'], where: { tip_user_id: { not: null } }, _count: { _all: true } }),
       this.prisma.lead.groupBy({ by: ['brought_by_user_id', 'status'], where: { brought_by_user_id: { not: null } }, _count: { _all: true } }),
@@ -206,12 +218,12 @@ export class ReportsController {
   /** Admin → Reports: money in (paid charges) and DSA commission paid out, by month and by kind, plus leads delivered to a partner by month. */
   @Roles('admin') @Get('money') async money(@Query() q: DashQuery) {
     const months = q.months ?? 6;
-    const since = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - (months - 1), 1));
+    const since = istMonthStart(istKey(months - 1));
     const [coll, out, kinds, delivered, due] = await Promise.all([
-      this.prisma.$queryRaw<{ m: string; t: any }[]>`SELECT DATE_FORMAT(paid_at, '%Y-%m') m, SUM(total_amount) t FROM charges WHERE status = 'paid' AND paid_at >= ${since} GROUP BY m`,
-      this.prisma.$queryRaw<{ m: string; t: any }[]>`SELECT DATE_FORMAT(paid_at, '%Y-%m') m, SUM(amount) t FROM commissions WHERE status = 'paid' AND paid_at >= ${since} GROUP BY m`,
+      this.prisma.$queryRaw<{ m: string; t: any }[]>`SELECT ${istMonth('paid_at')} m, SUM(total_amount) t FROM charges WHERE status = 'paid' AND paid_at >= ${since} GROUP BY m`,
+      this.prisma.$queryRaw<{ m: string; t: any }[]>`SELECT ${istMonth('paid_at')} m, SUM(amount) t FROM commissions WHERE status = 'paid' AND paid_at >= ${since} GROUP BY m`,
       this.prisma.charge.groupBy({ by: ['kind'], where: { status: 'paid' }, _sum: { total_amount: true } }),
-      this.prisma.$queryRaw<{ m: string; n: bigint }[]>`SELECT DATE_FORMAT(created_at, '%Y-%m') m, COUNT(*) n FROM leads WHERE (brought_by_user_id IS NOT NULL OR tip_user_id IS NOT NULL) AND created_at >= ${since} GROUP BY m`,
+      this.prisma.$queryRaw<{ m: string; n: bigint }[]>`SELECT ${istMonth('created_at')} m, COUNT(*) n FROM leads WHERE (brought_by_user_id IS NOT NULL OR tip_user_id IS NOT NULL) AND created_at >= ${since} GROUP BY m`,
       this.prisma.charge.aggregate({ where: { status: { in: ['pending', 'failed'] } }, _sum: { total_amount: true } }),
     ]);
     return {

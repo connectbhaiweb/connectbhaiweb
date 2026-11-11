@@ -67,7 +67,7 @@ export const WHATSAPP_CAMPAIGNS: Record<string, CampaignDef> = {
   /** Partner: agreement ready to accept. Sent by PartnerReminderService some time after registration. Template partner_agreement_pending: {{1}} name, {{2}} DSA or TIP, {{3}} partner ID. */
   partner_agreement_pending: { campaign: 'partner_agreement_pending', params: (p) => [p.name, roleLabel(p.role), p.partner_code], about: 'Partner: agreement waiting for you' },
 
-  /** DSA: a lead was assigned. NOT sent yet. Template dsa_lead_assigned: {{1}} name, {{2}} customer, {{3}} customer phone, {{4}} product, {{5}} area, {{6}} lead ID. */
+  /** DSA: a lead was assigned. Sent by LeadsService.assign when admin sets or changes the DSA. Template dsa_lead_assigned: {{1}} name, {{2}} customer, {{3}} customer phone, {{4}} product, {{5}} area, {{6}} lead ID. */
   dsa_lead_assigned: { campaign: 'dsa_lead_assigned', params: (p) => [p.name, p.customer, p.customer_phone, p.product, p.area, p.ref_code], about: 'DSA: new lead assigned' },
 
   /** DSA: lead not updated. Sent by PartnerReminderService. Template dsa_lead_reminder: {{1}} name, {{2}} lead ID, {{3}} customer, {{4}} how long, e.g. "2 days". */

@@ -77,18 +77,19 @@ export function CallWa({ phone, name, text }) {
 
 /* Grouped bars, one group per month (Recharts). series: [{ key, name, color }] */
 export function Bars({ data, series, legend = "right", height = 168 }) {
+  const many = data.length > 6;   // 12 months: value labels would collide, the tooltip shows them instead
   return (
     <div className={`pt-chart legend-${legend}`} role="img" aria-label={series.map(s => `${s.name}: ${data.map(d => `${d.label} ${d[s.key]}`).join(", ")}`).join(". ")}>
       <div className="pt-plot"><ResponsiveContainer width="100%" height={height}>
         <BarChart data={data} margin={{ top: 22, right: 4, bottom: 0, left: -22 }} barGap={0} barCategoryGap="22%">
           <defs>{series.map(s => <linearGradient key={s.key} id={`g-${s.key}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={s.color} stopOpacity={1} /><stop offset="1" stopColor={s.color} stopOpacity={.82} /></linearGradient>)}</defs>
           <CartesianGrid vertical={false} stroke="#E6ECF6" />
-          <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "#9AA6BD" }} tick={{ fill: "#1E2A4A", fontSize: 13 }} interval={0} />
+          <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "#9AA6BD" }} tick={{ fill: "#1E2A4A", fontSize: many ? 12 : 13 }} interval="preserveStartEnd" minTickGap={6} />
           <YAxis tickLine={false} axisLine={{ stroke: "#9AA6BD" }} tick={{ fill: "#1E2A4A", fontSize: 13 }} allowDecimals={false} />
-          <Tooltip cursor={{ fill: "rgba(20,80,230,.06)" }} contentStyle={{ borderRadius: 10, border: "1px solid #DCE4F2", fontSize: 13 }} />
+          <Tooltip cursor={{ fill: "rgba(20,80,230,.06)" }} contentStyle={{ borderRadius: 10, border: "1px solid #DCE4F2", fontSize: 13 }} offset={14} allowEscapeViewBox={{ x: false, y: true }} wrapperStyle={{ zIndex: 5, outline: "none", pointerEvents: "none" }} />
           {series.map(s => (
             <Bar key={s.key} dataKey={s.key} name={s.name} fill={`url(#g-${s.key})`} radius={[6, 6, 0, 0]} maxBarSize={34} isAnimationActive={false}>
-              <LabelList dataKey={s.key} position="top" style={{ fill: "#0B1640", fontSize: 13, fontWeight: 700 }} />
+              {!many && <LabelList dataKey={s.key} position="top" style={{ fill: "#0B1640", fontSize: 13, fontWeight: 700 }} />}
             </Bar>
           ))}
         </BarChart>

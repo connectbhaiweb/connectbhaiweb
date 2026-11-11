@@ -63,7 +63,9 @@ const commPill = s => pill(COMM[s] || s, COMM_TONE[s] || "p-grey");
 const demoBadge = on => on ? `<span class="badge demo" title="Sample data for testing, not a real offer">Demo</span>` : "";
 const plogo = prov => prov && prov.logo_url ? `<img class="plogo plogo-img" src="${esc(prov.logo_url)}" alt="${esc(prov.name)}" loading="lazy">` : `<span class="plogo" style="background:${pcolor(prov && prov.name)}">${esc(initials(prov && prov.name))}</span>`;
 const dataTxt = p => p.data_limit_gb ? p.data_limit_gb.toLocaleString("en-IN") + " GB" : "Unlimited";
-const planLine = p => p ? `${esc(p.provider ? p.provider.name : "")} · ${esc(p.name)} · ${esc(planSummary(p))} · ${inr(p.price_monthly)}${p.category === "sim_prepaid" ? "" : "/mo"}` : "No plan chosen (callback)";
+const speedTxt = p => Number(p.speed_mbps) > 0 ? p.speed_mbps + " Mbps" : "";   // never "undefined Mbps"
+const joinDot = (...a) => a.filter(Boolean).join(" · ");
+const planLine = p => p ? esc(joinDot(p.provider && p.provider.name, p.name, planSummary(p), p.price_monthly != null ? inr(p.price_monthly) + (p.category === "sim_prepaid" ? "" : "/mo") : "")) : "No plan chosen (callback)";
 const field = (id, label, input, hint) => `<div class="field" data-f="${id}"><label for="${id}">${label}</label>${input}${hint ? `<span class="hint">${hint}</span>` : ""}<span class="ferr" id="${id}-err"></span></div>`;
 function setErr(form, map) {
   form.querySelectorAll(".field").forEach(f => f.classList.remove("bad")); form.querySelectorAll(".ferr").forEach(e => (e.textContent = ""));
@@ -172,12 +174,11 @@ const track = p => { busy++; document.documentElement.classList.add("is-loading"
 /* Dashboard pages that are React components (src/components/<role>/). The app clears #app for them and announces
    every re-render (after pay, restart, chat…) so the React page reloads its data. */
 const REACT_VIEWS = { my: t => !t || ["bookings", "devices"].includes(t), dsa: t => !t || ["home", "careplan", "customers", "tickets"].includes(t), tip: t => !t || ["home", "careplan", "leads"].includes(t), admin: t => !t || ["overview", "careplan", "customers"].includes(t) };
-let renderSeq = 0;   // bumped by every render(); a page that finishes loading after a newer click must not paint over it
 async function render() {
-  const v = S.view; renderSeq++;
+  const v = S.view;
   if (v === "home") { if (!app.children.length) app.innerHTML = skeleton("home"); return track(renderHome()); }
   if (v === "speed") { app.innerHTML = ""; return; }   // the speed test is a React page (components/speed/SpeedTest.jsx)
-  if (v === "router") { app.innerHTML = skeleton("dash"); clearServerTables(); { const seq = renderSeq; return track(renderRouter().then(() => { if (seq === renderSeq) fillServerTables(); }).catch(e => { if (seq !== renderSeq) return; app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load router status.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; })); } }
+  if (v === "router") { app.innerHTML = skeleton("dash"); clearServerTables(); return track(renderRouter().then(() => fillServerTables()).catch(e => { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load router status.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; })); }
   const need = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" }[v];
   const u = me();
   if (!u || u.role !== need) {
@@ -188,9 +189,8 @@ async function render() {
   }
   if (REACT_VIEWS[v] && REACT_VIEWS[v](S.tab)) { app.innerHTML = ""; window.dispatchEvent(new CustomEvent("cb:render", { detail: { view: v, tab: S.tab } })); return; }
   app.innerHTML = skeleton("dash"); clearServerTables();
-  const seq = renderSeq;
-  try { await track(({ my: renderCustomer, dsa: renderDSA, tip: renderTIP, admin: renderAdmin }[v])()); if (seq !== renderSeq) return; fillServerTables(); scrollChat(); }
-  catch (e) { if (seq !== renderSeq) return; app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load this page.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; }
+  try { await track(({ my: renderCustomer, dsa: renderDSA, tip: renderTIP, admin: renderAdmin }[v])()); fillServerTables(); scrollChat(); }
+  catch (e) { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load this page.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; }
 }
 
 /* =====================================================================
@@ -365,7 +365,7 @@ function renderResults() {
 }
 const priceUnit = p => p.category === "sim_prepaid" ? `/${p.validity_days} days` : "/month";
 function planBig(p) {
-  if (isSpeedCat(p.category)) return `<b>${p.speed_mbps}</b><span>Mbps</span>`;
+  if (isSpeedCat(p.category)) return Number(p.speed_mbps) > 0 ? `<b>${p.speed_mbps}</b><span>Mbps</span>` : `<b>—</b><span>Mbps</span>`;
   if (p.category === "tv") return `<b>${p.tv_channels}</b><span>channels</span>`;
   if (p.category === "ott") return `<b>${p.ott_apps.length}</b><span>apps</span>`;
   return p.data_per_day_gb ? `<b>${p.data_per_day_gb}</b><span>GB/day</span>` : `<b>${p.data_limit_gb || "∞"}</b><span>GB/month</span>`;
@@ -404,7 +404,7 @@ function openCompare() {
     <tbody>${rows.map(([l, fn]) => `<tr><td class="muted" style="font-weight:700">${l}</td>${ps.map(p => `<td>${fn(p)}</td>`).join("")}</tr>`).join("")}
     <tr><td></td>${ps.map(p => `<td><button class="btn btn-primary btn-sm" data-act="request" data-plan="${p.id}" type="button">Choose</button></td>`).join("")}</tr></tbody></table></div>`, true);
 }
-const planSummary = p => !p ? "" : isSpeedCat(p.category) ? `${p.speed_mbps} Mbps · ${dataTxt(p)}` : p.category === "tv" ? `${p.tv_channels} channels` : p.category === "ott" ? `${p.ott_apps.length} apps` : `${p.data_per_day_gb ? p.data_per_day_gb + " GB/day" : (p.data_limit_gb || "∞") + " GB"} · ${p.validity_days} days`;
+const planSummary = p => !p ? "" : isSpeedCat(p.category) ? joinDot(speedTxt(p), dataTxt(p)) : p.category === "tv" ? (p.tv_channels ? `${p.tv_channels} channels` : "") : p.category === "ott" ? ((p.ott_apps || []).length ? `${p.ott_apps.length} apps` : "") : joinDot(p.data_per_day_gb ? p.data_per_day_gb + " GB/day" : (p.data_limit_gb || "∞") + " GB", p.validity_days ? `${p.validity_days} days` : "");
 function openRequest(planId) {
   const u = me(), p = planId ? (S.results || []).find(x => x.id === planId) : null;
   if (p && p.category.startsWith("sim")) return openSimBooking(p);
@@ -474,7 +474,6 @@ function tracker(status, product) {
   return `<div class="track">${st.map(([k, l], i) => `<div class="${i < idx ? "done" : i === idx ? "now" : ""}">${l}</div>`).join("")}</div>`;
 }
 async function renderCustomer() {
-  const seq = renderSeq;
   const tab = S.tab || "bookings";
   const [leads, bookings, tickets, chatUnread] = await Promise.all([API.myLeads(), API.myBookings(), API.myTickets(), unreadCount()]);
   const openT = tickets.filter(t => ["open", "in_progress"].includes(t.status)).length;
@@ -512,7 +511,7 @@ async function renderCustomer() {
     const inst = bookings.filter(b => b.status === "installed");
     body = `${CARE_NOTE}${inst.length ? `<div class="list">${inst.map(b => routerCard(b, false)).join("")}</div>` : `<div class="empty"><b>No active connection yet.</b><p class="muted">Router status appears here after installation.</p></div>`}`;
   }
-  if (seq !== renderSeq) return; app.innerHTML = dashShell(`Namaste${me().full_name ? ", " + esc(me().full_name.split(" ")[0]) : ""}`, "Customer dashboard", tabs, tab, body,
+  app.innerHTML = dashShell(`Namaste${me().full_name ? ", " + esc(me().full_name.split(" ")[0]) : ""}`, "Customer dashboard", tabs, tab, body,
     `<button class="btn btn-ghost" data-go="router" type="button">Care plan</button><button class="btn btn-ghost" data-go="speed" type="button">Speed test</button><button class="btn btn-ghost" data-tab="payments" type="button">Pay now</button><button class="btn btn-primary" data-go="home" data-scroll="search" type="button">New connection</button>`, pre);
   if (tab === "devices") bookings.filter(b => b.status === "installed").forEach(b => loadHist(b.id));
 }
@@ -610,7 +609,6 @@ function partnerPre(p) {
     ${contactCard("Connect Bhai admin", SUPPORT, { thread: "sup:" + u.id, text: "Namaste Connect Bhai, this is " + p.name + "." })}</div>`;
 }
 async function renderDSA() {
-  const seq = renderSeq;
   const tab = S.tab || "home";
   /* the numbers come from the server's aggregates; the lists below load one page at a time (serverTable) */
   const [st, partner] = await Promise.all([dashStats(API, "dsa", { months: 1 }), API.myPartner()]);
@@ -628,10 +626,9 @@ async function renderDSA() {
   if (tab === "payments") body = chargeList(charges, "Nothing due to Connect Bhai.");
   if (partner.status !== "active" && !["payments", "chat"].includes(tab)) body = activationCard(partner, charges);
   if (tab === "chat") body = await chatTab();
-  if (seq !== renderSeq) return; app.innerHTML = dashShell(esc(partner.name), "DSA portal · " + esc(partner.firm || ""), [["home", "Dashboard"], ["leads", "Leads & follow-ups", open], ["installs", "Installation status", st.bookings.scheduled + st.bookings.installed + st.bookings.cancelled], ["commission", "My earnings", st.commission_count], ["payments", "Fees to Connect Bhai", 0], ["chat", "Chat", await unreadCount()]], tab, body, partner.status === "active" ? `<button class="btn btn-primary" data-act="dsa-add" type="button">Add lead</button>` : "", partnerPre(partner));
+  app.innerHTML = dashShell(esc(partner.name), "DSA portal · " + esc(partner.firm || ""), [["home", "Dashboard"], ["leads", "Leads & follow-ups", open], ["installs", "Installation status", st.bookings.scheduled + st.bookings.installed + st.bookings.cancelled], ["commission", "My earnings", st.commission_count], ["payments", "Fees to Connect Bhai", 0], ["chat", "Chat", await unreadCount()]], tab, body, partner.status === "active" ? `<button class="btn btn-primary" data-act="dsa-add" type="button">Add lead</button>` : "", partnerPre(partner));
 }
 async function renderTIP() {
-  const seq = renderSeq;
   const tab = S.tab || "home";
   const [st, partner] = await Promise.all([dashStats(API, "tip", { months: 1 }), API.myPartner()]);
   const L = st.leads, toBook = L.contacted + L.follow_up + (L.assigned || 0), activeN = st.installs_pending, customersN = st.installs_total, openT = st.open_tickets, cc = st.charges_count || {};
@@ -656,7 +653,7 @@ async function renderTIP() {
   if (tab === "payments") body = `<p class="muted" style="margin-bottom:12px">Registration fee and the platform fee of ${inr(partner.commission_per_install)} per installation (plus GST), payable to Connect Bhai.</p>` + `<div class="kpis"><div class="kpi"><span>Due now</span><b>${inr((st.charges.pending || 0) + (st.charges.due || 0) + (st.charges.failed || 0))}</b><small>${dueN} payment${dueN === 1 ? "" : "s"}</small></div><div class="kpi"><span>Paid</span><b>${inr(st.charges.paid || 0)}</b></div></div>` + serverTable("tip-charges", { role: "tip", kind: "charges", label: "Search payments", empty: "Nothing due to Connect Bhai.", html: rows => chargeRows(rows) });
   if (partner.status !== "active" && !["payments", "chat", "plans"].includes(tab)) body = activationCard(partner, charges);
   if (tab === "chat") body = await chatTab();
-  if (seq !== renderSeq) return; app.innerHTML = dashShell(esc(partner.name), "TIP portal", [["home", "Dashboard"], ["bookings", "Bookings & installs", toBook + activeN], ["customers", "Customers & status", customersN], ["tickets", "Service tickets", openT], ["plans", "Plans & offers"], ["payments", "Payments to Connect Bhai", dueN], ["chat", "Chat", await unreadCount()]], tab, body, "", partnerPre(partner));
+  app.innerHTML = dashShell(esc(partner.name), "TIP portal", [["home", "Dashboard"], ["bookings", "Bookings & installs", toBook + activeN], ["customers", "Customers & status", customersN], ["tickets", "Service tickets", openT], ["plans", "Plans & offers"], ["payments", "Payments to Connect Bhai", dueN], ["chat", "Chat", await unreadCount()]], tab, body, "", partnerPre(partner));
 }
 async function openLead(id) {
   const l = await API.leadDetail(id), u = me();
@@ -710,7 +707,6 @@ function openTicketStatus(id, cur) {
    5. ADMIN DASHBOARD
    ===================================================================== */
 async function renderAdmin() {
-  const seq = renderSeq;
   const tab = S.tab || "overview";
   await loadCities();
   /* Load only what the open tab needs. Numbers come from the server's aggregates; every list below is one page at a time (serverTable). */
@@ -772,7 +768,7 @@ async function renderAdmin() {
   if (tab === "messages") body = await adminMessages();
   if (tab === "payments") body = serverTable("adm-payouts", { role: "admin", kind: "commissions", label: "Search payouts", empty: "No payments recorded.", filters: () => ({ status: "paid" }), html: ps => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>DSA / TIP</th><th>Method</th><th>Reference</th><th class="r">Amount</th></tr></thead><tbody>${ps.map(p => `<tr><td>${fdate(p.paid_at)}</td><td><b>${esc(p.partner.name)}</b></td><td>${esc({ upi: "UPI", bank_transfer: "Bank transfer", cheque: "Cheque", cash: "Cash" }[p.paid_mode || p.method] || p.paid_mode || p.method || "")}</td><td class="mono">${esc(p.paid_reference || p.reference || "")}</td><td class="r num">${inr(p.amount)}</td></tr>`).join("")}</tbody></table></div>` });
   if (tab === "reports") body = await adminReports();
-  if (seq !== renderSeq) return; app.innerHTML = dashShell("Admin dashboard", "Connect Bhai · Indore", tabs, tab, body);
+  app.innerHTML = dashShell("Admin dashboard", "Connect Bhai · Indore", tabs, tab, body);
 }
 /* Reports tab: money and lead numbers come from the server (/reports/dashboard, /reports/money, /reports/partners); the per-partner table is paged. */
 async function adminReports() {
@@ -809,7 +805,7 @@ async function openAssign(id) {
   const opt = (list, cur, sug) => `<option value="">— None —</option>` + list.map(p => `<option value="${p.id}" ${(cur || sug) === p.id ? "selected" : ""}>${esc(p.name)}${p.id === sug ? " (serves " + esc(l.pincode) + ")" : ""}</option>`).join("");
   openModal(`<h2>Assign lead</h2><p class="muted small" style="margin:2px 0 12px"><span class="mono">${esc(l.ref_code)}</span> · ${esc(l.name)} · PIN ${esc(l.pincode)}</p>
     <p class="small" style="margin-bottom:12px">${planLine(l.plan)}</p>
-    <form class="stack" data-form="assign" data-id="${id}" novalidate>
+    <form class="stack" data-form="assign" data-id="${id}" data-cur-dsa="${esc(l.assigned_dsa_id || "")}" novalidate>
       ${field("as-dsa", "Direct Selling Agent", `<select id="as-dsa" name="dsa">${opt(act("dsa"), l.assigned_dsa_id, sugDsa)}</select>`, "Calls the customer and handles follow-ups")}
       ${field("as-tip", "TIP (installer)", `<select id="as-tip" name="tip">${opt(act("tip"), l.assigned_tip_id, covTip)}</select>`, "Suggested from coverage for this PIN and provider")}
       <button class="btn btn-primary" type="submit">Assign lead</button></form>`);
@@ -1145,7 +1141,7 @@ async function openLaunchCity(id) {
    PLAN MANAGEMENT · admin + TIP · update sheet import (xlsx / csv)
    ===================================================================== */
 const CAT_TONE = { fiber: "p-blue", air_fiber: "p-blue", tv: "p-grey", ott: "p-grey", sim_prepaid: "p-warn", sim_postpaid: "p-warn" };
-const keyBenefit = p => isSpeedCat(p.category) ? `${p.speed_mbps} Mbps · ${dataTxt(p)}` : planSummary(p);
+const keyBenefit = p => isSpeedCat(p.category) ? joinDot(speedTxt(p), dataTxt(p)) : planSummary(p);
 const PLAN_ST = p => p.status === "pending_review" ? pill("Pending review", "p-warn") : p.status === "rejected" ? pill("Rejected", "p-bad") : p.is_active ? pill("Live", "p-ok") : pill("Hidden", "p-grey");
 async function adminPlansBody() {
   const pl = await API.adminPlans();
@@ -1375,11 +1371,10 @@ async function openAcs(id) {
       <button class="btn btn-primary" type="submit">Save ACS</button></form>`);
 }
 async function renderRouter() {
-  const seq = renderSeq;
   const u = me();
   const head = (title, sub) => `<div class="dhead"><div><span class="eyebrow">Care plan · through GenieACS</span><h1>${title}</h1><p class="muted" style="max-width:64ch;margin-top:6px">${sub}</p></div><div class="row"><button class="btn btn-ghost" data-go="speed" type="button">Wi-Fi speed test</button></div></div>`;
   if (!u || u.role === "dsa") {
-    if (seq !== renderSeq) return; app.innerHTML = `<div class="wrap dash">${head("Connect Bhai Care plan", "Customers, installers and admin see live modem status here once the modem is linked to GenieACS at installation.")}
+    app.innerHTML = `<div class="wrap dash">${head("Connect Bhai Care plan", "Customers, installers and admin see live modem status here once the modem is linked to GenieACS at installation.")}
       <div class="split"><div class="card"><h3>How it works</h3><ol class="trsteps" style="margin-top:12px"><li><b>Installation</b><span>The TIP technician sets the modem's ACS address (their own GenieACS or Connect Bhai's) and enters its serial number.</span></li><li><b>Modem reports every 5 minutes</b><span>Through GenieACS, the standard modem management system ISPs use.</span></li><li><b>Live status &amp; control</b><span>Online / Offline, fiber signal, restart, Wi-Fi name and password change, and a line speed test.</span></li></ol></div>
       <div class="card stack"><h3>${u ? "Not available for DSA accounts" : "Log in to see your modem"}</h3><p class="muted">${u ? "Modem status is shown to the customer, the installing TIP and admin." : "Log in with your WhatsApp number. In this demo, try 9876500001 (customer), 9876500201 (TIP) or 9876500999 (admin) with OTP 123456."}</p>${u ? "" : `<button class="btn btn-primary" data-act="login" type="button">Log in with WhatsApp</button>`}</div></div></div>`;
     return;
@@ -1390,7 +1385,7 @@ async function renderRouter() {
   const sub = u.role === "customer" ? "Live status of your home modem. Restart it, change your Wi-Fi name or password, and test the line speed without Wi-Fi in between." : "Every installed modem through GenieACS: online / offline, fiber signal and restarts, by area. Search by customer, phone or reference.";
   if (!many) {   // a customer has only their own few connections
     const list = (await API.myBookings()).filter(b => b.status === "installed");
-    if (seq !== renderSeq) return; app.innerHTML = `<div class="wrap dash">${head(title, sub)}${CARE_NOTE}
+    app.innerHTML = `<div class="wrap dash">${head(title, sub)}${CARE_NOTE}
       ${list.length ? `<div class="list">${list.map(b => routerCard(b, false)).join("")}</div>` : `<div class="empty"><b>No installed connection yet.</b><p class="muted">Your modem appears here after installation.</p></div>`}</div>`;
     list.forEach(b => loadHist(b.id)); return;
   }
@@ -1399,7 +1394,7 @@ async function renderRouter() {
   if (u.role === "admin") { try { locs = await API.adminLocations(); } catch (e) {} try { acsHtml = acsCard(await API.adminAcs()); } catch (e) {} }
   zoneHtml = routerZones(sm.zones, areaIndex(locs));
   const chips = [["all", "All"], ["offline", "Offline"], ["weak", "Weak signal"], ["reboots", "3+ restarts in 7 days"], ["unlinked", "Not linked"]];
-  if (seq !== renderSeq) return; app.innerHTML = `<div class="wrap dash">${head(title, sub)}
+  app.innerHTML = `<div class="wrap dash">${head(title, sub)}
     <div class="kpis"><div class="kpi"><span>Installed</span><b>${sm.installed}</b><small>${sm.linked} on GenieACS</small></div><div class="kpi"><span>Online</span><b style="color:var(--ok)">${sm.online}</b></div><div class="kpi"><span>Offline</span><b style="color:var(--bad)">${sm.offline}</b></div><div class="kpi"><span>Weak fiber signal</span><b style="color:var(--warn)">${sm.weak}</b></div></div>
     ${acsHtml}${zoneHtml}
     <div class="chips" style="margin-bottom:14px">${chips.map(([k, l]) => `<button type="button" class="chip" data-act="router-filter" data-v="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
@@ -1685,7 +1680,7 @@ const onChange = e => {
   if (e.target.id === "lc-pin") { const z = ZONE_BY_PIN[e.target.value.trim()], sel = document.getElementById("lc-zone"); if (z && sel && !sel.value) sel.value = z; }
   if (e.target.id === "cu-role") { const a = e.target.value === "admin"; ["cu-firm", "cu-pins"].forEach(k => { document.querySelector(`[data-f="${k}"]`).hidden = a; }); document.getElementById("cu-note").hidden = a; return; }
   if (e.target.id === "cp-what") { const a = e.target.value.split("|")[2], inp = document.getElementById("cp-amt"); if (inp) { inp.value = a || ""; if (!a) inp.focus(); } return; }
-  if (e.target.id === "dl-pin" && isPin(e.target.value.trim())) { API.searchPlans(e.target.value.trim()).then(r => { const sel = document.getElementById("dl-plan"); if (!sel) return; sel.innerHTML = `<option value="">${r.plans.length ? "No plan yet / callback" : "No plans at this PIN code"}</option>` + r.plans.sort((a, b) => a.price_monthly - b.price_monthly).map(p => `<option value="${p.id}">${esc(p.provider.name)} · ${esc(p.name)} · ${p.speed_mbps} Mbps · ${inr(p.price_monthly)}</option>`).join(""); const ar = document.getElementById("dl-area"); if (ar && !ar.value && r.areas[0]) ar.value = r.areas[0]; }).catch(() => {}); return; }
+  if (e.target.id === "dl-pin" && isPin(e.target.value.trim())) { API.searchPlans(e.target.value.trim()).then(r => { const sel = document.getElementById("dl-plan"); if (!sel) return; sel.innerHTML = `<option value="">${r.plans.length ? "No plan yet / callback" : "No plans at this PIN code"}</option>` + r.plans.sort((a, b) => a.price_monthly - b.price_monthly).map(p => `<option value="${p.id}">${esc(joinDot(p.provider && p.provider.name, p.name, speedTxt(p), inr(p.price_monthly)))}</option>`).join(""); const ar = document.getElementById("dl-area"); if (ar && !ar.value && r.areas[0]) ar.value = r.areas[0]; }).catch(() => {}); return; }
   if (e.target.id === "nc-payer") { const c = e.target.value === "customer"; document.querySelector('[data-f="nc-partner"]').hidden = c; document.querySelector('[data-f="nc-customer"]').hidden = !c; document.getElementById("nc-kind").value = c ? "customer_payment" : "registration_fee"; return; }
   const el = e.target; if (!el.dataset || !el.dataset.filter) return;
   const k = el.dataset.filter;
@@ -1866,7 +1861,7 @@ const forms = {
     await guard(btn, () => API.saveAcs(f.dataset.id, d)); closeModal(); toast("ACS saved."); render();
   },
   "ticket-status": async (f, btn) => { const s = val(f, "status"), n = val(f, "note"); if (!setErr(f, ["resolved", "closed"].includes(s) && n.length < 3 ? { "ts-note": "Tell the customer what was done." } : {})) return; await guard(btn, () => API.updateTicket(f.dataset.id, s, n)); closeModal(); toast("Ticket updated."); render(); },
-  assign: async (f, btn) => { const dsa = val(f, "dsa"), tip = val(f, "tip"); if (!setErr(f, !dsa && !tip ? { "as-dsa": "Choose a DSA or a TIP." } : {})) return; await guard(btn, () => API.assignLead(f.dataset.id, dsa, tip)); closeModal(); toast("Lead assigned."); render(); },
+  assign: async (f, btn) => { const dsa = val(f, "dsa"), tip = val(f, "tip"); if (!setErr(f, !dsa && !tip && !f.dataset.curDsa ? { "as-dsa": "Choose a DSA or a TIP." } : {})) return; await guard(btn, () => API.assignLead(f.dataset.id, dsa, tip)); closeModal(); toast("Lead assigned."); render(); },
   partner: async (f, btn) => {
     const d = { id: f.dataset.id, type: val(f, "type"), name: val(f, "name"), firm: val(f, "firm"), phone: val(f, "phone"), email: val(f, "email"), commission_per_install: val(f, "commission_per_install"), service_pincodes: val(f, "service_pincodes"), kyc_verified: val(f, "kyc_verified"), lead_target: val(f, "lead_target") }, e = {};
     if (d.name.length < 2) e["pt-name"] = "Enter the name."; if (!isPhone(d.phone)) e["pt-phone"] = "Enter a valid 10-digit mobile."; if (!(Number(d.commission_per_install) >= 0)) e["pt-comm"] = "Enter 0 or more.";

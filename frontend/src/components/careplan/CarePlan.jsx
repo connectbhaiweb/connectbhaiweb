@@ -6,16 +6,17 @@ import { useDashData } from "@/components/dashboard/useDashData";
 import { Card, Chip, Failed, More } from "@/components/portal/parts";
 import { hrefOf } from "@/components/dashboard/nav";
 
-/* Care plan (GenieACS) list + summary card. Data: API.carePlanDevices (rest.js) */
-const ago = iso => { if (!iso) return "—"; const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 6e4)); return m < 1 ? "Just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+/* Care plan (GenieACS) list + summary card. Data: src/lib/connectbhai/careplan.js */
+const ago = iso => { const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 6e4)); return m < 1 ? "Just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
 const up = s => { if (!s) return "—"; const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600); return d ? `${d}d ${h}h` : `${h}h`; };
 const ph = m => String(m).replace(/^(\d{5})(\d{5})$/, "+91 $1 $2");
 const SIG = { Good: "green", Weak: "amber", Bad: "red" };
 const ROLE_OF = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" };
 
 async function loadDevices(API) {
+  const cp = await import("@/lib/connectbhai/careplan");
   const user = API.me();                                             // { id, role } of the signed-in account
-  const devices = API.carePlanDevices ? await API.carePlanDevices() : [];   // real modems from the API only; there is no sample list
+  const devices = await cp.getCarePlanDevices({ role: user.role, userId: user.id });
   const bookings = user.role === "customer" ? await API.myBookings() : [];
   return { devices, booking: bookings.find(b => b.status === "installed") || null };
 }

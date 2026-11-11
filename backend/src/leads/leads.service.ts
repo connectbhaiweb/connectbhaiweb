@@ -25,9 +25,9 @@ export const TRANSITIONS: Record<LeadStatus, LeadStatus[]> = {
 };
 const OPEN: LeadStatus[] = ['new', 'contacted', 'followup', 'scheduled'];
 const leadInclude = {
-  plan: { select: { id: true, plan_code: true, name: true, price: true, category: { select: { name: true, type: true, logo_url: true } } } },
-  tip: { select: { id: true, name: true, partner_code: true, phone: true } },
-  dsa: { select: { id: true, name: true, partner_code: true } },
+  plan: { select: { id: true, plan_code: true, name: true, price: true, speed_mbps: true, category: { select: { name: true, type: true, logo_url: true } } } },
+  tip: { select: { id: true, name: true, partner_code: true, phone: true, business_name: true } },
+  dsa: { select: { id: true, name: true, partner_code: true, phone: true, business_name: true } },
   area: { select: { id: true, name: true } },
 } satisfies Prisma.LeadInclude;
 
@@ -120,8 +120,10 @@ export class LeadsService {
     if (u.role === 'admin') {
       if (q.tip_user_id) and.push({ tip_user_id: q.tip_user_id });
       if (q.brought_by_user_id) and.push({ brought_by_user_id: q.brought_by_user_id });
-      if (q.unassigned) and.push({ brought_by_user_id: null, tip_user_id: null });
     }
+    // "New" vs "Assigned" in every portal (the role scope above still limits which leads are visible)
+    if (q.unassigned) and.push({ brought_by_user_id: null, tip_user_id: null });
+    if (q.assigned) and.push({ OR: [{ brought_by_user_id: { not: null } }, { tip_user_id: { not: null } }] });
     if (q.q) {
       const s = q.q.trim();
       // a full reference code ("CB-000142") is matched on the unique ref_code index; other text goes through the full-text index
@@ -179,16 +181,54 @@ export class LeadsService {
     });
   }
 
+  /**
+   * Admin sets the DSA and/or the TIP. The DSA is stored in brought_by_user_id, which drives the DSA's
+   * dashboard, reports and the install payout, so the payout goes to the DSA assigned at install time.
+   * The lead keeps its original `source`. The DSA can't change once a booking is scheduled.
+   */
   async assign(id: number, d: AssignDto, u: AuthUser) {
+    const setDsa = d.dsa_user_id !== undefined, setTip = d.tip_user_id != null;
+    if (!setDsa && !setTip) throw new BadRequestException('Choose a DSA or a TIP partner');
     const lead = await this.getScoped(id, u);
     if (lead.status === 'installed') throw new BadRequestException('Installed leads cannot be reassigned');
-    const tip = await this.prisma.user.findFirst({ where: { id: d.tip_user_id, role: 'tip', partner_status: 'approved', is_active: true } });
-    if (!tip) throw new BadRequestException('tip_user_id is not an approved TIP');
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.lead.update({ where: { id }, data: { tip_user_id: tip.id }, include: leadInclude });
-      await this.log(tx, id, u.id, 'assigned', { note: `tip_user_id=${tip.id}` });
-      return updated;
+
+    const curDsa = lead.brought_by_user_id != null ? Number(lead.brought_by_user_id) : null;
+    const newDsa = setDsa ? (d.dsa_user_id ?? null) : curDsa;
+    const dsaChanged = newDsa !== curDsa;
+    let dsa: { id: bigint; name: string; phone: string } | null = null;
+    if (dsaChanged) {
+      if (newDsa !== null) {
+        dsa = await this.prisma.user.findFirst({ where: { id: newDsa, role: 'dsa', partner_status: 'approved', is_active: true }, select: { id: true, name: true, phone: true } });
+        if (!dsa) throw new BadRequestException('dsa_user_id is not an approved, active DSA');
+      }
+      const booked = lead.status === 'scheduled' || await this.prisma.booking.findFirst({ where: { lead_id: id, status: { in: ['scheduled', 'rescheduled', 'completed'] } }, select: { id: true } });
+      if (booked) throw new BadRequestException('The DSA cannot be changed after a booking is scheduled');
+    }
+    let tip: { id: bigint } | null = null;
+    if (setTip && d.tip_user_id !== (lead.tip_user_id != null ? Number(lead.tip_user_id) : null)) {
+      tip = await this.prisma.user.findFirst({ where: { id: d.tip_user_id, role: 'tip', partner_status: 'approved', is_active: true }, select: { id: true } });
+      if (!tip) throw new BadRequestException('tip_user_id is not an approved TIP');
+      // the booking keeps its installer, so the lead's TIP may not drift away from it
+      const booked = await this.prisma.booking.findFirst({ where: { lead_id: id, status: { in: ['scheduled', 'rescheduled'] } }, select: { id: true } });
+      if (booked) throw new BadRequestException('Cancel or reschedule the booking before changing the TIP');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const data: Prisma.LeadUncheckedUpdateInput = {};
+      if (dsaChanged) data.brought_by_user_id = newDsa;
+      if (tip) data.tip_user_id = tip.id;
+      const l = Object.keys(data).length ? await tx.lead.update({ where: { id }, data, include: leadInclude }) : lead;
+      if (dsaChanged) await this.log(tx, id, u.id, 'assigned', { note: newDsa ? `dsa_user_id=${newDsa}${curDsa ? ` (was ${curDsa})` : ''}` : `dsa removed (was ${curDsa})` });
+      if (tip) await this.log(tx, id, u.id, 'assigned', { note: `tip_user_id=${tip.id}` });
+      return l;
     });
+
+    if (dsa) {
+      await this.notify.send({ user_id: Number(dsa.id), phone: dsa.phone, template: 'dsa_lead_assigned', payload: {
+        name: dsa.name, customer: updated.customer_name, customer_phone: updated.customer_phone, product: productName(updated.plan),
+        area: updated.area?.name ?? updated.pincode, ref_code: updated.ref_code } });
+    }
+    return updated;
   }
 
   async events(id: number, u: AuthUser) {

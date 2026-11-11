@@ -58,7 +58,7 @@ export default function CustomerDashboard({ tab }) {
           </div>
           <aside className="cu-side" aria-label="Your connection">
             <RouterCard booking={conn} tests={conn ? tests[conn.id] || [] : []} />
-            <PaymentsCard due={due} />
+            <PaymentsCard due={due} charges={charges} />
             <section className="cu-card cu-speed">
               <span className="cu-speed-ico"><Gauge aria-hidden="true" /></span>
               <div><h2>Run speed test</h2><p>Check your current internet speed.</p></div>
@@ -110,7 +110,7 @@ function BookingCard({ lead, booking, events }) {
       {lost && <p className="cu-note">This request was closed. Search your PIN code again to request a new connection.</p>}
 
       <div className="cu-people">
-        <Person label="Your agent" city={cityOf(lead.pincode)} p={lead.dsa} kind="DSA" text={`Namaste, about my Connect Bhai request ${lead.ref_code}`} />
+        {(lead.dsa || !["installed", "lost"].includes(lead.status)) && <Person label="Your agent" city={cityOf(lead.pincode)} p={lead.dsa} kind="DSA" text={`Namaste, about my Connect Bhai request ${lead.ref_code}`} />}
         <Person label="Your installer" city={cityOf(lead.pincode)} p={lead.tip} kind={`${lead.plan && lead.plan.provider ? lead.plan.provider.name + " " : ""}TIP`} text={`Namaste, about my connection ${lead.ref_code}`} store />
       </div>
     </section>
@@ -124,7 +124,7 @@ function Person({ label, p, kind, text, store, city }) {
       <span className={`cu-ava${store ? " is-store" : ""}`} aria-hidden="true">{store ? <Store /> : p ? p.name.split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase() : <UserRound />}</span>
       <div className="cu-person-txt"><span>{label}</span><b>{name || "Assigned shortly"}</b><em>{p ? [kind, city].filter(Boolean).join(" · ") : "You get a WhatsApp message"}</em></div>
       <div className="cu-person-acts">
-        {p ? <>
+        {p && p.phone ? <>
           <a className="cu-btn cu-btn-call" href={`tel:+91${p.phone}`} aria-label={`Call ${name}, ${fmtPhone(p.phone)}`}><Phone aria-hidden="true" />Call</a>
           <a className="cu-btn cu-btn-wa" href={waLink(p.phone, text)} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${name}`}><WaGlyph />WhatsApp</a>
         </> : null}
@@ -203,8 +203,10 @@ function RouterCard({ booking, tests }) {
   );
 }
 
-function PaymentsCard({ due }) {
+function PaymentsCard({ due, charges }) {
   const c = due[0];
+  // "Paid" only for a real paid charge, never just because nothing is due
+  const last = charges.filter(x => x.status === "paid").sort((a, b) => String(b.paid_at || "").localeCompare(String(a.paid_at || "")))[0];
   return (
     <section className="cu-card cu-pay" aria-labelledby="cu-pay-title">
       <h2 id="cu-pay-title" className="cu-h2"><CreditCard aria-hidden="true" />Payments due</h2>
@@ -216,7 +218,9 @@ function PaymentsCard({ due }) {
         <p className="cu-pay-note">{/install/i.test(c.description) ? "Pay to confirm your installation slot." : `Includes GST · Ref ${c.ref_code}`}{due.length > 1 ? <> · <Link href="/my/payments">{due.length - 1} more due</Link></> : null}</p>
         <button type="button" className="cu-btn cu-btn-primary cu-btn-block" data-act="pay" data-id={c.id}>Pay now <ArrowRight aria-hidden="true" /></button>
       </> : <>
-        <div className="cu-pay-row"><div><span className="cu-pay-what">Nothing to pay right now</span><b className="cu-amt">{inr(0)}</b></div><span className="cu-chip cu-chip-green cu-due">Paid</span></div>
+        {last
+          ? <div className="cu-pay-row"><div><span className="cu-pay-what">Nothing due · last paid{last.paid_at ? ` ${fDate(last.paid_at)}` : ""}</span><b className="cu-amt">{inr(last.amount)}</b></div><span className="cu-chip cu-chip-green cu-due">Paid</span></div>
+          : <div className="cu-pay-row"><div><span className="cu-pay-what">No payments yet</span><b className="cu-amt">{inr(0)}</b></div><span className="cu-chip cu-chip-blue cu-due">Nothing due</span></div>}
         <Link href="/my/payments" className="cu-btn cu-btn-soft cu-btn-block">View payments <ArrowRight aria-hidden="true" /></Link>
       </>}
       <PayMarks />

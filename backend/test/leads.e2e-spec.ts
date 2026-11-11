@@ -163,6 +163,49 @@ describe('leads', () => {
       await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dream)).send({ tip_user_id: a.ids.dream }).expect(403);
       await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(403);
     });
+    it('admin assigns, reassigns and clears the DSA; the DSA then sees the lead', async () => {
+      const l = await newLead(c, a, { by: 'web', tip: 'dream' });
+      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({}).expect(400);
+      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dream }).expect(400); // a TIP is not a DSA
+      const r = await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa1 }).expect(200);
+      expect(r.body.dsa.id).toBe(a.ids.dsa1);
+      expect(r.body.tip.id).toBe(a.ids.dream);   // TIP untouched
+      expect(r.body.source).toBe(l.source);       // source kept
+      await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dsa1)).expect(200);
+      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa2 }).expect(200);
+      await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dsa1)).expect(404);
+      await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dsa2)).expect(200);
+      const cleared = await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: null }).expect(200);
+      expect(cleared.body.dsa).toBeNull();
+      const ev = await c.http().get(`${P}/leads/${l.id}/events`).set(bearer(a.admin)).expect(200);
+      expect(ev.body.filter((e: any) => e.event_type === 'assigned' && /dsa/.test(e.note)).length).toBe(3);
+    });
+    it('the DSA cannot change once a booking is scheduled', async () => {
+      const l = await newLead(c, a, { by: 'dsa1', tip: 'dream' });
+      await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: l.id, scheduled_at: inDays(2) }).expect(201);
+      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa2 }).expect(400);
+      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa1 }).expect(200); // same DSA = no change
+    });
+    it('the TIP cannot change while a booking is open, and the lead returns contact details for both partners', async () => {
+      const l = await newLead(c, a, { by: 'dsa1', tip: 'dream' });
+      const got = (await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.admin)).expect(200)).body;
+      expect(got.dsa.phone).toBeTruthy();
+      expect(got.tip.phone).toBeTruthy();
+      expect(got.plan === null || 'speed_mbps' in got.plan).toBe(true);
+      await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: l.id, scheduled_at: inDays(2) }).expect(201);
+      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat }).expect(400);
+      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dream }).expect(200); // same TIP = no change
+    });
+    it('"assigned" and "unassigned" filters split new leads in every portal', async () => {
+      const mine = await newLead(c, a, { by: 'dsa1' });
+      const ids = (r: any) => r.body.items.map((x: any) => x.id);
+      const asg = await c.http().get(`${P}/leads?status=new&assigned=1&limit=100`).set(bearer(a.admin)).expect(200);
+      expect(ids(asg)).toContain(mine.id);
+      const un = await c.http().get(`${P}/leads?status=new&unassigned=1&limit=100`).set(bearer(a.admin)).expect(200);
+      expect(ids(un)).not.toContain(mine.id);
+      const dsaUn = await c.http().get(`${P}/leads?unassigned=1`).set(bearer(a.dsa1)).expect(200);
+      expect(dsaUn.body.items.length).toBe(0);
+    });
     it('participants can add notes to the timeline', async () => {
       const l = await newLead(c, a, { by: 'dsa1', tip: 'dream' });
       await c.http().post(`${P}/leads/${l.id}/notes`).set(bearer(a.dsa1)).send({ note: 'Customer prefers evening' }).expect(201);

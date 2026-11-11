@@ -78,7 +78,7 @@ export default function AdminDashboard({ tab }) {
         </Card>
       </div>
       <div className="pt-row pt-row-adm2">
-        <Card title="Leads and installs, last 6 months" Icon={ChartColumn} className="pt-chartcard" action={<Period value={months} onChange={setMonths} />}>
+        <Card title={`Leads and installs, last ${months} months`} Icon={ChartColumn} className="pt-chartcard" action={<Period value={months} onChange={setMonths} />}>
           <Bars legend="bottom" height={230} data={chart} series={[{ key: "leads", name: "Leads", color: "#2878FD" }, { key: "installs", name: "Installs", color: "#32B661" }]} />
         </Card>
         <Card title="Top 4 areas" Icon={MapPin} action={<More href="/admin/reports">View detailed report</More>}>
