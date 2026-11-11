@@ -31,7 +31,7 @@ export class CarePlanSyncService implements OnModuleInit, OnModuleDestroy {
     const s = await this.acs.fetchStatus(d.genieacs_device_id ?? d.serial_number ?? `dev-${d.id}`);
     return this.prisma.carePlanDevice.update({
       where: { id: d.id },
-      data: { online: s.online, last_seen_at: s.last_seen_at, rx_power_dbm: s.rx_power_dbm, wifi_ssid: s.wifi_ssid, connected_clients: s.connected_clients },
+      data: { ...(!d.genieacs_device_id && s.device_id ? { genieacs_device_id: s.device_id } : {}), online: s.online, last_seen_at: s.last_seen_at, rx_power_dbm: s.rx_power_dbm, wifi_ssid: s.wifi_ssid, connected_clients: s.connected_clients },
     });
   }
 

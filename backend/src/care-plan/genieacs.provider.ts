@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export interface DeviceStatus { online: boolean; last_seen_at: Date; rx_power_dbm: number | null; wifi_ssid: string | null; connected_clients: number; raw?: any }
+export interface DeviceStatus { online: boolean; last_seen_at: Date; rx_power_dbm: number | null; wifi_ssid: string | null; connected_clients: number; device_id?: string; raw?: any }
 export interface AcsListedDevice { id: string; manufacturer: string | null; model: string | null; serial: string | null; firmware: string | null; last_inform: string | null; online: boolean; rx_power_dbm: number | null; wifi_ssid: string | null; ip: string | null }
 export interface SpeedResult { download_mbps: number | null; upload_mbps: number | null; ping_ms: number | null; simulated?: boolean }
 export interface ActionResult { ok: boolean; error?: string }
@@ -73,14 +73,14 @@ export class GenieAcsProvider {
       const h = this.seed(deviceId);
       return { online: h % 7 !== 0, last_seen_at: new Date(), rx_power_dbm: -(18 + (h % 90) / 10), wifi_ssid: `ConnectBhai-${deviceId.slice(-4)}`, connected_clients: 1 + (h % 9) };
     }
-    const r = await fetch(`${this.base}/devices?query=${encodeURIComponent(JSON.stringify({ _id: deviceId }))}`, { headers: this.headers(), signal: AbortSignal.timeout(8000) });   // never wait forever on the modem server
+    const r = await fetch(`${this.base}/devices?query=${encodeURIComponent(JSON.stringify({ $or: [{ _id: deviceId }, { '_deviceId._SerialNumber': deviceId }] }))}`, { headers: this.headers(), signal: AbortSignal.timeout(8000) });   // the id GenieACS knows is OUI-ProductClass-Serial; a Care Plan record may only hold the serial   // never wait forever on the modem server
     if (!r.ok) throw new Error(`GenieACS ${r.status}`);
     const d: any = (await r.json())[0];
     if (!d) throw new Error('Device not found in GenieACS');
     const lastInform = new Date(d._lastInform);
     const v = (p: string) => p.split('.').reduce((o: any, k) => o?.[k], d)?._value;
     return {
-      online: Date.now() - lastInform.getTime() < 10 * 60_000, last_seen_at: lastInform,
+      device_id: String(d._id), online: Date.now() - lastInform.getTime() < 10 * 60_000, last_seen_at: lastInform,
       rx_power_dbm: this.rxPower(v),
       wifi_ssid: v('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID') ?? v('Device.WiFi.SSID.1.SSID') ?? null,
       connected_clients: Number(v('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.TotalAssociations') ?? 0),
