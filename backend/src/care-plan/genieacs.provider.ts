@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 export interface DeviceStatus { online: boolean; last_seen_at: Date; rx_power_dbm: number | null; wifi_ssid: string | null; connected_clients: number; raw?: any }
 export interface AcsListedDevice { id: string; manufacturer: string | null; model: string | null; serial: string | null; firmware: string | null; last_inform: string | null; online: boolean; rx_power_dbm: number | null; wifi_ssid: string | null; ip: string | null }
-export interface SpeedResult { download_mbps: number; upload_mbps: number; ping_ms: number }
+export interface SpeedResult { download_mbps: number | null; upload_mbps: number | null; ping_ms: number | null; simulated?: boolean }
 export interface ActionResult { ok: boolean; error?: string }
 export interface AcsHealth { status: 'up' | 'down' | 'mock'; reachable: boolean; mock: boolean; latency_ms?: number; checked_at: string; detail?: string }
 
@@ -124,8 +124,66 @@ export class GenieAcsProvider {
     } catch (e: any) { this.logger.error(e?.message); return { ok: false, error: e?.name === 'TimeoutError' ? 'The modem did not answer in time' : 'GenieACS unreachable' }; }
   }
 
+  /** The modem's own line test (TR-143): it downloads a test file and we time it. Mock mode returns invented numbers, flagged simulated. */
   async speedTest(deviceId: string): Promise<SpeedResult> {
-    const h = this.seed(deviceId + Date.now());
-    return { download_mbps: 40 + (h % 400) / 2, upload_mbps: 20 + (h % 200) / 2, ping_ms: 4 + (h % 30) };
+    if (this.isMock) {
+      const h = this.seed(deviceId + Date.now());
+      return { download_mbps: 40 + (h % 400) / 2, upload_mbps: 20 + (h % 200) / 2, ping_ms: 4 + (h % 30), simulated: true };
+    }
+    const url = this.cfg.get<string>('SPEEDTEST_FILE_URL') || 'http://speedtest.tele2.net/10MB.zip';   // plain http: most modems cannot do https for this
+    const host = this.cfg.get<string>('SPEEDTEST_PING_HOST') || '8.8.8.8';
+    const dl = await this.runDiagnostic(deviceId, 'DownloadDiagnostics', [['DownloadURL', url, 'xsd:string']], 'Completed');
+    const bytes = Number(dl.TestBytesReceived?._value ?? dl.TotalBytesReceived?._value);
+    const secs = GenieAcsProvider.elapsedSeconds(dl.BOMTime?._value, dl.EOMTime?._value);
+    if (!(bytes > 0) || secs == null || !(secs > 0)) throw new Error('The modem finished but did not report a usable result');
+    const download_mbps = Math.round((bytes * 8) / secs / 1e6 * 100) / 100;
+    let ping_ms: number | null = null;   // a failed ping never fails the whole test
+    try {
+      const pg = await this.runDiagnostic(deviceId, 'IPPingDiagnostics', [['Host', host, 'xsd:string'], ['NumberOfRepetitions', 4, 'xsd:unsignedInt'], ['Timeout', 2000, 'xsd:unsignedInt']], 'Complete');
+      const avg = Number(pg.AverageResponseTime?._value);
+      if (Number(pg.SuccessCount?._value) > 0 && Number.isFinite(avg)) ping_ms = avg;
+    } catch (e: any) { this.logger.warn(`ping diagnostic failed: ${e?.message}`); }
+    return { download_mbps, upload_mbps: null, ping_ms, simulated: false };   // upload needs a server that accepts a PUT from the modem; not offered yet
+  }
+
+  /** Seconds between two TR-143 timestamps (ISO 8601, up to microseconds). null when either is missing or unset. */
+  static elapsedSeconds(from?: string, to?: string): number | null {
+    const us = (t?: string) => {
+      const m = /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.(\d{1,6}))?(Z|[+-]\d\d:?\d\d)?$/.exec(String(t ?? '').trim());
+      if (!m) return null;
+      const base = Date.parse(m[1] + (m[3] && m[3] !== 'Z' ? (m[3].includes(':') ? m[3] : m[3].slice(0, 3) + ':' + m[3].slice(3)) : 'Z'));
+      return Number.isNaN(base) || base < 0 ? null : base * 1000 + Number((m[2] ?? '').padEnd(6, '0') || 0);
+    };
+    const a = us(from), b = us(to);
+    return a == null || b == null || b <= a ? null : (b - a) / 1e6;
+  }
+
+  private async nbi(path: string, init: RequestInit & { ms?: number } = {}) {
+    const r = await fetch(`${this.base}${path}`, { ...init, headers: this.headers(), signal: AbortSignal.timeout(init.ms ?? 30_000) });
+    if (!r.ok) throw new Error(`GenieACS ${r.status}`);
+    return r;
+  }
+  private task(deviceId: string, body: object, ms = 25_000) {
+    return this.nbi(`/devices/${encodeURIComponent(deviceId)}/tasks?connection_request&timeout=${ms - 3000}`, { method: 'POST', body: JSON.stringify(body), ms });
+  }
+  private async readObject(deviceId: string, path: string): Promise<any> {
+    const r = await this.nbi(`/devices?query=${encodeURIComponent(JSON.stringify({ _id: deviceId }))}&projection=${encodeURIComponent(path)}`, { ms: 10_000 });
+    return path.split('.').reduce((o: any, k) => o?.[k], (await r.json())[0]) ?? {};
+  }
+  /** Sets the TR-143 parameters, asks the modem to start (DiagnosticsState=Requested), then waits for it to report `done`. Throws on an Error_* state or a timeout. */
+  private async runDiagnostic(deviceId: string, name: 'DownloadDiagnostics' | 'IPPingDiagnostics', params: [string, string | number, string][], done: string): Promise<any> {
+    const root = `InternetGatewayDevice.${name}`;
+    const before = (await this.readObject(deviceId, root).catch(() => ({})))?.BOMTime?._value;
+    await this.task(deviceId, { name: 'setParameterValues', parameterValues: [...params.map(([k, v, t]) => [`${root}.${k}`, v, t]), [`${root}.DiagnosticsState`, 'Requested', 'xsd:string']] });
+    const gap = Number(this.cfg.get('SPEEDTEST_POLL_MS') ?? 3000), deadline = Date.now() + Number(this.cfg.get('SPEEDTEST_MAX_MS') ?? 60_000);
+    do {
+      await new Promise((r) => setTimeout(r, gap));
+      await this.task(deviceId, { name: 'refreshObject', objectName: root }, 12_000).catch(() => undefined);
+      const o = await this.readObject(deviceId, root);
+      const state = o.DiagnosticsState?._value;
+      if (typeof state === 'string' && state.startsWith('Error')) throw new Error(`The modem reported ${state}`);
+      if (state === done && (name !== 'DownloadDiagnostics' || o.BOMTime?._value !== before || !before)) return o;
+    } while (Date.now() < deadline);
+    throw new Error('The modem did not finish the test in time');
   }
 }

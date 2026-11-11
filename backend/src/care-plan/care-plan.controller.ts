@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, ServiceUnavailableException, HttpCode, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, ServiceUnavailableException, HttpCode, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { IsIn, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
@@ -63,7 +63,7 @@ export class CarePlanController {
       this.prisma.deviceAction.findMany({ where: { care_plan_device_id: id }, orderBy: { id: 'desc' }, take: 20 }),
       this.prisma.speedTest.findMany({ where: { care_plan_device_id: id }, orderBy: { id: 'desc' }, take: 10 }),
     ]);
-    return { ...d, actions, speed_tests };
+    return { ...d, actions, speed_tests, simulated: this.acs.isMock };
   }
 
   /** TIP / admin attach the modem identity after installation. */
@@ -114,12 +114,23 @@ export class CarePlanController {
     return this.prisma.deviceAction.update({ where: { id: row.id }, data: { status: res.ok ? 'done' : 'failed', error: res.error, completed_at: new Date() } });
   }
 
+  private readonly speedRunning = new Set<number>();
+  /** Runs the modem's own line test (it downloads a test file; ~10-60 s) and saves the result. Mock mode returns invented numbers, flagged simulated. */
   @Post('devices/:id/speed-test')
   async speed(@Param('id', ParseIntPipe) id: number, @CurrentUser() u: AuthUser) {
     const dev = await this.device(id, u);
     if (!dev.is_active) throw new BadRequestException('Care Plan is not active for this device');
-    const r = await this.acs.speedTest(dev.genieacs_device_id ?? dev.serial_number ?? `dev-${id}`);
-    return this.prisma.speedTest.create({ data: { care_plan_device_id: id, ...r } });
+    if (!this.acs.isMock && !dev.genieacs_device_id) throw new BadRequestException('The router is not linked yet. Your installer links it at installation.');
+    if (this.speedRunning.has(id)) throw new ConflictException('A speed test is already running on this modem.');
+    this.speedRunning.add(id);
+    try {
+      const r = await this.acs.speedTest(dev.genieacs_device_id ?? dev.serial_number ?? `dev-${id}`);
+      const row = await this.prisma.speedTest.create({ data: { care_plan_device_id: id, download_mbps: r.download_mbps, upload_mbps: r.upload_mbps, ping_ms: r.ping_ms } });
+      return { ...row, simulated: r.simulated === true };
+    } catch (e: any) {
+      if (e?.status) throw e;   // already an HTTP error
+      throw new BadGatewayException(`Speed test failed: ${e?.message ?? 'the modem did not answer'}`);
+    } finally { this.speedRunning.delete(id); }
   }
 
   /** Admin: every modem GenieACS knows, with the customer it is linked to (or none). Read-only; for the "Fetch from GenieACS" button. */

@@ -58,6 +58,8 @@ export const envValidationSchema = Joi.object({
   GENIEACS_API_TOKEN: Joi.string().allow('').default(''),
   GENIEACS_USERNAME: Joi.string().allow('').default(''),
   GENIEACS_PASSWORD: Joi.string().allow('').default(''),
+  SPEEDTEST_FILE_URL: Joi.string().uri().allow('').default(''),   // plain-http test file the modem downloads (default http://speedtest.tele2.net/10MB.zip)
+  SPEEDTEST_PING_HOST: Joi.string().allow('').default(''),
   CARE_PLAN_SYNC_MINUTES: Joi.number().min(0).default(10),   // how often every linked modem is read from GenieACS (0 = off)
 })
   .unknown(true)
