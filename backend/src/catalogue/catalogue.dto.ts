@@ -15,7 +15,7 @@ export class PlanQuery extends PageQuery {
   @IsOptional() @Type(() => Number) @IsInt() min_speed?: number;
   @IsOptional() @IsString() ott?: string;
   @IsOptional() @IsString() q?: string;
-  @IsOptional() @IsIn(['price_asc', 'price_desc', 'speed_desc']) sort?: 'price_asc' | 'price_desc' | 'speed_desc';
+  @IsOptional() @IsIn(['price_asc', 'price_desc', 'speed_desc', 'newest']) sort?: 'price_asc' | 'price_desc' | 'speed_desc' | 'newest';
   @IsOptional() @Transform(({ value }) => value === 'true' || value === true) @IsBoolean() include_inactive?: boolean;
 }
 export class CategoryDto {

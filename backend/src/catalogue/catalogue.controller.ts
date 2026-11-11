@@ -48,7 +48,7 @@ export class CatalogueController {
     if (q.ott) and.push({ otts: { some: { ott: { name: { contains: q.ott } } } } });
     if (q.q) and.push({ OR: [{ name: { contains: q.q } }, { plan_code: { contains: q.q } }] });
     const orderBy: Prisma.PlanOrderByWithRelationInput[] =
-      q.sort === 'price_desc' ? [{ price: 'desc' }] : q.sort === 'speed_desc' ? [{ speed_mbps: 'desc' }, { price: 'asc' }] : [{ price: 'asc' }, { id: 'asc' }];
+      q.sort === 'newest' ? [{ id: 'desc' }] : q.sort === 'price_desc' ? [{ price: 'desc' }] : q.sort === 'speed_desc' ? [{ speed_mbps: 'desc' }, { price: 'asc' }] : [{ price: 'asc' }, { id: 'asc' }];
     const [items, total] = await Promise.all([
       this.prisma.plan.findMany({ where, orderBy, include: planInclude, ...pageArgs(q) }),
       this.prisma.plan.count({ where }),

@@ -13,6 +13,7 @@ const num = v => (v == null ? v : Number(v));
 export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   const fail = m => { throw new AppError(m); };
   let me = null, tokens = null;
+  const readMark = new Map();
   const threadCache = new Map(), bookingCache = new Map(), payTokens = new Map();
 
   /* ---------- tokens + HTTP ---------- */
@@ -38,7 +39,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
      (tab switches, re-renders). Any write clears the cache. Chat, notifications and live device data are never reused. */
   const getCache = new Map(), GET_TTL = 8000, NO_CACHE = /\/(chat|messages|notifications|devices|care)/;
   function req(method, path, body, opt) {
-    if (method !== "GET") { getCache.clear(); return send(method, path, body, opt); }
+    if (method !== "GET") { if (!/^\/chat\//.test(path)) getCache.clear(); return send(method, path, body, opt); }   // marking a chat read changes nothing the cached lists show
     if (NO_CACHE.test(path)) return send(method, path, body, opt);
     const key = (tokens && tokens.access_token ? "u:" : "a:") + path, hit = getCache.get(key);
     if (hit && Date.now() - hit.t < GET_TTL) return hit.p;
@@ -242,9 +243,11 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     setAutoAssign: async on => { need("admin"); await put("/settings/auto_assign", { value: on ? "1" : "0" }); return true; },
 
     /* ---- bookings ---- */
-    async myBookings() { need("customer"); const [b, dv] = await Promise.all([all("/bookings"), devices()]); return b.items.map(x => mapBooking(x, dv)); },
-    async partnerBookings() { need("tip", "dsa"); const [b, dv] = await Promise.all([all("/bookings"), devices()]); return b.items.map(x => mapBooking(x, dv)); },
-    async adminBookings() { need("admin"); const [b, dv] = await Promise.all([all("/bookings"), devices()]); return b.items.map(x => mapBooking(x, dv)); },
+    /* modem data is only fetched when at least one booking is on the Care plan (otherwise it is a full extra pull for nothing) */
+    async bookingsWithDevices() { const b = await all("/bookings"); const dv = b.items.some(x => x.lead && x.lead.care_plan) ? await devices() : []; return b.items.map(x => mapBooking(x, dv)); },
+    async myBookings() { need("customer"); return this.bookingsWithDevices(); },
+    async partnerBookings() { need("tip", "dsa"); return this.bookingsWithDevices(); },
+    async adminBookings() { need("admin"); return this.bookingsWithDevices(); },
     async createBooking(leadId, date) {
       if (!date) fail("Choose a date.");
       const when = new Date(date + "T18:00:00"); if (when.getTime() < Date.now()) fail("Choose today or a future date.");
@@ -305,7 +308,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
 
     /* ---- people ---- */
     async myPartner() { need("dsa", "tip"); return mapPartner(await get("/users/me")); },
-    async adminPartners(f) { need("admin"); const ps = f && f.partner_status ? { partner_status: f.partner_status } : {}; const [a, b] = await Promise.all([all("/users", { role: "dsa", ...ps }), all("/users", { role: "tip", ...ps })]); return [...a.items, ...b.items].map(mapPartner).sort((x, y) => x.type.localeCompare(y.type) || x.name.localeCompare(y.name)); },
+    async adminPartners(f) { need("admin"); const ps = f && f.partner_status ? { partner_status: f.partner_status } : {}; const [a, b] = await Promise.all([all("/users", { role: "dsa", ...ps }), all("/users", { role: "tip", ...ps })]); return [...a.items, ...b.items].map(mapPartner).sort((x, y) => Number(y.id) - Number(x.id)); },   // newest first
     async adminCustomers() { need("admin"); return (await all("/users", { role: "customer" })).items.map(mapUser); },
     async adminTeam() { need("admin"); return (await all("/users")).items.filter(u => u.role !== "customer").map(u => ({ ...mapUser(u), partner: ["dsa", "tip"].includes(u.role) ? pc(u) : null, pw_set_at: null })); },
     async savePartner() { fail("Partners join through the public registration form; approve them in the partner list."); },
@@ -322,7 +325,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     async adminProviders() { need("admin"); const c = await get("/plan-categories?include_inactive=true").catch(() => get("/plan-categories")); return (Array.isArray(c) ? c : c.items || []).map(providerOf); },
     async saveProvider(f) { need("admin"); const body = { name: f.name.trim(), type: "fiber" }; if (f.id) await patch("/plan-categories/" + f.id, { name: body.name }); else await post("/plan-categories", body); return true; },
     async toggleProvider(id) { need("admin"); const c = (await get("/plan-categories")).find(x => String(x.id) === String(id)); await patch("/plan-categories/" + id, { is_active: !(c && c.is_active !== false) }); return true; },
-    async adminPlans() { need("admin"); return (await all("/plans", { include_inactive: true })).items.map(mapPlan); },
+    async adminPlans() { need("admin"); return (await all("/plans", { include_inactive: true, sort: "newest" })).items.map(mapPlan); },
     async savePlan(f) {
       need("admin"); if (!f.provider_id) fail("Choose a provider."); if (!f.name || f.name.trim().length < 2) fail("Enter the plan name.");
       const body = { category_id: Number(f.provider_id), name: f.name.trim(), speed_mbps: Number(f.speed_mbps) > 0 ? Number(f.speed_mbps) : undefined, price: Number(f.price_monthly), validity_days: Number(f.validity_days) || undefined,
@@ -339,7 +342,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     async adminReviewPlan() { fail("There are no plan submissions to review in this version."); },
     async adminLocations() {
       need("admin"); const [areas, maps] = await Promise.all([get("/cities/1/areas"), get("/admin/tip-pincodes")]);
-      return areas.map(a => ({ id: S(a.id), pincode: a.pincode, area: a.name, city: "Indore", zone: null,
+      return areas.slice().sort((x, y) => y.id - x.id).map(a => ({ id: S(a.id), pincode: a.pincode, area: a.name, city: "Indore", zone: null,
         coverage: maps.filter(m => m.pincode === a.pincode).map(m => ({ id: S(m.id), location_id: S(a.id), provider_id: "all", provider: { id: "all", name: "All providers" }, tip_partner_id: S(m.tip_user_id), tip: pc(m.tip), technology: "ftth", is_active: m.is_active })) }));
     },
     async saveLocation(f) { need("admin"); await post(`/cities/${N(f.city_id) || 1}/areas`, { name: f.area.trim(), pincode: f.pincode }); return true; },
@@ -368,14 +371,14 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
 
     /* ---- cities / waitlist ---- */
     async adminCities() {
-      need("admin"); const [c, w] = await Promise.all([get("/cities"), all("/waitlist")]);
-      return c.map(x => { const ws = w.items.filter(r => String(r.city_id) === String(x.id)); return { ...mapCity(x), waiting: ws.filter(r => !r.notified_at).length, notified: ws.filter(r => r.notified_at).length, partners: 0, pins: 0 }; });
+      need("admin"); const [c, w] = await Promise.all([get("/cities"), get("/waitlist/summary")]);   // counts only, not every row
+      return c.map(x => { const s = w.find(r => String(r.city_id) === String(x.id)); return { ...mapCity(x), waiting: s ? s.waiting : 0, notified: s ? s.notified : 0, partners: 0, pins: 0 }; });
     },
     async adminWaitlist() { need("admin"); return (await all("/waitlist")).items.map(r => ({ id: S(r.id), city_id: S(r.city_id), name: r.name || "", phone: r.phone, pincode: null, interest: null, status: r.notified_at ? "notified" : "waiting", created_at: r.created_at, notified_at: r.notified_at })); },
     async adminLaunchCity(id) { need("admin"); await patch("/cities/" + id, { status: "live" }); return (await post("/waitlist/notify/" + id)).notified; },
     async adminSetCityStatus(id, status) { need("admin"); await patch("/cities/" + id, { status }); return true; },
     async adminAddCity(f) { need("admin"); const c = await post("/cities", { name: (f.name || "").trim() }); return S(c.id); },
-    async adminNotifications() { need("admin"); return (await all("/notifications")).items.map(n => ({ id: n.id, to_phone: n.phone || "", template: n.template, params: n.payload ? Object.values(n.payload).map(String) : [], status: n.status, simulated: n.status !== "sent", created_at: n.created_at, sent_at: n.created_at })); },
+    async adminNotifications() { need("admin"); return ((await get("/notifications" + qs({ page: 1, limit: 100 }))).items || []).map(n => ({ id: n.id, to_phone: n.phone || "", template: n.template, params: n.payload ? Object.values(n.payload).map(String) : [], status: n.status, simulated: n.status !== "sent", created_at: n.created_at, sent_at: n.created_at })); },
 
     /* ---- chat ---- */
     async myThreads() {
@@ -393,7 +396,9 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     },
     async threadMessages(id) {
       const [kind, key] = String(id).split(":"), type = kind === "lead" ? "lead" : "support";
-      const msgs = await get(`/chat/${type}/${key}/messages`); await post(`/chat/${type}/${key}/read`).catch(() => {});
+      const msgs = await get(`/chat/${type}/${key}/messages`);
+      const newest = msgs.length ? String(msgs[msgs.length - 1].id) : "";
+      if (readMark.get(id) !== newest) { readMark.set(id, newest); await post(`/chat/${type}/${key}/read`).catch(() => {}); }   // the 10 s refresh only calls /read when something new arrived
       if (!threadCache.has(id)) await this.myThreads();
       return { thread: threadCache.get(id) || { id, kind, title: "Chat", sub: "", people: [SUPPORT] }, messages: msgs.map(m => ({ id: S(m.id), thread: id, sender_id: S(m.sender_user_id), sender_role: m.sender ? m.sender.role : "", sender_name: m.sender ? m.sender.name : "", body: m.body, created_at: m.created_at })) };
     },

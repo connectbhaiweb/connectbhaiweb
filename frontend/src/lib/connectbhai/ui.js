@@ -1000,7 +1000,7 @@ function paySuccess(c) {
 }
 async function adminTeam() {
   const all = await API.adminTeam(), f = S.teamFilter || "team";
-  const shown = all.filter(p => f === "all" || (f === "team" ? p.role !== "customer" : p.role === p.role && p.role === "customer")).sort((a, b) => ["admin", "tip", "dsa", "customer"].indexOf(a.role) - ["admin", "tip", "dsa", "customer"].indexOf(b.role) || (a.full_name || "").localeCompare(b.full_name || ""));
+  const shown = all.filter(p => f === "all" || (f === "team" ? p.role !== "customer" : p.role === p.role && p.role === "customer")).sort((a, b) => Number(b.id) - Number(a.id));   // newest first
   const pwTxt = p => !p.has_password ? pill("No password · OTP only", "p-grey") : p.must_change ? pill("One-time password issued", "p-warn") : pill("Own password set", "p-ok");
   return `<div class="card row" style="margin-bottom:14px;padding:14px 16px"><div style="min-width:0;flex:1 1 300px"><b>Create logins for your team</b><p class="muted small">Username is the person's mobile number. A one-time password is sent on WhatsApp; they set their own password at first login. TIPs and DSAs also get their login automatically when they register and pay the fee.</p></div><button class="btn btn-primary btn-sm" data-act="create-user" type="button">Create login</button></div>
     <div class="chips" style="margin-bottom:12px">${[["team", "Team (admin, TIP, DSA)"], ["customers", "Customers"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="team-filter" data-v="${k}" aria-pressed="${f === k}">${l} (${k === "all" ? all.length : all.filter(p => k === "team" ? p.role !== "customer" : p.role === "customer").length})</button>`).join("")}</div>
@@ -1282,7 +1282,7 @@ function rowsToObjects(rows) {
   const head = (rows[0] || []).map(h => String(h || "").trim().toLowerCase());
   if (!head.includes("plan_name") || !head.includes("category")) throw new AppError("The first row must have the sheet's column names (plan_code, category, provider, plan_name, ...).");
   return rows.slice(1).map((r, i) => { const o = { _row: i + 2 }; head.forEach((h, j) => { if (SHEET_COLS.includes(h)) o[h] = r[j] === undefined ? "" : String(r[j]).trim(); }); return o; })
-    .filter(o => (o.plan_code || o.plan_name || o.category));
+    .filter(o => (o.plan_code || o.plan_name || o.category) && !/this is sample data/i.test(o.notes || ""));   // the template's sample row is never imported
 }
 async function openImport(mode) {
   openModal(`<h2>${mode === "tip" ? "Upload plan sheet for review" : "Import plan update sheet"}</h2>
@@ -1309,12 +1309,29 @@ async function previewImport(input) {
       <button class="btn btn-primary btn-block" style="margin-top:12px" data-act="import-confirm" type="button" ${ok.length ? "" : "disabled"}>${mode === "tip" ? `Send ${ok.length} plan${ok.length === 1 ? "" : "s"} for review` : `Import ${ok.length} plan${ok.length === 1 ? "" : "s"}`}</button>`;
   } catch (e) { out.innerHTML = `<p class="formerr">${esc(errMsg(e))}</p>`; }
 }
+/* Generic empty template: headings + sample row(s) that are marked "This is sample data" and skipped on import. */
+function downloadSheet(name, head, sampleRows) {
+  if (ST_PREVIEW) { toast("Downloads are blocked in this preview. Download from your live site."); return; }
+  const q = v => /[",\n]/.test(String(v ?? "")) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? "");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + [head, ...sampleRows].map(r => r.map(q).join(",")).join("\n")], { type: "text/csv" })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+async function readPinFile(input) {
+  const file = input.files[0]; if (!file) return;
+  try {
+    const buf = await file.arrayBuffer();
+    const rows = /\.csv$/i.test(file.name) ? readCsv(new TextDecoder().decode(buf)) : await readXlsx(buf);
+    const pins = [...new Set(rows.slice(1).filter(r => !r.some(c => /this is sample data/i.test(String(c || "")))).map(r => String(r[0] || "").trim()).filter(Boolean))];
+    document.getElementById("ap-pins").value = pins.join(", "); toast(`${pins.length} PIN code${pins.length === 1 ? "" : "s"} read from ${file.name}.`);
+  } catch (err) { toast(errMsg(err), true); }
+}
+const SAMPLE_NOTE = "This is sample data - delete this row and add your own plans";
 async function downloadTemplate() {
-  if (ST_PREVIEW) { toast("Downloads are blocked in this preview. Use the Excel plan update sheet sent with the files, or download from your live site."); return; }
-  let rows = []; try { rows = me() && me().role === "admin" ? await API.adminPlans() : (await API.tipPlans()).live; } catch (e) {}
+  if (ST_PREVIEW) { toast("Downloads are blocked in this preview. Download from your live site."); return; }
+  // Empty template: the column names plus ONE clearly-marked sample row (skipped on import) showing the format.
   const csvq = v => /[",\n]/.test(String(v ?? "")) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? "");
-  const lines = [SHEET_COLS.join(",")].concat(rows.filter(p => p.status === "live").map(p => [p.plan_code, p.category, p.provider.name, p.name, p.speed_mbps, p.price_monthly, p.validity_days, p.data_limit_gb, p.data_per_day_gb, p.voice, p.sms_per_day, (p.ott_apps || []).join(", "), p.tv_channels, p.install_charge, p.source_url, p.verified_at ? "Y" : "N", p.is_active ? "Y" : "N", p.notes].map(csvq).join(",")));
-  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\n")], { type: "text/csv" })); a.download = "connectbhai-plans.csv"; document.body.appendChild(a); a.click(); a.remove();
+  const sample = ["SAMPLE-001", "fiber", "BSNL", "Sample Fibre 100", 100, 799, 30, 1000, "", "Unlimited", "", "Hotstar, Prime", 0, 0, "https://example.com/plan", "N", "Y", SAMPLE_NOTE];
+  const lines = [SHEET_COLS.join(","), sample.map(csvq).join(",")];
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv" })); a.download = "connectbhai-plan-template.csv"; document.body.appendChild(a); a.click(); a.remove();
 }
 
 /* =====================================================================
@@ -1459,6 +1476,7 @@ const actions = {
   "plan-cat": b => { S.planCat = b.dataset.v; render(); },
   "plan-import": b => openImport(b.dataset.mode),
   "plan-template": () => downloadTemplate(),
+  "pin-template": () => downloadSheet("connectbhai-pincode-template.csv", ["pincode", "note"], [["452010", "This is sample data - delete this row and add your own PIN codes"]]),
   "import-confirm": async b => { const rows = S.importRows || [];
     if (S.importMode === "tip") { const n = await guard(b, () => API.tipSubmitPlans(rows)); closeModal(); toast(n + " plan" + (n === 1 ? "" : "s") + " sent for review."); }
     else { const r = await guard(b, () => API.adminImportPlans(rows)); closeModal(); toast(`Imported: ${r.inserted} new, ${r.updated} updated.`); }
@@ -1535,6 +1553,8 @@ const actions = {
   },
   "add-location": () => REST ? openModal(`<h2>Add PIN codes</h2><p class="muted" style="margin:4px 0 12px">Type 2 or 3 PIN codes. We fetch them from the India Post directory and add their post offices as areas.</p>
     <form class="stack" data-form="pins-import" novalidate>${field("ap-pins", "PIN codes", `<input id="ap-pins" name="pins" placeholder="452010, 452016, 453001">`, "Separate with commas")}
+    ${field("ap-file", "Or upload a sheet (.xlsx / .csv)", `<input id="ap-file" type="file" accept=".xlsx,.csv">`, "First column = PIN code. Row 1 is the heading.")}
+    <button class="btn btn-ghost btn-sm" data-act="pin-template" type="button">Download sample sheet</button>
     ${field("ap-city", "City", `<select id="ap-city" name="city_id">${cityOptions("indore", true)}</select>`)}
     <button class="btn btn-soft" data-act="pins-fetch" type="button">Fetch from India Post</button><div class="stack" id="ap-out"></div>
     <button class="btn btn-primary" type="submit">Add these areas</button></form>`) : openModal(`<h2>Add PIN code / area</h2><form class="stack" data-form="location" novalidate style="margin-top:12px">${field("lc-pin", "PIN code", `<input id="lc-pin" name="pincode" inputmode="numeric" maxlength="6">`)}
@@ -1671,6 +1691,7 @@ const onChange = e => {
   if (e.target.id === "lc-city") { const z = document.querySelector('[data-f="lc-zone"]'); if (z) z.hidden = e.target.value !== "indore"; return; }
   if (e.target.id === "ac-mode") { const el = document.querySelector('[data-acs="partner"]'); if (el) el.hidden = e.target.value !== "partner"; return; }
   if (e.target.id === "imp-file") { previewImport(e.target); return; }
+  if (e.target.id === "ap-file") { readPinFile(e.target); return; }
   if (e.target.name === "category" && e.target.closest("form[data-form=plan], form[data-form=tip-plan]")) { syncPlanForm(e.target.closest("form")); return; }
   if (e.target.name === "sim_conn") { const port = e.target.value === "port"; document.getElementById("sm-port").hidden = !port; document.getElementById("sm-prefwrap").hidden = port; return; }
   if (e.target.dataset && e.target.dataset.zoneLoc) { const v = e.target.value; guard(null, () => API.saveLocationZone(e.target.dataset.zoneLoc, v)).then(() => { toast(v ? "Zone set to " + ZONE_NAME[v] + "." : "Zone removed."); }).catch(() => {}); return; }
