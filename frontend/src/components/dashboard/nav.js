@@ -1,4 +1,4 @@
-import { House, Users, Wrench, User, Layers, Database, Ticket, CalendarDays, Headphones, ShieldCheck, CreditCard, Handshake, Radio, Building2, MapPin, IndianRupee, History, ChartNoAxesColumnIncreasing, UserCog } from "lucide-react";
+import { House, Users, Wrench, User, Layers, Database, Ticket, CalendarDays, Headphones, ShieldCheck, CreditCard, Handshake, Radio, Building2, MapPin, IndianRupee, History, ChartNoAxesColumnIncreasing, UserCog, Settings } from "lucide-react";
 import { ChatBubbles, WhatsAppOutline } from "./icons";
 
 /* One entry per sidebar item, in the order of the design images.
@@ -49,6 +49,7 @@ export const ROLES = {
     { tab: "chat", label: "Chat", Icon: ChatBubbles, badge: "dot-blue" },
     { tab: "messages", label: "WhatsApp log", short: "WhatsApp", Icon: WhatsAppOutline },
     { tab: "reports", label: "Reports", Icon: ChartNoAxesColumnIncreasing },
+    { tab: "settings", label: "Settings", Icon: Settings },
   ] },
 };
 export const ROLE_BY_BASE = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" };

@@ -712,7 +712,7 @@ async function renderAdmin() {
   /* Load only what the open tab needs. Numbers come from the server's aggregates; every list below is one page at a time (serverTable). */
   const [bd, unread] = await Promise.all([API.adminBadges ? API.adminBadges() : Promise.all([fetchPage(API, "admin", "leads", { status: "new", limit: 1 }), fetchPage(API, "admin", "partners", { status: "pending", limit: 1 })]).then(([a, b]) => ({ new_leads: a.total, pending_partners: b.total, waiting: null })), unreadCount()]);
   const newCount = bd.new_leads, pendingCount = bd.pending_partners, pendingPlans = null, waiting = bd.waiting || null;
-  const tabs = [["overview", "Overview"], ["leads", "Leads", newCount], ["partners", "DSA & TIP", pendingCount], ["team", "Team & logins"], ["providers", "Providers"], ["plans", "Plans", pendingPlans], ["locations", "Locations"], ["cities", "Cities & waiting list", waiting], ["billing", "Billing & fees"], ["commissions", "DSA payouts"], ["payments", "Payout history"], ["chat", "Chat", unread], ["messages", "WhatsApp log"], ["reports", "Reports"]];
+  const tabs = [["overview", "Overview"], ["leads", "Leads", newCount], ["partners", "DSA & TIP", pendingCount], ["team", "Team & logins"], ["providers", "Providers"], ["plans", "Plans", pendingPlans], ["locations", "Locations"], ["cities", "Cities & waiting list", waiting], ["billing", "Billing & fees"], ["commissions", "DSA payouts"], ["payments", "Payout history"], ["chat", "Chat", unread], ["messages", "WhatsApp log"], ["reports", "Reports"], ["settings", "Settings"]];
   let body = "";
   if (tab === "overview") {
     const [d, nl, pd, pt] = await Promise.all([dashStats(API, "admin", { months: 1 }), fetchPage(API, "admin", "leads", { status: "new", unassigned: true, limit: 5 }), fetchPage(API, "admin", "partners", { type: "dsa", status: "pending", limit: 5 }), fetchPage(API, "admin", "partners", { type: "tip", status: "pending", limit: 5 })]);
@@ -768,6 +768,7 @@ async function renderAdmin() {
   if (tab === "messages") body = await adminMessages();
   if (tab === "payments") body = serverTable("adm-payouts", { role: "admin", kind: "commissions", label: "Search payouts", empty: "No payments recorded.", filters: () => ({ status: "paid" }), html: ps => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>DSA / TIP</th><th>Method</th><th>Reference</th><th class="r">Amount</th></tr></thead><tbody>${ps.map(p => `<tr><td>${fdate(p.paid_at)}</td><td><b>${esc(p.partner.name)}</b></td><td>${esc({ upi: "UPI", bank_transfer: "Bank transfer", cheque: "Cheque", cash: "Cash" }[p.paid_mode || p.method] || p.paid_mode || p.method || "")}</td><td class="mono">${esc(p.paid_reference || p.reference || "")}</td><td class="r num">${inr(p.amount)}</td></tr>`).join("")}</tbody></table></div>` });
   if (tab === "reports") body = await adminReports();
+  if (tab === "settings") body = await adminSettings();
   app.innerHTML = dashShell("Admin dashboard", "Connect Bhai · Indore", tabs, tab, body);
 }
 /* Reports tab: money and lead numbers come from the server (/reports/dashboard, /reports/money, /reports/partners); the per-partner table is paged. */
@@ -1013,6 +1014,18 @@ function feeFields(st) {
       ${field("st-target", "Leads promised per DSA/TIP / month", `<input id="st-target" name="lead_target_default" type="number" min="0" value="${esc(st.lead_target_default ?? 20)}">`, "Default; set per DSA/TIP in the DSA & TIP list")}
       ${field("st-share", "TIP share of monthly rental (%)", `<input id="st-share" name="tip_share_percent" type="number" min="0" max="100" value="${esc(st.tip_share_percent ?? 0)}">`, "Used to estimate TIP income on their dashboard")}</div>`;
 }
+/* Admin > Settings: every money setting is a row in the database table app_settings, saved here (no environment variables). */
+async function adminSettings() {
+  const st = await API.getSettings(), auto = Number(st.auto_assign) === 1;
+  return `<div class="split"><form class="card stack" data-form="settings" novalidate><h3>Fees &amp; payouts</h3>
+      <p class="muted small">Saved in the database. Changes apply to new charges only; amounts already charged do not change.</p>
+      ${feeFields(st)}
+      <button class="btn btn-primary" type="submit">Save settings</button></form>
+    <div class="card stack"><h3>Lead assignment</h3>
+      <div class="row" style="align-items:flex-start;gap:12px"><div style="min-width:0;flex:1 1 220px"><b>Auto-assign new leads by PIN code is ${auto ? "ON" : "OFF"}</b>
+        <p class="muted small">${auto ? "Each new request goes to the active DSA serving that PIN code (fewest open leads first) and to the TIP covering it. You can still reassign any lead." : "Every new request waits in Leads for you to assign it."}</p></div>
+        <button class="btn ${auto ? "btn-ghost" : "btn-primary"} btn-sm" data-act="auto-assign" data-v="${auto ? 0 : 1}" type="button">Turn ${auto ? "off" : "on"}</button></div></div></div>`;
+}
 async function adminBilling() {
   const [m, st] = await Promise.all([moneyStats(API, 1), API.getSettings()]);
   const f = S.billFilter || "due", month = new Date().toISOString().slice(0, 7);
@@ -1020,9 +1033,7 @@ async function adminBilling() {
   const n = Object.fromEntries(cnt);
   return `<div class="kpis"><div class="kpi"><span>Due to Connect Bhai</span><b>${inr(m.due)}</b></div><div class="kpi"><span>Collected this month</span><b>${inr(m.collected[month] || 0)}</b></div>
     <div class="kpi"><span>Registration fees</span><b>${inr(m.by_kind.registration_fee || 0)}</b><small>collected</small></div><div class="kpi"><span>Platform fees</span><b>${inr(m.by_kind.platform_fee || 0)}</b><small>collected</small></div></div>
-  <div class="split" style="margin-bottom:16px"><form class="card stack" data-form="settings" novalidate><h3>Fees</h3>
-      ${feeFields(st)}
-      <p class="muted small">Platform fee per installation is set on each TIP. Fees apply to new charges only.</p><button class="btn btn-primary" type="submit">Save fees</button></form>
+  <div class="split" style="margin-bottom:16px"><div class="card stack"><h3>Fees &amp; GST</h3><p class="muted">Registration, install and Care Plan fees, DSA payout and GST are changed in Settings. Changes apply to new charges only.</p><button class="btn btn-soft" data-tab="settings" type="button">Open Settings</button></div>
     <div class="card stack"><h3>Collect money</h3><p class="muted">Create a charge for a TIP or customer. They get a WhatsApp message and can pay online with UPI, card or net banking through Razorpay.</p><button class="btn btn-primary" data-act="new-charge" type="button">Create charge</button></div></div>
   <div class="chips" style="margin-bottom:12px">${[["due", "Due"], ["paid", "Paid"], ["failed", "Failed"], ["waived", "Waived"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="billing-filter" data-v="${k}" aria-pressed="${f === k}">${l} (${n[k]})</button>`).join("")}</div>
   ${serverTable("adm-bills", { role: "admin", kind: "charges", label: "Search charges", empty: "No charges here.", filters: () => ({ status: S.billFilter || "due" }), html: shown => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Payer</th><th>Type</th><th>Description</th><th class="r">Total</th><th>Status</th><th></th></tr></thead><tbody>
@@ -1906,7 +1917,7 @@ const forms = {
     if (REST) {   // every fee is a row in app_settings
       const keys = [["registration_fee_tip", "st-tip"], ["tip_install_fee", "st-inst"], ["care_plan_fee_per_lead", "st-cp"], ["dsa_payout_per_lead", "st-pay"], ["tip_job_earning", "st-job"], ["gst_percent", "st-gst"]], d = {}, e = {};
       keys.forEach(([k, id]) => { d[k] = val(f, k); const n = Number(d[k]); if (d[k] === "" || !(n >= 0) || (k === "gst_percent" && n > 100)) e[id] = k === "gst_percent" ? "Enter 0 to 100." : "Enter 0 or more."; });
-      if (!setErr(f, e)) return; await guard(btn, () => API.saveSettings(d)); toast("Fees saved."); return;
+      if (!setErr(f, e)) return; await guard(btn, () => API.saveSettings(d)); toast("Settings saved."); return;
     }
     const d = { registration_fee_tip: val(f, "registration_fee_tip"), registration_fee_dsa: val(f, "registration_fee_dsa"), gst_percent: val(f, "gst_percent"), lead_target_default: val(f, "lead_target_default"), tip_share_percent: val(f, "tip_share_percent") }, e = {};
     if (!(Number(d.lead_target_default) >= 0) || d.lead_target_default === "") e["st-target"] = "Enter 0 or more."; if (!(Number(d.tip_share_percent) >= 0 && Number(d.tip_share_percent) <= 100) || d.tip_share_percent === "") e["st-share"] = "Enter 0 to 100.";
