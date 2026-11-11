@@ -17,7 +17,7 @@ export default function Sidebar({ role, cfg, current, counts, open, onNavigate }
         <ul>
           {cfg.items.map(({ tab, label, Icon, badge }) => (
             <li key={tab}>
-              <Link href={hrefOf(role, tab)} className="dsh-item" aria-current={current === tab ? "page" : undefined} title={label} onClick={onNavigate}>
+              <Link prefetch={false} href={hrefOf(role, tab)} className="dsh-item" aria-current={current === tab ? "page" : undefined} title={label} onClick={onNavigate}>
                 <Icon aria-hidden="true" /><span className="dsh-lbl">{label}</span><Badge kind={badge} n={counts[tab]} />
               </Link>
             </li>

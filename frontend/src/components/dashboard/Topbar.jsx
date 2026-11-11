@@ -62,7 +62,7 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
       <div className="dsh-right">
         <button type="button" className="dsh-msearch" aria-label="Search" aria-expanded={mOpen} aria-controls="dsh-search" onClick={() => { setMOpen(v => !v); setTimeout(() => { const i = document.querySelector("#dsh-search input"); if (i) i.focus(); }, 30); }}><Search aria-hidden="true" /></button>
         <a className="dsh-wa" href={`https://wa.me/91${CONFIG.SUPPORT_PHONE}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp support"><WhatsAppIcon /></a>
-        <Link className="dsh-bell" href={hrefOf(role, "chat")} aria-label={chatCount ? `Messages, ${chatCount} unread` : "Messages"}><Bell aria-hidden="true" />{chatCount ? <i /> : null}</Link>
+        <Link prefetch={false} className="dsh-bell" href={hrefOf(role, "chat")} aria-label={chatCount ? `Messages, ${chatCount} unread` : "Messages"}><Bell aria-hidden="true" />{chatCount ? <i /> : null}</Link>
         <span className="dsh-sep" aria-hidden="true" />
         <div className="dsh-acct">
           <button type="button" className="dsh-acct-btn" aria-expanded={acctOpen} aria-haspopup="menu" onClick={() => onAcct(!acctOpen)}>
@@ -71,7 +71,7 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
             <ChevronDown aria-hidden="true" />
           </button>
           <div className="dsh-menu" role="menu" hidden={!acctOpen} onClick={onClose}>
-            {FEES[role] && <Link href={hrefOf(role, FEES[role][0])} role="menuitem">{FEES[role][1]}</Link>}
+            {FEES[role] && <Link prefetch={false} href={hrefOf(role, FEES[role][0])} role="menuitem">{FEES[role][1]}</Link>}
             <Link href="/" role="menuitem">Go to website</Link>
             {!LIVE && <button type="button" role="menuitem" data-act="reset-demo">Reset demo data</button>}
             <button type="button" role="menuitem" data-act="logout">Log out</button>
