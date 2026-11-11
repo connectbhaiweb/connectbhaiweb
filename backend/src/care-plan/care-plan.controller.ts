@@ -6,6 +6,7 @@ import { AuthUser, CurrentUser, Roles } from '../common/decorators';
 import { PageQuery, pageArgs, paged } from '../common/pagination';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { leadScope } from '../common/utils/scope';
+import { CarePlanSyncService } from './care-plan-sync.service';
 import { GenieAcsProvider } from './genieacs.provider';
 
 class ActionDto {
@@ -23,7 +24,7 @@ class DeviceQuery extends PageQuery { @IsOptional() @IsString() lead_ids?: strin
 
 @ApiTags('care-plan') @ApiBearerAuth() @Controller('care-plan')
 export class CarePlanController {
-  constructor(private prisma: PrismaService, private acs: GenieAcsProvider) {}
+  constructor(private prisma: PrismaService, private acs: GenieAcsProvider, private sync: CarePlanSyncService) {}
 
   private scope(u: AuthUser): Prisma.CarePlanDeviceWhereInput { return u.role === 'admin' ? {} : { lead: leadScope(u) , ...(u.role === 'dsa' ? { id: -1 } : {}) }; }
   private async device(id: number, u: AuthUser) {
@@ -74,7 +75,7 @@ export class CarePlanController {
   @Post('devices/:id/refresh') @HttpCode(200)
   async refresh(@Param('id', ParseIntPipe) id: number, @CurrentUser() u: AuthUser) {
     const d = await this.device(id, u);
-    return this.pollOne(d);
+    return this.sync.pollOne(d);
   }
 
   /** Customer, TIP or admin. Wi-Fi password is sent to the modem but never stored. */
@@ -104,23 +105,7 @@ export class CarePlanController {
     return this.prisma.speedTest.create({ data: { care_plan_device_id: id, ...r } });
   }
 
-  /** Admin / scheduler: refresh every ACTIVE device (Care Plan only). */
+  /** Admin / scheduler: refresh every ACTIVE device (Care Plan only). The server also does this by itself every CARE_PLAN_SYNC_MINUTES (default 10). */
   @Roles('admin') @Post('poll') @HttpCode(200)
-  async poll() {
-    const devices = await this.prisma.carePlanDevice.findMany({ where: { is_active: true, lead: { care_plan: true } }, take: 500 });
-    let ok = 0, failed = 0;
-    for (let i = 0; i < devices.length; i += 10) {   // 10 at a time instead of one by one
-      const res = await Promise.allSettled(devices.slice(i, i + 10).map((d) => this.pollOne(d)));
-      res.forEach((r) => (r.status === 'fulfilled' ? ok++ : failed++));
-    }
-    return { polled: devices.length, ok, failed };
-  }
-
-  private async pollOne(d: { id: bigint; genieacs_device_id: string | null; serial_number: string | null }) {
-    const s = await this.acs.fetchStatus(d.genieacs_device_id ?? d.serial_number ?? `dev-${d.id}`);
-    return this.prisma.carePlanDevice.update({
-      where: { id: d.id },
-      data: { online: s.online, last_seen_at: s.last_seen_at, rx_power_dbm: s.rx_power_dbm, wifi_ssid: s.wifi_ssid, connected_clients: s.connected_clients },
-    });
-  }
+  poll() { return this.sync.pollAll(); }
 }

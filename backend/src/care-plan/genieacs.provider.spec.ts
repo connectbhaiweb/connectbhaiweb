@@ -60,3 +60,24 @@ describe('GenieAcsProvider.health (real NBI url)', () => {
     expect(f).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('GenieAcsProvider.fetchStatus signal path', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+  const live = () => new GenieAcsProvider({ get: (k: string) => ({ GENIEACS_NBI_URL: 'http://acs.test:7557' } as any)[k] ?? '' } as any);
+  const device = (wan: any) => ({ ok: true, status: 200, json: async () => [{ _id: 'X', _lastInform: new Date().toISOString(), InternetGatewayDevice: { WANDevice: { 1: wan }, LANDevice: { 1: { WLANConfiguration: { 1: { SSID: { _value: 'Home' }, TotalAssociations: { _value: 2 } } } } } } }] });
+
+  it('reads the China Telecom (Syrotech/Realtek) path', async () => {
+    global.fetch = jest.fn().mockResolvedValue(device({ 'X_CT-COM_GponInterfaceConfig': { RXPower: { _value: -15 } } })) as any;
+    const s = await live().fetchStatus('X');
+    expect(s.rx_power_dbm).toBe(-15); expect(s.wifi_ssid).toBe('Home'); expect(s.connected_clients).toBe(2); expect(s.online).toBe(true);
+  });
+  it('still reads the older Huawei-style path', async () => {
+    global.fetch = jest.fn().mockResolvedValue(device({ X_GponInterafceConfig: { RXPower: { _value: '-22.5' } } })) as any;
+    expect((await live().fetchStatus('X')).rx_power_dbm).toBe(-22.5);
+  });
+  it('is null, not 0 dBm, when the modem has no optical reading', async () => {
+    global.fetch = jest.fn().mockResolvedValue(device({})) as any;
+    expect((await live().fetchStatus('X')).rx_power_dbm).toBeNull();
+  });
+});

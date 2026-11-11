@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export interface DeviceStatus { online: boolean; last_seen_at: Date; rx_power_dbm: number; wifi_ssid: string | null; connected_clients: number; raw?: any }
+export interface DeviceStatus { online: boolean; last_seen_at: Date; rx_power_dbm: number | null; wifi_ssid: string | null; connected_clients: number; raw?: any }
 export interface SpeedResult { download_mbps: number; upload_mbps: number; ping_ms: number }
 export interface ActionResult { ok: boolean; error?: string }
 export interface AcsHealth { status: 'up' | 'down' | 'mock'; reachable: boolean; mock: boolean; latency_ms?: number; checked_at: string; detail?: string }
@@ -51,6 +51,22 @@ export class GenieAcsProvider {
     return value;
   }
 
+  /** Where the modem keeps its optical receive power differs by make (Huawei "Interafce" typo, China Telecom X_CT-COM on Syrotech/Realtek, TR-181 Device.Optical). null when none of them is present, never a fake 0 dBm. */
+  static readonly RX_POWER_PATHS = [
+    'InternetGatewayDevice.WANDevice.1.X_CT-COM_GponInterfaceConfig.RXPower',
+    'InternetGatewayDevice.WANDevice.1.X_GponInterafceConfig.RXPower',
+    'InternetGatewayDevice.WANDevice.1.X_GponInterfaceConfig.RXPower',
+    'Device.Optical.Interface.1.Stats.OpticalSignalLevel',
+  ];
+  private rxPower(v: (p: string) => any): number | null {
+    for (const path of GenieAcsProvider.RX_POWER_PATHS) {
+      const raw = v(path);
+      const n = raw === undefined || raw === null || raw === '' ? NaN : Number(raw);
+      if (Number.isFinite(n)) return n;
+    }
+    return null;
+  }
+
   async fetchStatus(deviceId: string): Promise<DeviceStatus> {
     if (this.isMock) {
       const h = this.seed(deviceId);
@@ -64,7 +80,7 @@ export class GenieAcsProvider {
     const v = (p: string) => p.split('.').reduce((o: any, k) => o?.[k], d)?._value;
     return {
       online: Date.now() - lastInform.getTime() < 10 * 60_000, last_seen_at: lastInform,
-      rx_power_dbm: Number(v('InternetGatewayDevice.WANDevice.1.X_GponInterafceConfig.RXPower') ?? v('Device.Optical.Interface.1.Stats.OpticalSignalLevel') ?? 0),
+      rx_power_dbm: this.rxPower(v),
       wifi_ssid: v('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID') ?? v('Device.WiFi.SSID.1.SSID') ?? null,
       connected_clients: Number(v('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.TotalAssociations') ?? 0),
     };
