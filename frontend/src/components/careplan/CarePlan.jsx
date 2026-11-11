@@ -42,6 +42,18 @@ export default function CarePlanPage({ base, tab }) {
   const { active, pending, data, error, loading, reload } = useDashData(role, loadDevices);
   const [q, setQ] = useState(""), [f, setF] = useState("all");
   const [acs, setAcs] = useState(null), [acsBusy, setAcsBusy] = useState(false), [acsErr, setAcsErr] = useState("");
+  const [linkFor, setLinkFor] = useState(null), [cands, setCands] = useState(null), [pick, setPick] = useState(""), [linkBusy, setLinkBusy] = useState(false), [linkErr, setLinkErr] = useState("");
+  const startLink = async d => {   // admin: choose which customer this modem belongs to
+    setLinkFor(d); setPick(""); setLinkErr(""); setCands(null);
+    try { const { API } = await import("@/lib/connectbhai/api"); setCands(await API.carePlanLinkCandidates()); } catch (e) { setCands([]); setLinkErr((e && e.message) || "Could not load customers."); }
+  };
+  const doLink = async () => {
+    if (!pick || !linkFor) return;
+    setLinkBusy(true); setLinkErr("");
+    try { const { API } = await import("@/lib/connectbhai/api"); await API.carePlanLink(pick, linkFor); setLinkFor(null); await fetchAcs(); }
+    catch (e) { setLinkErr((e && e.message) || "Could not link this modem."); }
+    setLinkBusy(false);
+  };
   const fetchAcs = async () => {   // admin: refresh the linked modems, then list everything GenieACS knows
     setAcsBusy(true); setAcsErr("");
     try { const { API } = await import("@/lib/connectbhai/api"); setAcs(await API.carePlanFetchAcs()); reload(); }
@@ -99,11 +111,33 @@ export default function CarePlanPage({ base, tab }) {
                     <span role="cell" data-l="Model" className="pt-ell">{[d.manufacturer, d.model].filter(Boolean).join(" ") || "—"}<small className="cp-sn">{d.serial || d.id}</small></span>
                     <span role="cell" data-l="SSID" className="pt-ell">{d.wifi_ssid || "—"}</span>
                     <span role="cell" data-l="Firmware" className="pt-ell">{d.firmware || "—"}</span>
-                    <span role="cell" data-l="Linked"><Chip label={d.linked_to ? "Linked" : "Not linked"} tone={d.linked_to ? "green" : "amber"} /></span>
+                    <span role="cell" data-l="Linked">{d.linked_to ? <Chip label="Linked" tone="green" /> : <button type="button" className="cu-btn cu-btn-soft" onClick={() => startLink(d)}>Link…</button>}</span>
                   </div>
                 ))}
               </div>
             ) : <p className="pt-muted">GenieACS has no modems yet. A modem appears here after it checks in.</p>}
+        </Card>
+      )}
+      {role === "admin" && linkFor && (
+        <Card title={`Link ${[linkFor.manufacturer, linkFor.model].filter(Boolean).join(" ") || "modem"} · ${linkFor.serial || linkFor.id} to a customer`} Icon={Router}>
+          {cands === null ? <p className="pt-muted">Loading customers…</p> : cands.length ? (
+            <div className="cp-acts">
+              <label className="cp-search"><span className="pt-sr">Customer</span>
+                <select value={pick} onChange={e => setPick(e.target.value)} aria-label="Customer to link this modem to">
+                  <option value="">Choose a customer…</option>
+                  {cands.map(x => <option key={x.id} value={x.id}>{x.lead.customer_name} · {x.lead.ref_code} · {x.lead.customer_phone}</option>)}
+                </select>
+              </label>
+              <button type="button" className="cu-btn cu-btn-primary" onClick={doLink} disabled={!pick || linkBusy}>{linkBusy ? "Linking…" : "Link modem"}</button>
+              <button type="button" className="cu-btn cu-btn-soft" onClick={() => setLinkFor(null)} disabled={linkBusy}>Cancel</button>
+            </div>
+          ) : (
+            <>
+              <p className="pt-muted">No customer is waiting for a modem. A customer appears here after a TIP completes their installation with Care Plan.</p>
+              <div className="cp-acts"><button type="button" className="cu-btn cu-btn-soft" onClick={() => setLinkFor(null)}>Close</button></div>
+            </>
+          )}
+          {linkErr && <p className="pt-muted" role="alert">{linkErr}</p>}
         </Card>
       )}
       <div className="cp-sum cp-sum-lg">

@@ -506,6 +506,14 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     },
     /* admin "Fetch from GenieACS": refresh every linked modem now, then list every modem GenieACS knows (linked to a customer or not) */
     async carePlanFetchAcs() { need("admin"); const polled = await post("/care-plan/poll").catch(() => null); const d = await get("/care-plan/acs-devices"); return { polled, ...d }; },
+    /* admin "Link": customers with a Care Plan record but no modem yet, and attaching a GenieACS modem to one of them */
+    async carePlanLinkCandidates() { need("admin"); return (await get("/care-plan/link-candidates")).items || []; },
+    async carePlanLink(recordId, acsDevice) {
+      need("admin");
+      await patch(`/care-plan/devices/${recordId}`, { genieacs_device_id: acsDevice.id, ...(acsDevice.serial ? { serial_number: acsDevice.serial } : {}), ...(acsDevice.model ? { model: acsDevice.model } : {}) });
+      await post(`/care-plan/devices/${recordId}/refresh`).catch(() => null);   // fill in its status straight away
+      return true;
+    },
     async carePlanSummary() { const d = await get("/care-plan/summary"); return { ...d, zones: d.zones || [] }; },
     async adminAcs() { need("admin"); const [p, sm] = await Promise.all([this.adminPartners(), get("/care-plan/summary")]); return p.filter(x => x.type === "tip").map(x => ({ ...x, linked: (sm.tips || {})[x.id] || 0 })); },
     async saveAcs() { fail("GenieACS is configured on the server (GENIEACS_NBI_URL), not per partner."); },

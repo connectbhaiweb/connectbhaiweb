@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, ServiceUnavailableException, HttpCode, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, ServiceUnavailableException, HttpCode, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { IsIn, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
@@ -69,7 +69,24 @@ export class CarePlanController {
   /** TIP / admin attach the modem identity after installation. */
   @Roles('tip', 'admin') @Patch('devices/:id') async update(@Param('id', ParseIntPipe) id: number, @Body() d: UpdateDeviceDto, @CurrentUser() u: AuthUser) {
     await this.device(id, u);
+    // one physical modem belongs to one customer: refuse a GenieACS id or serial that another record already has
+    for (const [field, value] of [['genieacs_device_id', d.genieacs_device_id], ['serial_number', d.serial_number]] as const) {
+      if (!value) continue;
+      const taken = await this.prisma.carePlanDevice.findFirst({ where: { [field]: value, NOT: { id } }, select: { lead: { select: { ref_code: true } } } });
+      if (taken) throw new ConflictException(`This modem is already linked to ${taken.lead.ref_code}. Unlink it there first.`);
+    }
     return this.prisma.carePlanDevice.update({ where: { id }, data: d });
+  }
+
+  /** Admin: customers whose installation has a Care Plan record but no modem linked yet (candidates for the "Link" action). */
+  @Roles('admin') @Get('link-candidates')
+  async linkCandidates() {
+    const rows = await this.prisma.carePlanDevice.findMany({
+      where: { genieacs_device_id: null, is_active: true },
+      select: { id: true, serial_number: true, lead: { select: { ref_code: true, customer_name: true, customer_phone: true } } },
+      orderBy: { id: 'desc' }, take: 200,
+    });
+    return { items: rows };
   }
 
   @Post('devices/:id/refresh') @HttpCode(200)
