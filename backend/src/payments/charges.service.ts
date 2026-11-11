@@ -51,7 +51,13 @@ export class ChargesService {
         await tx.lead.updateMany({ where: { id: { in: ids } }, data: { care_plan: true, care_plan_at: now } });
         const installed = await tx.lead.findMany({ where: { id: { in: ids }, status: 'installed' } });
         for (const l of installed) {
-          await tx.carePlanDevice.upsert({ where: { lead_id: l.id }, update: { is_active: true }, create: { lead_id: l.id, tip_user_id: charge.payer_user_id } });
+          // the modem serial/MAC the TIP saved when completing the install lives on the booking: carry it over so GenieACS can match it
+          const bk = await tx.booking.findFirst({ where: { lead_id: l.id, status: 'completed' }, orderBy: { id: 'desc' }, select: { router_serial: true, router_mac: true } });
+          const cur = await tx.carePlanDevice.findUnique({ where: { lead_id: l.id }, select: { serial_number: true, mac_address: true } });
+          const serial = bk?.router_serial || null;
+          const taken = serial && !cur?.serial_number ? await tx.carePlanDevice.findFirst({ where: { serial_number: serial, NOT: { lead_id: l.id } }, select: { id: true } }) : null;   // serial is unique: never steal another customer's
+          const fill = { ...(serial && !cur?.serial_number && !taken ? { serial_number: serial } : {}), ...(bk?.router_mac && !cur?.mac_address ? { mac_address: bk.router_mac } : {}) };
+          await tx.carePlanDevice.upsert({ where: { lead_id: l.id }, update: { is_active: true, ...fill }, create: { lead_id: l.id, tip_user_id: charge.payer_user_id, ...fill } });
         }
       }
       return { charge, applied: true };
