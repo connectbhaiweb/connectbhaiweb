@@ -24,10 +24,15 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   async function raw(method, path, body, access) {
     let r;
     try {
-      r = await fetch(API_URL + path, { method, headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...(access ? { authorization: "Bearer " + access } : {}) }, body: body !== undefined ? JSON.stringify(body) : undefined });
-    } catch (e) { throw new AppError("Cannot reach the Connect Bhai server. Check that the API is running."); }
+      r = await fetch(API_URL + path, { method, headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...(access ? { authorization: "Bearer " + access } : {}) }, body: body !== undefined ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(method === "GET" ? 15000 : 30000) });   // never wait forever: a stalled request ends the "Loading…" screen
+    } catch (e) { const to = e && e.name === "TimeoutError", er = new AppError(to ? "The server is taking too long to answer. Please try again." : "Cannot reach the Connect Bhai server. Check that the API is running."); er.code = to ? "timeout" : "network"; throw er; }
     let data = null; try { data = await r.json(); } catch (e) { /* empty body */ }
     return { r, data };
+  }
+  /* reads are safe to repeat: one automatic second try when the first one timed out or the connection dropped (server waking up, brief restart) */
+  async function rawRetry(method, path, body, access) {
+    try { return await raw(method, path, body, access); }
+    catch (e) { if (method !== "GET" || !(e && (e.code === "timeout" || e.code === "network"))) throw e; await new Promise(r => setTimeout(r, 800)); return raw(method, path, body, access); }
   }
   async function refresh() {
     if (!tokens || !tokens.refresh_token) return false;
@@ -49,7 +54,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   }
   async function send(method, path, body, opt) {
     opt = opt || {};
-    let { r, data } = await raw(method, path, body, opt.anon ? null : tokens && tokens.access_token);
+    let { r, data } = await rawRetry(method, path, body, opt.anon ? null : tokens && tokens.access_token);
     if (r.status === 401 && !opt.anon && tokens && await refresh()) ({ r, data } = await raw(method, path, body, tokens.access_token));
     if (!r.ok) throw new AppError(r.status === 401 && !opt.anon ? "Please log in again." : r.status === 429 ? "Too many attempts. Please wait a minute and try again." : msgOf(data));
     return data;
@@ -494,6 +499,11 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     routerTest(bookingId, onQueued) {
       return deviceFor(bookingId).then(async d => { if (onQueued) onQueued(); const t = await post(`/care-plan/devices/${d.id}/speed-test`);
         return { id: S(t.id), booking_id: S(bookingId), kind: "router", status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: true, created_at: t.created_at }; });
+    },
+    /* real modems for the React Care plan screens (one page of up to 100, in that screen's shape) */
+    async carePlanDevices() {
+      const d = await get("/care-plan/devices" + qs({ page: 1, limit: 100 })), q = v => v >= -25 ? "Good" : v >= -27 ? "Weak" : "Bad";
+      return (d.items || []).map(x => { const rx = num(x.rx_power_dbm); return { id: S(x.id), serialNumber: x.serial_number || "", manufacturer: "", model: x.model || "Modem", firmwareVersion: "—", customer: { userId: null, name: (x.lead && x.lead.customer_name) || "", mobile: "" }, status: x.online ? "online" : "offline", lastInform: x.last_seen_at || null, wifi: { ssid: x.wifi_ssid || "—", band: "", channel: "—", connectedDevices: x.connected_clients == null ? 0 : x.connected_clients, speedMbps: null }, signal: { quality: rx == null ? "Bad" : q(rx), rxPowerDbm: rx }, ip: null, uptimeSeconds: 0, partner: {} }; });
     },
     async carePlanSummary() { const d = await get("/care-plan/summary"); return { ...d, zones: d.zones || [] }; },
     async adminAcs() { need("admin"); const [p, sm] = await Promise.all([this.adminPartners(), get("/care-plan/summary")]); return p.filter(x => x.type === "tip").map(x => ({ ...x, linked: (sm.tips || {})[x.id] || 0 })); },
