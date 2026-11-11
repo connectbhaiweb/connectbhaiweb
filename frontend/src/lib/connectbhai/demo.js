@@ -609,6 +609,13 @@ const Demo = (() => {
       return done(issueLogin(pr, "cb_login_created"));
     }),
     adminResetPassword: wrap(id => { need("admin"); const p = byId("profiles", id); if (!p) fail("User not found."); return done(issueLogin(p, "cb_password_reset")); }),
+    deletePartner: wrap(id => {   // same rules and messages as DELETE /users/:id on the API
+      need("admin"); const p = byId("partners", id); if (!p) fail("DSA / TIP not found.");
+      if (p.status !== "pending") fail("Only a pending application can be deleted. Disable the account instead.");
+      if (DB.leads.some(l => l.dsa_id === p.id || l.tip_id === p.id) || DB.charges.some(c => c.partner_id === p.id && ["paid", "refunded"].includes(c.status)))
+        fail("This account has activity (leads, payments or messages), so it cannot be deleted. Disable it instead.");
+      DB.partners = DB.partners.filter(x => x.id !== p.id); DB.charges = DB.charges.filter(c => c.partner_id !== p.id); return done(true);
+    }),
     adminSetDisabled: wrap((id, off) => { need("admin"); const p = byId("profiles", id); if (!p) fail("User not found."); if (p.id === me.id) fail("You cannot disable your own login.");
       if (off && p.role === "admin" && DB.profiles.filter(x => x.role === "admin" && !x.disabled).length <= 1) fail("Keep at least one active admin.");
       p.disabled = !!off; return done(true); }),
@@ -751,6 +758,7 @@ const Demo = (() => {
       return done(true);
     }),
     togglePlan: wrap(id => { need("admin"); const p = byId("plans", id); p.is_active = !p.is_active; return done(true); }),
+    pinDirectory: wrap(() => DB.locations.map(l => ({ pin: l.pincode, area: l.area, city: l.city }))),   // PIN suggestions (public)
     adminLocations: wrap(() => { need("admin"); return DB.locations.map(l => Object.assign({}, l, { coverage: DB.coverage.filter(c => c.location_id === l.id).map(c => Object.assign({}, c, { provider: byId("providers", c.provider_id), tip: c.tip_partner_id ? byId("partners", c.tip_partner_id) : null })) })).sort((a, b) => a.pincode.localeCompare(b.pincode)); }),
     saveLocation: wrap(f => {
       need("admin"); if (!isPin(f.pincode)) fail("Enter a valid 6-digit PIN code."); if (!f.area || f.area.trim().length < 2) fail("Enter the area name.");
@@ -910,6 +918,7 @@ const Live = (() => {
     },
     async setPartnerStatus(id, s) { chk(await sb.from("partners").update({ status: s }).eq("id", id)); return true; },
     async approvePartner(id) { chk(await sb.rpc("admin_approve_partner", { p_partner: id })); return true; },
+    async deletePartner(id) { chk(await sb.from("partners").delete().eq("id", id).eq("status", "pending")); return true; },
     async setAutoAssign(on) { chk(await sb.from("app_settings").update({ value: on ? 1 : 0 }).eq("key", "auto_assign")); return true; },
     async dsaAddLead(f) { const r = one(chk(await sb.rpc("dsa_add_lead", { p_name: f.name, p_phone: f.phone, p_pincode: f.pincode, p_area: f.area || null, p_address: f.address || null, p_plan_id: f.plan_id || null, p_consent: !!f.consent }))); return { ref_code: r.ref_code, tip: null }; },
     async getSettings() { const o = {}; chk(await sb.from("app_settings").select("key,value")).forEach(r => (o[r.key] = Number(r.value))); return o; },
@@ -956,6 +965,7 @@ const Live = (() => {
       chk(f.id ? await sb.from("plans").update(row).eq("id", f.id) : await sb.from("plans").insert(row)); return true;
     },
     async togglePlan(id) { const p = chk(await sb.from("plans").select("is_active").eq("id", id).single()); chk(await sb.from("plans").update({ is_active: !p.is_active }).eq("id", id)); return true; },
+    async pinDirectory() { return (chk(await sb.from("locations").select("pincode, area, city")) || []).map(l => ({ pin: l.pincode, area: l.area, city: l.city })); },
     async adminLocations() { return chk(await sb.from("locations").select("*, coverage(*, provider:providers(id,name), tip:partners(id,name))").order("pincode")); },
     async saveLocation(f) { const other = f.city_id && f.city_id !== "indore", ct = other ? chk(await sb.from("cities").select("name").eq("id", f.city_id).single()) : null;
       chk(await sb.from("locations").insert({ pincode: f.pincode, area: f.area, zone: other ? null : f.zone || null, ...(ct ? { city: ct.name } : {}) })); return true; },

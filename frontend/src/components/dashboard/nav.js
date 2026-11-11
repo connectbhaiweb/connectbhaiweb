@@ -25,9 +25,8 @@ export const ROLES = {
   tip: { base: "tip", title: "TIP", items: [
     { tab: "home", label: "Home", Icon: House },
     { tab: "careplan", label: "Care plan", Icon: ShieldCheck },
-    { tab: "leads", label: "Leads", Icon: Users, badge: "new" },
-    { tab: "bookings", label: "Installs", Icon: Wrench },
-    { tab: "customers", label: "Customers", Icon: User, also: ["payments"] },
+    { tab: "leads", label: "Leads", Icon: Users, badge: "new", also: ["bookings", "customers"] },   // QA 8: installs and customers live under Leads (filters)
+    { tab: "payments", label: "Payments", Icon: CreditCard },
     { tab: "plans", label: "Plans (update sheet)", short: "Plans", Icon: Database },
     { tab: "tickets", label: "Tickets", Icon: Ticket },
     { tab: "chat", label: "Chat", Icon: ChatBubbles, badge: "dot-blue" },

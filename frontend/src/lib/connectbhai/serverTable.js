@@ -42,7 +42,7 @@ async function load(box) {
   count.textContent = r.total ? `${from}–${Math.min(s.page * s.size, r.total)} of ${r.total}` : "";
   const nums = []; for (let p = 1; p <= pages; p++) if (p === 1 || p === pages || Math.abs(p - s.page) <= 1) nums.push(p);
   let h = "", last = 0;
-  if (pages > 1) {
+  if (r.total) {   // QA 14: pager always visible, ‹ 1 › on a single page
     h = `<button type="button" data-p="${s.page - 1}" ${s.page === 1 ? "disabled" : ""} aria-label="Previous page">‹</button>`;
     for (const p of nums) { if (p - last > 1) h += `<span class="tt-gap">…</span>`; h += `<button type="button" data-p="${p}" class="${p === s.page ? "on" : ""}" ${p === s.page ? 'aria-current="page"' : ""}>${p}</button>`; last = p; }
     h += `<button type="button" data-p="${s.page + 1}" ${s.page === pages ? "disabled" : ""} aria-label="Next page">›</button>`;

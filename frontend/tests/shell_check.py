@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:3100"
 EXE = "/opt/pw-browsers/chromium-1243/chrome-linux64/chrome"
-USERS = {"customer": ("u-cust", "my", 5), "dsa": ("u-dsa", "dsa", 8), "tip": ("u-tip", "tip", 8), "admin": ("u-admin", "admin", 16)}
+USERS = {"customer": ("u-cust", "my", 5), "dsa": ("u-dsa", "dsa", 8), "tip": ("u-tip", "tip", 7), "admin": ("u-admin", "admin", 17)}   # tip: Installs + Customers merged into Leads, Payments own item; admin: Settings
 WIDTHS = [360, 390, 768, 1024, 1440]
 results = []
 
@@ -64,7 +64,7 @@ with sync_playwright() as p:
     pg.goto(f"{BASE}/admin"); wait_shell(pg, "admin")
     check("C1 phone: 4 items + More", pg.locator(".dsh-bottom .dsh-bn").count() == 5)
     pg.get_by_role("button", name="More").click()
-    check("C2 More sheet lists all 16 (incl. Care plan)", pg.locator("#dsh-sheet:not([hidden]) .dsh-sheet-item").count() == 16 and pg.locator("#dsh-sheet .dsh-sheet-item", has_text="Care plan").count() == 1)
+    check("C2 More sheet lists all 17 (incl. Care plan)", pg.locator("#dsh-sheet:not([hidden]) .dsh-sheet-item").count() == 17 and pg.locator("#dsh-sheet .dsh-sheet-item", has_text="Care plan").count() == 1)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
     check("C3 Esc closes the sheet", pg.locator("#dsh-sheet").get_attribute("hidden") is not None)
     pg.get_by_role("button", name="More").click(); pg.locator("#dsh-sheet .dsh-sheet-item", has_text="Reports").click(); pg.wait_for_url("**/admin/reports")
