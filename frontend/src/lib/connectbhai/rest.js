@@ -349,6 +349,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     /* ---- money ---- */
     async myCharges() { if (me && me.role === "dsa") return []; return (await all("/charges")).items.map(mapCharge); },   // a DSA pays no charges and the API refuses /charges for DSAs
     async adminCharges() { need("admin"); return (await all("/charges")).items.map(mapCharge); },
+    async carePlanCharge(leadId) { need("tip"); const c = await post("/charges/care-plan", { lead_ids: [Number(leadId)] }); const paid = await payFlow(c.id); return mapCharge(await get("/charges/" + c.id).catch(() => paid)); },   // TIP adds Care Plan to one lead (any time, also after install), then pays the charge
     async payCharge(id) { const paid = await payFlow(id); return mapCharge(await get("/charges/" + id).catch(() => paid)); },
     async customerPay(f) { need("customer"); const c = await post("/charges/customer", { description: f.description.trim(), amount: Number(f.amount), lead_id: N(f.lead_id) }); return mapCharge(c); },
     async adminCreateCharge(f) {

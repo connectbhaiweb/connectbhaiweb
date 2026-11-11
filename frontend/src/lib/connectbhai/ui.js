@@ -1537,6 +1537,11 @@ const actions = {
   "zone-all": () => { S.zoneAll = !S.zoneAll; render(); },
   "lead": b => openLead(b.dataset.id).catch(e => toast(errMsg(e), true)),
   "book": b => openBook(b.dataset.id),
+  "care-plan-buy": async b => {
+    if (!API.carePlanCharge) { toast("Adding Care plan needs the live API.", true); return; }
+    b.disabled = true;
+    try { paySuccess(await API.carePlanCharge(b.dataset.id)); } catch (e) { toast(errMsg(e), true); } finally { b.disabled = false; }
+  },
   "booking-status": b => openBookingStatus(b.dataset.id).catch(e => toast(errMsg(e), true)),
   "ticket-status": b => openTicketStatus(b.dataset.id, b.dataset.s),
   "assign": b => openAssign(b.dataset.id),

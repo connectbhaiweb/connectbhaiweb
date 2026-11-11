@@ -141,6 +141,7 @@ function Leads({ stats, partner }) {
               <span role="cell" className="pt-acts">
                 <CallWa phone={l.phone} name={l.name} text={`Namaste ${l.name}, this is about your Connect Bhai request ${l.ref_code}`} />
                 <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="lead" data-id={l.id}>Update</button>
+                {l.status === "installed" && (l.care_plan ? <Chip s="care" label="Care plan on" tone="green" /> : <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="care-plan-buy" data-id={l.id}>Add Care plan</button>)}
                 {["assigned", "contacted", "follow_up"].includes(l.status) && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="book" data-id={l.id}>Schedule</button>}
               </span>
             </div>
