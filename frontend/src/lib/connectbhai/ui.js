@@ -807,7 +807,6 @@ async function openAssign(id) {
   openModal(`<h2>Assign lead</h2><p class="muted small" style="margin:2px 0 12px"><span class="mono">${esc(l.ref_code)}</span> · ${esc(l.name)} · PIN ${esc(l.pincode)}</p>
     <p class="small" style="margin-bottom:12px">${planLine(l.plan)}</p>
     <form class="stack" data-form="assign" data-id="${id}" data-cur-dsa="${esc(l.assigned_dsa_id || "")}" novalidate>
-      ${field("as-dsa", "Direct Selling Agent", `<select id="as-dsa" name="dsa">${opt(act("dsa"), l.assigned_dsa_id, sugDsa)}</select>`, "Calls the customer and handles follow-ups")}
       ${field("as-tip", "TIP (installer)", `<select id="as-tip" name="tip">${opt(act("tip"), l.assigned_tip_id, covTip)}</select>`, "Suggested from coverage for this PIN and provider")}
       <button class="btn btn-primary" type="submit">Assign lead</button></form>`);
 }
@@ -1882,7 +1881,7 @@ const forms = {
     await guard(btn, () => API.saveAcs(f.dataset.id, d)); closeModal(); toast("ACS saved."); render();
   },
   "ticket-status": async (f, btn) => { const s = val(f, "status"), n = val(f, "note"); if (!setErr(f, ["resolved", "closed"].includes(s) && n.length < 3 ? { "ts-note": "Tell the customer what was done." } : {})) return; await guard(btn, () => API.updateTicket(f.dataset.id, s, n)); closeModal(); toast("Ticket updated."); render(); },
-  assign: async (f, btn) => { const dsa = val(f, "dsa"), tip = val(f, "tip"); if (!setErr(f, !dsa && !tip && !f.dataset.curDsa ? { "as-dsa": "Choose a DSA or a TIP." } : {})) return; await guard(btn, () => API.assignLead(f.dataset.id, dsa, tip)); closeModal(); toast("Lead assigned."); render(); },
+  assign: async (f, btn) => { const dsa = f.dataset.curDsa || "", tip = val(f, "tip"); if (!setErr(f, !tip ? { "as-tip": "Choose a TIP (installer)." } : {})) return; await guard(btn, () => API.assignLead(f.dataset.id, dsa, tip)); closeModal(); toast("Lead assigned."); render(); },
   partner: async (f, btn) => {
     const d = { id: f.dataset.id, type: val(f, "type"), name: val(f, "name"), firm: val(f, "firm"), phone: val(f, "phone"), email: val(f, "email"), commission_per_install: val(f, "commission_per_install"), service_pincodes: val(f, "service_pincodes"), kyc_verified: val(f, "kyc_verified"), lead_target: val(f, "lead_target") }, e = {};
     if (d.name.length < 2) e["pt-name"] = "Enter the name."; if (!isPhone(d.phone)) e["pt-phone"] = "Enter a valid 10-digit mobile."; if (!(Number(d.commission_per_install) >= 0)) e["pt-comm"] = "Enter 0 or more.";
