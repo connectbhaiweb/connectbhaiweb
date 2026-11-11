@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, ServiceUnavailableException, HttpCode, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { IsIn, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
@@ -103,6 +103,17 @@ export class CarePlanController {
     if (!dev.is_active) throw new BadRequestException('Care Plan is not active for this device');
     const r = await this.acs.speedTest(dev.genieacs_device_id ?? dev.serial_number ?? `dev-${id}`);
     return this.prisma.speedTest.create({ data: { care_plan_device_id: id, ...r } });
+  }
+
+  /** Admin: every modem GenieACS knows, with the customer it is linked to (or none). Read-only; for the "Fetch from GenieACS" button. */
+  @Roles('admin') @Get('acs-devices')
+  async acsDevices() {
+    let items;
+    try { items = await this.acs.listDevices(); } catch { throw new ServiceUnavailableException('GenieACS could not be reached. Check /api/v1/health/acs.'); }
+    const linked = await this.prisma.carePlanDevice.findMany({ select: { genieacs_device_id: true, serial_number: true, lead: { select: { ref_code: true, customer_name: true } } } });
+    const byId = new Map(), bySerial = new Map();
+    linked.forEach((l) => { if (l.genieacs_device_id) byId.set(l.genieacs_device_id, l.lead); if (l.serial_number) bySerial.set(l.serial_number, l.lead); });
+    return { mock: this.acs.isMock, total: items.length, items: items.map((d) => ({ ...d, linked_to: byId.get(d.id) ?? (d.serial ? bySerial.get(d.serial) : undefined) ?? null })) };
   }
 
   /** Admin / scheduler: refresh every ACTIVE device (Care Plan only). The server also does this by itself every CARE_PLAN_SYNC_MINUTES (default 10). */

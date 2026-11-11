@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 export interface DeviceStatus { online: boolean; last_seen_at: Date; rx_power_dbm: number | null; wifi_ssid: string | null; connected_clients: number; raw?: any }
+export interface AcsListedDevice { id: string; manufacturer: string | null; model: string | null; serial: string | null; firmware: string | null; last_inform: string | null; online: boolean; rx_power_dbm: number | null; wifi_ssid: string | null; ip: string | null }
 export interface SpeedResult { download_mbps: number; upload_mbps: number; ping_ms: number }
 export interface ActionResult { ok: boolean; error?: string }
 export interface AcsHealth { status: 'up' | 'down' | 'mock'; reachable: boolean; mock: boolean; latency_ms?: number; checked_at: string; detail?: string }
@@ -84,6 +85,27 @@ export class GenieAcsProvider {
       wifi_ssid: v('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID') ?? v('Device.WiFi.SSID.1.SSID') ?? null,
       connected_clients: Number(v('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.TotalAssociations') ?? 0),
     };
+  }
+
+  /** Every modem GenieACS knows (up to 500), linked to a customer or not. Read-only. Empty in mock mode. Throws when GenieACS cannot be reached. */
+  async listDevices(): Promise<AcsListedDevice[]> {
+    if (this.isMock) return [];
+    const paths = ['InternetGatewayDevice.DeviceInfo.SoftwareVersion', 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID',
+      'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ExternalIPAddress', 'InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANIPConnection.1.ExternalIPAddress',
+      ...GenieAcsProvider.RX_POWER_PATHS];
+    const projection = ['_id', '_lastInform', '_deviceId', ...paths].join(',');
+    const r = await fetch(`${this.base}/devices?projection=${encodeURIComponent(projection)}&limit=500`, { headers: this.headers(), signal: AbortSignal.timeout(15_000) });
+    if (!r.ok) throw new Error(`GenieACS ${r.status}`);
+    const rows: any[] = await r.json();
+    return rows.map((d) => {
+      const v = (p: string) => p.split('.').reduce((o: any, k) => o?.[k], d)?._value;
+      const last = d._lastInform ? new Date(d._lastInform) : null;
+      return {
+        id: String(d._id), manufacturer: d._deviceId?._Manufacturer ?? null, model: d._deviceId?._ProductClass ?? null, serial: d._deviceId?._SerialNumber ?? null,
+        firmware: v(paths[0]) ?? null, last_inform: last ? last.toISOString() : null, online: !!last && Date.now() - last.getTime() < 10 * 60_000,
+        rx_power_dbm: this.rxPower(v), wifi_ssid: v(paths[1]) ?? null, ip: v(paths[2]) || v(paths[3]) || null,
+      };
+    });
   }
 
   async runAction(deviceId: string, action: string, params: Record<string, any> = {}): Promise<ActionResult> {

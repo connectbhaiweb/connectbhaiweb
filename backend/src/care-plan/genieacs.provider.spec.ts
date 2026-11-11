@@ -81,3 +81,31 @@ describe('GenieAcsProvider.fetchStatus signal path', () => {
     expect((await live().fetchStatus('X')).rx_power_dbm).toBeNull();
   });
 });
+
+describe('GenieAcsProvider.listDevices', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+  const live = () => new GenieAcsProvider({ get: (k: string) => ({ GENIEACS_NBI_URL: 'http://acs.test:7557' } as any)[k] ?? '' } as any);
+
+  it('is empty in mock mode and never calls out', async () => {
+    const f = jest.fn(); global.fetch = f as any;
+    expect(await new GenieAcsProvider({ get: () => '' } as any).listDevices()).toEqual([]); expect(f).not.toHaveBeenCalled();
+  });
+  it('maps every device GenieACS returns', async () => {
+    const now = new Date().toISOString();
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [
+      { _id: 'A-M-S1', _lastInform: now, _deviceId: { _Manufacturer: 'Realtek', _ProductClass: 'SY-GPON', _SerialNumber: 'S1' },
+        InternetGatewayDevice: { DeviceInfo: { SoftwareVersion: { _value: '3.1' } }, WANDevice: { 1: { 'X_CT-COM_GponInterfaceConfig': { RXPower: { _value: -15 } }, WANConnectionDevice: { 1: { WANPPPConnection: { 1: { ExternalIPAddress: { _value: '1.2.3.4' } } } } } } }, LANDevice: { 1: { WLANConfiguration: { 1: { SSID: { _value: 'Home' } } } } } } },
+      { _id: 'B-M-S2', _lastInform: '2020-01-01T00:00:00Z', _deviceId: { _Manufacturer: 'X', _ProductClass: 'Y', _SerialNumber: 'S2' } },
+    ] }) as any;
+    const r = await live().listDevices();
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ id: 'A-M-S1', manufacturer: 'Realtek', model: 'SY-GPON', serial: 'S1', firmware: '3.1', online: true, rx_power_dbm: -15, wifi_ssid: 'Home', ip: '1.2.3.4' });
+    expect(r[1]).toMatchObject({ id: 'B-M-S2', online: false, rx_power_dbm: null, wifi_ssid: null, ip: null });
+    expect(String((global.fetch as jest.Mock).mock.calls[0][0])).toContain('/devices?projection=');
+  });
+  it('throws when GenieACS answers an error, so the caller can say so', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 }) as any;
+    await expect(live().listDevices()).rejects.toThrow('GenieACS 500');
+  });
+});

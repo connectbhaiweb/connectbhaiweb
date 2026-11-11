@@ -41,6 +41,13 @@ export default function CarePlanPage({ base, tab }) {
   const own = base === "my" ? tab === "devices" : tab === "careplan";
   const { active, pending, data, error, loading, reload } = useDashData(role, loadDevices);
   const [q, setQ] = useState(""), [f, setF] = useState("all");
+  const [acs, setAcs] = useState(null), [acsBusy, setAcsBusy] = useState(false), [acsErr, setAcsErr] = useState("");
+  const fetchAcs = async () => {   // admin: refresh the linked modems, then list everything GenieACS knows
+    setAcsBusy(true); setAcsErr("");
+    try { const { API } = await import("@/lib/connectbhai/api"); setAcs(await API.carePlanFetchAcs()); reload(); }
+    catch (e) { setAcsErr((e && e.message) || "Could not reach GenieACS."); }
+    setAcsBusy(false);
+  };
   const list = useMemo(() => {
     if (!data) return [];
     const t = q.trim().toLowerCase();
@@ -72,7 +79,33 @@ export default function CarePlanPage({ base, tab }) {
   }
   return (
     <div className="dsh-page"><div className="pt">
-      <header className="pt-head"><div><h1>Care plan</h1><p>{role === "admin" ? "Every customer router / ONT reported by GenieACS." : "Routers / ONTs of your customers, reported by GenieACS."}</p></div></header>
+      <header className="pt-head"><div><h1>Care plan</h1><p>{role === "admin" ? "Every customer router / ONT reported by GenieACS." : "Routers / ONTs of your customers, reported by GenieACS."}</p></div>
+        {role === "admin" && <button type="button" className="cu-btn cu-btn-primary" onClick={fetchAcs} disabled={acsBusy}><RefreshCw aria-hidden="true" />{acsBusy ? "Fetching…" : "Fetch from GenieACS"}</button>}
+      </header>
+      {role === "admin" && acsErr && <p className="pt-muted" role="alert">{acsErr}</p>}
+      {role === "admin" && acs && (
+        <Card title={`Modems in GenieACS (${acs.total})`} Icon={Router}>
+          {acs.mock ? <p className="pt-muted">GenieACS is not connected on this server (mock mode), so there is nothing to list.</p>
+            : acs.items.length ? (
+              <div className="pt-table cp-table" role="table" aria-label="Modems in GenieACS">
+                <div className="pt-tr pt-th" role="row">{["Customer", "Status", "IP", "Signal", "Last seen", "Model", "SSID", "Firmware", "Linked"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
+                {acs.items.map(d => (
+                  <div className="pt-tr" role="row" key={d.id}>
+                    <span role="cell" className="pt-name"><span><b>{d.linked_to ? d.linked_to.customer_name : "Not linked yet"}</b><small>{d.linked_to ? d.linked_to.ref_code : "no customer"}</small></span></span>
+                    <span role="cell" data-l="Status"><Chip label={d.online ? "Online" : "Offline"} tone={d.online ? "green" : "red"} /></span>
+                    <span role="cell" data-l="IP" className="pt-ell">{d.ip || "—"}</span>
+                    <span role="cell" data-l="Signal">{d.rx_power_dbm != null ? <Chip label={`${d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"} · ${d.rx_power_dbm} dBm`} tone={SIG[d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"]} /> : "—"}</span>
+                    <span role="cell" data-l="Last seen">{ago(d.last_inform)}</span>
+                    <span role="cell" data-l="Model" className="pt-ell">{[d.manufacturer, d.model].filter(Boolean).join(" ") || "—"}<small className="cp-sn">{d.serial || d.id}</small></span>
+                    <span role="cell" data-l="SSID" className="pt-ell">{d.wifi_ssid || "—"}</span>
+                    <span role="cell" data-l="Firmware" className="pt-ell">{d.firmware || "—"}</span>
+                    <span role="cell" data-l="Linked"><Chip label={d.linked_to ? "Linked" : "Not linked"} tone={d.linked_to ? "green" : "amber"} /></span>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="pt-muted">GenieACS has no modems yet. A modem appears here after it checks in.</p>}
+        </Card>
+      )}
       <div className="cp-sum cp-sum-lg">
         <div className="tone-blue"><span><Router aria-hidden="true" />Total</span><b>{all.length}</b></div>
         <div className="tone-green"><span><Wifi aria-hidden="true" />Online</span><b>{on}</b></div>
