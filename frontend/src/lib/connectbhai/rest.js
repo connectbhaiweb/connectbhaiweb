@@ -499,6 +499,11 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       return deviceFor(bookingId).then(async d => { if (onQueued) onQueued(); const t = await post(`/care-plan/devices/${d.id}/speed-test`);
         return { id: S(t.id), booking_id: S(bookingId), kind: "router", status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: true, created_at: t.created_at }; });
     },
+    /* real modems for the React Care plan screens (one page of up to 100, in that screen's shape) */
+    async carePlanDevices() {
+      const d = await get("/care-plan/devices" + qs({ page: 1, limit: 100 })), q = v => v >= -25 ? "Good" : v >= -27 ? "Weak" : "Bad";
+      return (d.items || []).map(x => { const rx = num(x.rx_power_dbm); return { id: S(x.id), serialNumber: x.serial_number || "", manufacturer: "", model: x.model || "Modem", firmwareVersion: "—", customer: { userId: null, name: (x.lead && x.lead.customer_name) || "", mobile: "" }, status: x.online ? "online" : "offline", lastInform: x.last_seen_at || null, wifi: { ssid: x.wifi_ssid || "—", band: "", channel: "—", connectedDevices: x.connected_clients == null ? 0 : x.connected_clients, speedMbps: null }, signal: { quality: rx == null ? "Bad" : q(rx), rxPowerDbm: rx }, ip: null, uptimeSeconds: 0, partner: {} }; });
+    },
     async carePlanSummary() { const d = await get("/care-plan/summary"); return { ...d, zones: d.zones || [] }; },
     async adminAcs() { need("admin"); const [p, sm] = await Promise.all([this.adminPartners(), get("/care-plan/summary")]); return p.filter(x => x.type === "tip").map(x => ({ ...x, linked: (sm.tips || {})[x.id] || 0 })); },
     async saveAcs() { fail("GenieACS is configured on the server (GENIEACS_NBI_URL), not per partner."); },
