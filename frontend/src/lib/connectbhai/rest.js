@@ -95,7 +95,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   };
   const BS = { scheduled: "scheduled", rescheduled: "scheduled", completed: "installed", cancelled: "cancelled" };
   const mapDevice = d => d && ({ id: S(d.id), booking_id: null, lead_id: S(d.lead_id), state: d.online == null ? "unknown" : d.online ? "online" : "offline", last_seen: d.last_seen_at, rx_dbm: num(d.rx_power_dbm), ssid: d.wifi_ssid, clients: d.connected_clients,
-    acs: "connectbhai", make: "", model: d.model || "", firmware: "", wan: d.online ? "Connected" : d.online === false ? "Down" : "—", uptime_h: null, reboots_7d: 0, reboots_30d: 0, is_simulated: true, source: "acs" });
+    acs: d.genieacs_device_id || d.serial_number ? "connectbhai" : null, active: d.is_active !== false, make: "", model: d.model || "", firmware: "", wan: d.online ? "Connected" : d.online === false ? "Down" : "—", uptime_h: null, reboots_7d: 0, reboots_30d: 0, is_simulated: true, source: "acs" });
   const mapBooking = (b, devs) => {
     const ld = b.lead || {}, dv = devs ? devs.find(d => String(d.lead_id) === String(b.lead_id)) : null;
     const out = { id: S(b.id), ref_code: "BK-" + String(b.id).padStart(6, "0"), lead_id: S(b.lead_id), customer_id: S(ld.customer_user_id), plan_id: S(ld.plan && ld.plan.id), plan: ld.plan ? mapPlan(ld.plan) : null,

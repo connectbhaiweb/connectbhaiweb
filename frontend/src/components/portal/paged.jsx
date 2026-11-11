@@ -10,12 +10,16 @@ export function usePaged(role, kind, { status, size = 10, extra, load } = {}) {
   const active = ready && !!user && user.role === role;
   const [page, setPage] = useState(1), [q, setQ] = useState(""), [limit, setLimit] = useState(size);
   const [dq, setDq] = useState(""), [tick, bump] = useReducer(x => x + 1, 0);
-  const [st, setSt] = useState({ rows: [], total: 0, loading: true, error: null });
+  const [st, setSt] = useState({ rows: [], total: 0, error: null, for: null });   // `for` = the request these rows answer
   const key = JSON.stringify([status, extra]);
   const seq = useRef(0);
+  // a new filter or page size goes back to page 1 (set while rendering, React's pattern for state that follows props)
+  const [shape, setShape] = useState(key + "|" + limit);
+  if (shape !== key + "|" + limit) { setShape(key + "|" + limit); setPage(1); }
+  const req = JSON.stringify([active, role, kind, page, limit, dq, key, tick]);
+  const loading = st.for !== req;   // still waiting for this exact request (old rows stay visible meanwhile)
 
   useEffect(() => { const t = setTimeout(() => { setDq(q.trim()); setPage(1); }, 250); return () => clearTimeout(t); }, [q]);
-  useEffect(() => { setPage(1); }, [key, limit]);
   useEffect(() => {
     if (!active) return;
     const again = () => bump(); window.addEventListener("cb:render", again);
@@ -24,14 +28,13 @@ export function usePaged(role, kind, { status, size = 10, extra, load } = {}) {
   useEffect(() => {
     if (!active) return;
     const n = ++seq.current;
-    setSt(s => ({ ...s, loading: true }));
     Promise.all([import("@/lib/connectbhai/api"), import("@/lib/connectbhai/paging")])
       .then(([a, p]) => (load ? load(a.API, { page, limit, status, q: dq, ...(extra || {}) }) : p.fetchPage(a.API, role, kind, { page, limit, status, q: dq, ...(extra || {}) })))
-      .then(d => { if (n === seq.current) setSt({ rows: d.items, total: d.total, loading: false, error: null }); })
-      .catch(e => { if (n === seq.current) setSt(s => ({ ...s, loading: false, error: (e && e.message) || "Could not load this list." })); });
+      .then(d => { if (n === seq.current) setSt({ rows: d.items, total: d.total, error: null, for: req }); })
+      .catch(e => { if (n === seq.current) setSt(s => ({ ...s, error: (e && e.message) || "Could not load this list.", for: req })); });
   }, [active, role, kind, page, limit, dq, key, tick]);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { ...st, page, setPage, q, setQ, dq, limit, setLimit, pages: Math.max(1, Math.ceil(st.total / limit)) };
+  return { rows: st.rows, total: st.total, error: st.error, loading, page, setPage, q, setQ, dq, limit, setLimit, pages: Math.max(1, Math.ceil(st.total / limit)) };
 }
 
 export function PagedBar({ p, label = "Search this table" }) {

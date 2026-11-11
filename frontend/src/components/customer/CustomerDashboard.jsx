@@ -179,10 +179,13 @@ const RX = v => (v == null ? null : v >= -25 ? ["Good", 4, "#16A34A", "#15803D"]
 
 function RouterCard({ booking, tests }) {
   const d = booking && booking.device, installed = booking && booking.status === "installed";
-  const on = !!(d && d.state === "online"), off = !!(d && d.state === "offline"), linked = !!(installed && booking.ont_serial && d && d.acs);
+  const on = !!(d && d.state === "online"), off = !!(d && d.state === "offline"), linked = !!(installed && d && d.acs), active = !!(d && d.active !== false);
+  const care = !!(booking && booking.care_plan), canAct = linked && active && on;
   const last = [...tests].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || "")).find(t => t.download_mbps);
   const rx = installed && d ? RX(d.rx_dbm) : null;
-  const [chip, tone] = !installed ? ["Not installed", "grey"] : on ? ["Online", "green"] : off ? ["Offline", "red"] : ["Unknown", "grey"];
+  const [chip, tone] = !installed ? ["Not installed", "grey"] : on ? ["Online", "green"] : off ? ["Offline", "red"] : ["Status unavailable", "grey"];
+  // one line that says why Restart / Change Wi-Fi are off (the server refuses the same cases)
+  const why = !installed || canAct ? null : !care ? "Activate Care plan to see live status and manage your router." : !linked ? "Restart and Wi-Fi change work once your installer links the modem." : !active ? "Care plan is not active for this router." : off ? `The modem is offline${d.last_seen ? ` (last seen ${fDayTime(d.last_seen)})` : ""}. Restart and Wi-Fi change need it online.` : "Router status has not been reported yet. Check again in a few minutes.";
   return (
     <section className="cu-card cu-router" aria-labelledby="cu-rt-title">
       <div className="cu-card-head"><h2 id="cu-rt-title" className="cu-h2"><Wifi aria-hidden="true" />Router status</h2><span className={`cu-chip cu-chip-${tone} cu-dotchip`}><i aria-hidden="true" />{chip}</span></div>
@@ -195,10 +198,10 @@ function RouterCard({ booking, tests }) {
         </div>
       </div>
       <div className="cu-rt-acts">
-        <button type="button" className="cu-btn cu-btn-soft" data-act="modem-reboot" data-id={booking && booking.id} disabled={!(linked && on)}><RefreshCw aria-hidden="true" />Restart router</button>
-        <button type="button" className="cu-btn cu-btn-primary" data-act="modem-wifi" data-id={booking && booking.id} data-ssid={(d && d.ssid) || ""} disabled={!(linked && on)}><Settings aria-hidden="true" />Change Wi-Fi</button>
+        <button type="button" className="cu-btn cu-btn-soft" data-act="modem-reboot" data-id={booking && booking.id} disabled={!canAct}><RefreshCw aria-hidden="true" />Restart router</button>
+        <button type="button" className="cu-btn cu-btn-primary" data-act="modem-wifi" data-id={booking && booking.id} data-ssid={(d && d.ssid) || ""} disabled={!canAct}><Settings aria-hidden="true" />Change Wi-Fi</button>
       </div>
-      {installed && !linked ? <p className="cu-muted cu-small">Restart and Wi-Fi change work once your installer links the modem.</p> : installed && !on ? <p className="cu-muted cu-small">The modem is offline. Restart and Wi-Fi change need it online.</p> : null}
+      {why ? <p className="cu-muted cu-small">{why}</p> : null}
     </section>
   );
 }

@@ -84,6 +84,12 @@ export class CarePlanController {
     if (u.role === 'dsa') throw new ForbiddenException();
     if (!dev.is_active) throw new BadRequestException('Care Plan is not active for this device');
     if (d.action === 'change_wifi' && !d.params?.ssid) throw new BadRequestException('params.ssid is required');
+    // commands that reach the modem need it to be known to GenieACS (its device id or the ONT serial scanned at install)
+    // and not reported offline; 'refresh' stays allowed so the status can recover
+    if (d.action !== 'refresh') {
+      if (!dev.genieacs_device_id && !dev.serial_number) throw new BadRequestException('The router is not linked yet. Your installer links it at installation.');
+      if (dev.online === false) throw new BadRequestException('The router is offline. Restart and Wi-Fi change need it online.');
+    }
     const stored = d.params ? { ssid: d.params.ssid } : undefined;
     const row = await this.prisma.deviceAction.create({ data: { care_plan_device_id: id, requested_by: u.id, action: d.action, params: stored as Prisma.InputJsonValue | undefined } });
     const res = await this.acs.runAction(dev.genieacs_device_id ?? dev.serial_number ?? `dev-${id}`, d.action, d.params);

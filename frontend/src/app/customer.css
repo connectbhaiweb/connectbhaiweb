@@ -274,3 +274,25 @@ html[data-shell] .dsh-page,html[data-shell-pending] .dsh-page{display:block}
   .cu-pin{display:none}
 }
 @media (prefers-reduced-motion:reduce){.cu-btn,.cu-card{transition:none}.cu-btn:hover{transform:none}}
+
+/* ---------- QA H: phone readability and tap targets ----------
+   Below 480px the two half-width cards (router, payments) and the two contact cards were too cramped:
+   30px buttons and clipped labels. Stack them; the order stays booking, router, payments, speed, past.
+   Every button on phones is at least 44px tall (WCAG / platform tap-target guidance). */
+@media (max-width:767px){
+  .cu-person-acts .cu-btn,.cu-rt-acts .cu-btn,.cu-pay .cu-btn-block,.cu-speed .cu-btn{min-height:44px}
+}
+@media (max-width:480px){
+  .cu-grid{grid-template-columns:minmax(0,1fr)}
+  .cu-router,.cu-pay{grid-column:1/-1}
+  .cu-people{grid-template-columns:minmax(0,1fr)}
+  .cu-person-acts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cu-person-acts .cu-btn,.cu-rt-acts .cu-btn{font-size:14px;gap:6px;padding:0 10px;letter-spacing:0}
+  .cu-person-acts .cu-btn svg,.cu-rt-acts .cu-btn svg{display:inline-block;width:16px;height:16px}
+  .cu-rt-body{grid-template-columns:64px 1px minmax(0,1fr);gap:12px}
+  .cu-router-art{width:64px}
+  .cu-rt-stats>span:first-child,.cu-signal{font-size:12px}
+  .cu-rt-stats b{font-size:18px}
+  .cu-pay-what{font-size:13px}
+  .cu-step-txt b{white-space:normal;overflow-wrap:anywhere}
+}

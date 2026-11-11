@@ -447,6 +447,7 @@ footer button.linkbtn{color:var(--muted);text-decoration:none;font-weight:600}
 .story-ctl{position:absolute;right:10px;bottom:10px;display:flex;gap:6px}
 .sbtn{width:34px;height:34px;border-radius:50%;border:0;background:rgba(10,27,61,.75);color:#fff;font-size:13px;cursor:pointer;display:grid;place-items:center}
 .sbtn:focus-visible{outline:3px solid #8DB4FF}
+@media (max-width:767px){.sbtn{width:44px;height:44px}.tt-pager button{min-width:44px;min-height:44px}}   /* QA K: phone tap targets */
 .story.paused *{animation-play-state:paused!important}
 @media (prefers-reduced-motion:reduce){.story *{animation-play-state:paused!important;animation-delay:-13.2s!important}}
 /* logo mark: blink + wink on hover */

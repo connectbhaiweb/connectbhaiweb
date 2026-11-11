@@ -37,6 +37,7 @@ describe('care plan (modem monitoring)', () => {
     expect(detail.body.lead.ref_code).toBeDefined();
   });
   it('customer can reboot and change Wi-Fi; the password is never stored', async () => {
+    await c.prisma.carePlanDevice.update({ where: { id: dev }, data: { online: true } }); // the mock ACS reports ~1 in 7 serials offline
     const reboot = await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'reboot' }).expect(201);
     expect(reboot.body).toMatchObject({ action: 'reboot', status: 'done' });
     const wifi = await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'change_wifi', params: { ssid: 'MyHome', password: 'SuperSecret123' } }).expect(201);
@@ -75,6 +76,15 @@ describe('care plan (modem monitoring)', () => {
     expect((await c.prisma.carePlanDevice.findUniqueOrThrow({ where: { id: dev } })).updated_at.getTime()).toBeGreaterThanOrEqual(before.updated_at.getTime());
     expect((await c.prisma.carePlanDevice.findUniqueOrThrow({ where: { id: off.id } })).last_seen_at).toBeNull();
     expect((await c.prisma.carePlanDevice.findUniqueOrThrow({ where: { id: nc.id } })).last_seen_at).toBeNull();
+  });
+  it('modem commands are refused when the router is offline or not linked; refresh still works', async () => {
+    await c.prisma.carePlanDevice.update({ where: { id: dev }, data: { online: false } });
+    await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'reboot' }).expect(400);
+    await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'refresh' }).expect(201);
+    const l = await newLead(c, a, { tip: 'dream' });
+    const nl = await c.prisma.carePlanDevice.create({ data: { lead_id: l.id, tip_user_id: a.ids.dream, is_active: true } }); // no serial, no GenieACS id
+    await c.http().post(`${P}/care-plan/devices/${nl.id}/actions`).set(bearer(a.dream)).send({ action: 'reboot' }).expect(400);
+    await c.prisma.carePlanDevice.update({ where: { id: dev }, data: { online: true } }); // leave it as the next tests expect
   });
   it('actions are refused on a deactivated device', async () => {
     const l = await newLead(c, a, { tip: 'dream' });

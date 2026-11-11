@@ -54,7 +54,7 @@ export default function CarePlanPage({ base, tab }) {
   const all = data.devices, on = all.filter(d => d.status === "online").length;
 
   if (role === "customer") {
-    const d = all[0], b = data.booking, live = !!(b && b.device && b.device.acs && b.ont_serial && b.device.state === "online");
+    const d = all[0], b = data.booking, live = !!(b && b.device && b.device.acs && b.device.active !== false && b.device.state === "online");
     return (
       <div className="dsh-page"><div className="pt">
         <header className="pt-head"><div><h1>Care plan</h1><p>Your router, Wi-Fi and connection health, reported by GenieACS.</p></div></header>
