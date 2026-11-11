@@ -1,3 +1,4 @@
+import { leadTextWhere } from '../common/utils/fulltext';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuthUser } from '../common/decorators';
@@ -97,9 +98,14 @@ export class BookingsService {
   }
 
   async list(q: BookingQuery, u: AuthUser) {
-    const where: Prisma.BookingWhereInput = { status: q.status as any, lead_id: q.lead_id, lead: leadScope(u) };
+    const where: Prisma.BookingWhereInput = { status: q.status as any, lead_id: q.lead_id, lead: q.q?.trim() ? { AND: [leadScope(u), await leadTextWhere(this.prisma, q.q)] } : leadScope(u) };
+    if (q.device) {
+      const dev = q.device === 'offline' ? { care_device: { is: { online: false } } } : q.device === 'weak' ? { care_device: { is: { rx_power_dbm: { lt: -25 } } } } : { OR: [{ care_device: { is: null } }] };
+      where.AND = [...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []), q.device === 'unlinked' ? { OR: [{ router_serial: null }, { lead: { care_device: { is: null } } }] } : { lead: dev }];
+    }
+    if (q.scheduled_from || q.scheduled_to) where.scheduled_at = { ...(q.scheduled_from ? { gte: new Date(q.scheduled_from) } : {}), ...(q.scheduled_to ? { lt: new Date(q.scheduled_to) } : {}) };
     const [items, total] = await Promise.all([
-      this.prisma.booking.findMany({ where, orderBy: { id: 'desc' }, include: { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, customer_user_id: true, brought_by_user_id: true, address: true, pincode: true, status: true, care_plan: true, plan: { select: { id: true, plan_code: true, name: true, price: true, speed_mbps: true, install_charge: true, category: { select: { id: true, name: true, type: true, logo_url: true } } } } } }, tip: { select: { id: true, name: true, partner_code: true, phone: true } } }, ...pageArgs(q) }),
+      this.prisma.booking.findMany({ where, orderBy: q.scheduled_from || q.scheduled_to ? [{ scheduled_at: 'asc' }, { id: 'desc' }] : { id: 'desc' }, include: { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, customer_user_id: true, brought_by_user_id: true, address: true, pincode: true, status: true, care_plan: true, plan: { select: { id: true, plan_code: true, name: true, price: true, speed_mbps: true, install_charge: true, category: { select: { id: true, name: true, type: true, logo_url: true } } } } } }, tip: { select: { id: true, name: true, partner_code: true, phone: true } } }, ...pageArgs(q) }),
       this.prisma.booking.count({ where }),
     ]);
     return paged(items, total, q);

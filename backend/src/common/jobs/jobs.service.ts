@@ -14,7 +14,9 @@ export interface EnqueueOptions {
 }
 
 const STALE_AFTER_MIN = 5;     // a job "running" longer than this belongs to a server that died: it is given back to the queue
-const KEEP_DONE_DAYS = 7;      // finished jobs are kept this long for inspection, then removed
+const KEEP_OTP_DAYS = 7;             // login-code messages are only useful for the rate limit (10 minutes)
+const KEEP_NOTIFICATION_DAYS = 90;  // message log kept this long
+const KEEP_DONE_DAYS = 7;     // finished jobs are kept this long for inspection, then removed
 
 /**
  * A durable background job queue. Work that does not need to hold up a request (WhatsApp messages and the look-ups they need)
@@ -23,7 +25,7 @@ const KEEP_DONE_DAYS = 7;      // finished jobs are kept this long for inspectio
  *
  *  - a job is a NAME plus a JSON payload; the code that owns the job registers a handler for the name with `register`
  *    (name "message:otp" is handled by the handler registered for "message")
- *  - the worker runs a few jobs at a time (default 4); an enqueue wakes it immediately, and it also polls every second
+ *  - the worker runs a few jobs at a time (default 8); an enqueue wakes it immediately, and it also polls every 2 seconds
  *  - a job that throws is tried again later with a growing pause, up to maxAttempts, then marked "failed" with the reason
  *  - several API servers can share the table: a job is claimed with one atomic UPDATE, so only one server runs it
  *  - a job found "running" for more than 5 minutes (its server died) goes back to "pending"
@@ -48,7 +50,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
 
   constructor(cfg: ConfigService, @Optional() private prisma?: PrismaService) {
     this.inline = cfg.get('APP_ENV') === 'test' && cfg.get('JOBS_MODE') !== 'db';
-    this.concurrency = Number(cfg.get('JOBS_CONCURRENCY') ?? 4);
+    this.concurrency = Number(cfg.get('JOBS_CONCURRENCY') ?? 8);   // WhatsApp sends mostly wait on the network, so a few slow ones must not hold up an OTP
   }
 
   /** Teach the queue how to run jobs called `name`. Call once, from the constructor of the service that owns the job. */
@@ -92,7 +94,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     if (this.inline || !this.prisma) return;
     this.started = true;
-    this.timer = setInterval(() => { this.kick(); }, 1000);
+    this.timer = setInterval(() => { this.kick(); }, 2000);   // enqueue already wakes this server at once; the poll only picks up retries and other servers' jobs
     this.timer.unref();
     this.kick();
   }
@@ -184,6 +186,11 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
       WHERE status = 'running' AND locked_at < NOW(3) - INTERVAL ${STALE_AFTER_MIN} MINUTE`;
     if (back) this.logger.warn(`${back} job(s) found stuck from a stopped server; queued again`);
     await this.prisma!.$executeRaw`DELETE FROM background_jobs WHERE status = 'done' AND finished_at < NOW(3) - INTERVAL ${KEEP_DONE_DAYS} DAY LIMIT 500`;
+    // the message log would otherwise grow for ever (every OTP and WhatsApp), and the admin log reads it.
+    // The reminder templates are never removed: "send once per lead" is decided by finding the earlier row.
+    await this.prisma!.$executeRaw`DELETE FROM notifications WHERE template = 'otp' AND created_at < NOW(3) - INTERVAL ${KEEP_OTP_DAYS} DAY LIMIT 500`;
+    await this.prisma!.$executeRaw`DELETE FROM notifications WHERE created_at < NOW(3) - INTERVAL ${KEEP_NOTIFICATION_DAYS} DAY
+      AND template NOT IN ('dsa_lead_reminder', 'tip_job_reminder', 'partner_agreement_pending', 'payment_due') LIMIT 500`;
   }
 }
 

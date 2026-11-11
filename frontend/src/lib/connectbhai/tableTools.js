@@ -67,7 +67,7 @@ function apply(t, bar, key) {
 function enhanceAll() {
   const seen = new Map();
   document.querySelectorAll(SEL).forEach(t => {
-    if (t.closest("#modal, .tt-bar, .tt-foot")) return;
+    if (t.closest("#modal, .tt-bar, .tt-foot, [data-server]")) return;   // data-server: the page is paged and searched by the API (components/portal/paged.jsx)
     const rows = rowsOf(t);
     const base = keyOf(t, 0).replace(/::0$/, ""), n = seen.get(base) || 0; seen.set(base, n + 1);
     const key = base + "::" + n;

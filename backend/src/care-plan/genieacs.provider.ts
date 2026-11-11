@@ -56,7 +56,7 @@ export class GenieAcsProvider {
       const h = this.seed(deviceId);
       return { online: h % 7 !== 0, last_seen_at: new Date(), rx_power_dbm: -(18 + (h % 90) / 10), wifi_ssid: `ConnectBhai-${deviceId.slice(-4)}`, connected_clients: 1 + (h % 9) };
     }
-    const r = await fetch(`${this.base}/devices?query=${encodeURIComponent(JSON.stringify({ _id: deviceId }))}`, { headers: this.headers() });
+    const r = await fetch(`${this.base}/devices?query=${encodeURIComponent(JSON.stringify({ _id: deviceId }))}`, { headers: this.headers(), signal: AbortSignal.timeout(8000) });   // never wait forever on the modem server
     if (!r.ok) throw new Error(`GenieACS ${r.status}`);
     const d: any = (await r.json())[0];
     if (!d) throw new Error('Device not found in GenieACS');
@@ -81,9 +81,9 @@ export class GenieAcsProvider {
         ...(params.password ? [['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.KeyPassphrase', params.password, 'xsd:string']] : []),
       ] };
     try {
-      const r = await fetch(`${this.base}/devices/${encodeURIComponent(deviceId)}/tasks?connection_request`, { method: 'POST', headers: this.headers(), body: JSON.stringify(task) });
+      const r = await fetch(`${this.base}/devices/${encodeURIComponent(deviceId)}/tasks?connection_request`, { method: 'POST', headers: this.headers(), body: JSON.stringify(task), signal: AbortSignal.timeout(15_000) });   // connection_request waits for the modem: cap it
       return r.ok ? { ok: true } : { ok: false, error: `GenieACS ${r.status}` };
-    } catch (e: any) { this.logger.error(e?.message); return { ok: false, error: 'GenieACS unreachable' }; }
+    } catch (e: any) { this.logger.error(e?.message); return { ok: false, error: e?.name === 'TimeoutError' ? 'The modem did not answer in time' : 'GenieACS unreachable' }; }
   }
 
   async speedTest(deviceId: string): Promise<SpeedResult> {

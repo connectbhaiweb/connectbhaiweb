@@ -20,7 +20,7 @@ async function loadCustomer(API) {
    Data comes from the existing API; actions reuse the app's own handlers (data-act / data-go). */
 export default function CustomerDashboard({ tab }) {
   const owned = !tab || tab === "bookings";
-  const { active, pending, user, data, error, loading, reload } = useDashData("customer", loadCustomer);
+  const { active, pending, user, data, error, loading, reload } = useDashData("customer", loadCustomer, !tab || tab === "bookings");
   const ref = useSearchParams().get("ref");
   if (!owned || (!active && !pending)) return null;
 

@@ -31,7 +31,8 @@ export class RazorpayService {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: 'Basic ' + Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64') },
       body: JSON.stringify({ amount, currency: 'INR', receipt: receipt.slice(0, 40) }),
-    });
+      signal: AbortSignal.timeout(10_000),
+    }).catch(() => { throw new ServiceUnavailableException('Payment gateway did not answer. Please try again.'); });
     if (!r.ok) { this.logger.error(`Razorpay order failed: ${r.status}`); throw new ServiceUnavailableException('Payment gateway error'); }
     const o: any = await r.json();
     return { id: o.id, amount: o.amount, currency: o.currency, key_id: this.keyId, mock: false };

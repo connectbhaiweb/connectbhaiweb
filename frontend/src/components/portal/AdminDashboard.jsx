@@ -1,41 +1,36 @@
 "use client";
 import { areaIndex } from "@/lib/connectbhai/areas";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Building2, CalendarDays, ChartColumn, Check, CircleCheck, CircleX, Coins, Handshake, MapPin, Phone, Store, Ticket, UserRound, Users, Wrench } from "lucide-react";
 import { useDashData } from "@/components/dashboard/useDashData";
 import { Bars, Card, Chip, Counts, Failed, Kpi, Loading, More, Period, Pin, PortalHead } from "./parts";
 import { CarePlanCard } from "@/components/careplan/CarePlan";
-import { byMonth, inr, mKey, monthKeys, planName, sum } from "./stats";
+import { inr, mLabel, planName, sum } from "./stats";
+import { dashboard, fetchPage } from "@/lib/connectbhai/paging";
 
-async function load(API, m) {
-  const [leads, partners, bookings, tickets, comms, cities, locations, plans, threads] = await Promise.all([API.adminLeads(), API.adminPartners(), API.adminBookings(), API.adminTickets(), API.adminCommissions(),
-    API.adminCities().catch(() => []), API.adminLocations().catch(() => []), API.adminPlans().catch(() => []), API.myThreads().catch(() => [])]);
-  return { leads, partners, bookings, tickets, comms, cities, locations, plans, threads };
+async function load(API) {
+  const [stats, unassigned, dsaApps, tipApps, cities, threads] = await Promise.all([dashboard(API, "admin", { months: 12, pins: 4 }),
+    fetchPage(API, "admin", "leads", { status: "new", unassigned: true, limit: 5 }), fetchPage(API, "admin", "partners", { type: "dsa", status: "pending", limit: 5 }), fetchPage(API, "admin", "partners", { type: "tip", status: "pending", limit: 5 }),
+    API.adminCities().catch(() => []), API.myThreads().catch(() => [])]);
+  const names = stats.top_pins.some(p => p.areas && p.areas.length) ? stats.top_pins.flatMap(p => (p.areas || []).map(area => ({ pincode: p.pincode, area }))) : await API.adminLocations().catch(() => []);
+  const apps = [...dsaApps.items, ...tipApps.items].filter(p => !p.approved_at).sort((x, y) => Number(y.id) - Number(x.id));
+  return { stats, unassigned, apps, appsTotal: dsaApps.total + tipApps.total, cities, threads, names };
 }
 const fmtPh = p => (p ? String(p).replace(/^(\d{5})(\d{5})$/, "$1 $2") : "");
 
 export default function AdminDashboard({ tab }) {
-  const { active, pending, data, error, loading, reload } = useDashData("admin", load);
+  const { active, pending, data, error, loading, reload } = useDashData("admin", load, !tab || tab === "overview");
   const [months, setMonths] = useState(6);
-  const z = useMemo(() => {   // leads and installs by AREA (PIN code + area name)
-    if (!data) return [];
-    const idx = areaIndex(data.locations);
-    const inst = data.bookings.filter(b => b.status === "installed");
-    const pins = [...new Set(data.leads.map(l => l.pincode).filter(Boolean))];
-    return pins.map(pin => { const ls = data.leads.filter(l => l.pincode === pin), is = inst.filter(b => b.lead && b.lead.pincode === pin).length; return { name: `${pin} · ${idx.get(pin) || "—"}`, leads: ls.length, installs: is, conv: ls.length ? Math.round(is / ls.length * 100) : 0 }; })
-      .sort((a, b) => b.leads - a.leads).slice(0, 4);   // top 4 areas only
-  }, [data]);
   if (!(!tab || tab === "overview") || (!active && !pending)) return null;
   if (pending || loading) return <div className="dsh-page"><Loading /></div>;
   if (error && !data) return <div className="dsh-page"><Failed error={error} retry={reload} /></div>;
 
-  const { leads, partners, bookings, tickets, comms, cities, plans, threads } = data;
-  const unassigned = leads.filter(l => l.status === "new" && !l.assigned_dsa_id && !l.assigned_tip_id);
-  const apps = partners.filter(p => p.status === "pending" && !p.approved_at);
-  const cur = monthKeys(1)[0];
-  const inst = bookings.filter(b => b.status === "installed");
-  const openT = tickets.filter(t => ["open", "in_progress"].includes(t.status)).length;
-  const counts = { leads: leads.filter(l => l.status === "new").length, partners: apps.length, plans: plans.filter(p => p.status === "pending").length, cities: sum(cities, c => c.waiting), chat: threads.reduce((a, t) => a + (t.unread || 0), 0) };
+  const { stats, unassigned, apps, appsTotal, cities, threads, names } = data;
+  const idx = areaIndex(names);
+  const z = stats.top_pins.map(r => ({ name: `${r.pincode} · ${idx.get(r.pincode) || "—"}`, leads: r.leads, installs: r.installs, conv: r.leads ? Math.round(r.installs / r.leads * 100) : 0 }));
+  const chart = stats.by_month.slice(-months).map(m => ({ label: mLabel(m.month), leads: m.leads, installs: m.installs }));
+  const activePartners = sum(stats.partners.filter(p => p.partner_status === "approved"), p => p.count);
+  const counts = { leads: stats.leads.new, partners: appsTotal, plans: 0, cities: sum(cities, c => c.waiting), chat: threads.reduce((a, t) => a + (t.unread || 0), 0) };
   const cityRows = [...cities].sort((a, b) => (a.status === "live" ? -1 : 0) - (b.status === "live" ? -1 : 0) || (b.waiting || 0) - (a.waiting || 0)).filter(c => c.status !== "hidden").slice(0, 5);
 
   return (
@@ -43,19 +38,19 @@ export default function AdminDashboard({ tab }) {
       <Counts c={counts} />
       <PortalHead title="Admin portal" sub="Control panel for leads, DSAs, TIPs, installations, plans and business operations." />
       <div className="pt-kpis pt-kpis-6">
-        <Kpi tone="red" Icon={Users} label="Unassigned leads" value={unassigned.length} sub="Need assignment" />
-        <Kpi tone="amber" Icon={CalendarDays} label="Installs pending" value={bookings.filter(b => ["scheduled", "in_progress"].includes(b.status)).length} />
-        <Kpi tone="blue" Icon={Ticket} label="Open tickets" value={openT} />
-        <Kpi tone="purple" Icon={Coins} label="Payouts to approve" value={inr(sum(comms.filter(c => c.status === "pending"), c => c.amount))} />
-        <Kpi tone="blue" Icon={Store} label="Active DSAs & TIPs" value={partners.filter(p => p.status === "active").length} />
-        <Kpi tone="green" Icon={CircleCheck} label="Customers installed this month" value={inst.filter(b => mKey(b.installed_at) === cur).length} />
+        <Kpi tone="red" Icon={Users} label="Unassigned leads" value={stats.unassigned} sub="Need assignment" />
+        <Kpi tone="amber" Icon={CalendarDays} label="Installs pending" value={stats.installs_pending} />
+        <Kpi tone="blue" Icon={Ticket} label="Open tickets" value={stats.open_tickets} />
+        <Kpi tone="purple" Icon={Coins} label="Payouts to approve" value={inr(stats.commission.pending)} />
+        <Kpi tone="blue" Icon={Store} label="Active DSAs & TIPs" value={activePartners} />
+        <Kpi tone="green" Icon={CircleCheck} label="Customers installed this month" value={stats.installs_month} />
       </div>
       <div className="pt-row pt-row-adm1">
         <Card title="Leads waiting for assignment" Icon={Users} action={<More href="/admin/leads">View all leads</More>}>
-          {unassigned.length ? (
+          {unassigned.items.length ? (
             <div className="pt-table pt-t-assign" role="table" aria-label="Leads waiting for assignment">
               <div className="pt-tr pt-th" role="row"><span role="columnheader">Customer</span><span role="columnheader">Ref. code</span><span role="columnheader">PIN</span><span role="columnheader">Plan</span><span role="columnheader">Actions</span></div>
-              {unassigned.slice(0, 5).map(l => (
+              {unassigned.items.map(l => (
                 <div className="pt-tr" role="row" key={l.id}>
                   <span role="cell"><b>{l.name}</b></span><span role="cell" className="pt-mono">{l.ref_code}</span><span role="cell"><Pin>{l.pincode}</Pin></span>
                   <span role="cell" className="pt-ell">{l.plan ? planName(l.plan) : "Callback, no plan"}</span>
@@ -84,7 +79,7 @@ export default function AdminDashboard({ tab }) {
       </div>
       <div className="pt-row pt-row-adm2">
         <Card title="Leads and installs, last 6 months" Icon={ChartColumn} className="pt-chartcard" action={<Period value={months} onChange={setMonths} />}>
-          <Bars legend="bottom" height={230} data={byMonth(months, leads, l => l.created_at, inst, b => b.installed_at)} series={[{ key: "leads", name: "Leads", color: "#2878FD" }, { key: "installs", name: "Installs", color: "#32B661" }]} />
+          <Bars legend="bottom" height={230} data={chart} series={[{ key: "leads", name: "Leads", color: "#2878FD" }, { key: "installs", name: "Installs", color: "#32B661" }]} />
         </Card>
         <Card title="Top 4 areas" Icon={MapPin} action={<More href="/admin/reports">View detailed report</More>}>
           <div className="pt-table pt-t-zone pt-plain" role="table" aria-label="Top 4 areas">

@@ -19,6 +19,8 @@ class UpdateDeviceDto {
   @IsOptional() @IsString() @MaxLength(120) genieacs_device_id?: string;
 }
 
+class DeviceQuery extends PageQuery { @IsOptional() @IsString() lead_ids?: string; }
+
 @ApiTags('care-plan') @ApiBearerAuth() @Controller('care-plan')
 export class CarePlanController {
   constructor(private prisma: PrismaService, private acs: GenieAcsProvider) {}
@@ -30,13 +32,28 @@ export class CarePlanController {
     return d;
   }
 
-  @Get('devices') async list(@Query() q: PageQuery, @CurrentUser() u: AuthUser) {
-    const where = this.scope(u);
+  @Get('devices') async list(@Query() q: DeviceQuery, @CurrentUser() u: AuthUser) {
+    const ids = q.lead_ids ? q.lead_ids.split(',').map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 200) : null;
+    const where: Prisma.CarePlanDeviceWhereInput = ids ? { AND: [this.scope(u), { lead_id: { in: ids } }] } : this.scope(u);
     const [items, total] = await Promise.all([
       this.prisma.carePlanDevice.findMany({ where, orderBy: { id: 'desc' }, include: { lead: { select: { ref_code: true, customer_name: true } } }, ...pageArgs(q) }),
       this.prisma.carePlanDevice.count({ where }),
     ]);
     return paged(items, total, q);
+  }
+
+  /** Care plan page numbers (installed / online / offline / weak / not linked, by PIN code, and linked modems per TIP) without sending any device rows. */
+  @Roles('admin', 'tip', 'customer') @Get('summary') async summary(@CurrentUser() u: AuthUser) {
+    const who = u.role === 'admin' ? Prisma.sql`1=1` : u.role === 'tip' ? Prisma.sql`l.tip_user_id = ${u.id}` : Prisma.sql`(l.customer_user_id = ${u.id} OR l.customer_phone = ${u.phone ?? ''})`;
+    const rows = await this.prisma.$queryRaw<{ pincode: string | null; n: bigint; linked: any; on_: any; off_: any; weak: any }[]>`
+      SELECT l.pincode pincode, COUNT(*) n,
+        SUM(b.router_serial IS NOT NULL AND d.id IS NOT NULL) linked, SUM(d.online = 1) on_, SUM(d.online = 0) off_, SUM(d.rx_power_dbm < -25) weak
+      FROM bookings b JOIN leads l ON l.id = b.lead_id LEFT JOIN care_plan_devices d ON d.lead_id = l.id
+      WHERE b.status = 'completed' AND ${who} GROUP BY l.pincode`;
+    const num = (v: any) => Number(v ?? 0);
+    const tot = rows.reduce((a, r) => ({ installed: a.installed + num(r.n), linked: a.linked + num(r.linked), online: a.online + num(r.on_), offline: a.offline + num(r.off_), weak: a.weak + num(r.weak) }), { installed: 0, linked: 0, online: 0, offline: 0, weak: 0 });
+    const tips = u.role === 'admin' ? await this.prisma.carePlanDevice.groupBy({ by: ['tip_user_id'], _count: { _all: true } }) : [];
+    return { ...tot, unlinked: tot.installed - tot.linked, zones: rows.filter((r) => r.pincode).map((r) => ({ pincode: r.pincode, n: num(r.n), on: num(r.on_), off: num(r.off_), weak: num(r.weak) })), tips: Object.fromEntries(tips.map((t) => [String(t.tip_user_id), t._count._all])) };
   }
 
   @Get('devices/:id') async one(@Param('id', ParseIntPipe) id: number, @CurrentUser() u: AuthUser) {
@@ -86,7 +103,10 @@ export class CarePlanController {
   async poll() {
     const devices = await this.prisma.carePlanDevice.findMany({ where: { is_active: true, lead: { care_plan: true } }, take: 500 });
     let ok = 0, failed = 0;
-    for (const d of devices) { try { await this.pollOne(d); ok++; } catch { failed++; } }
+    for (let i = 0; i < devices.length; i += 10) {   // 10 at a time instead of one by one
+      const res = await Promise.allSettled(devices.slice(i, i + 10).map((d) => this.pollOne(d)));
+      res.forEach((r) => (r.status === 'fulfilled' ? ok++ : failed++));
+    }
     return { polled: devices.length, ok, failed };
   }
 

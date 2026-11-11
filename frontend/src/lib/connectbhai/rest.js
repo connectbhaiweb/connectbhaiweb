@@ -113,7 +113,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     booking: t.lead ? { ref_code: t.lead.ref_code, lead: { name: t.lead.customer_name, phone: t.lead.customer_phone, ref_code: t.lead.ref_code, pincode: t.lead.pincode }, plan: t.lead.plan ? mapPlan({ ...t.lead.plan, id: 0 }) : null } : null,
     customer: t.raiser ? { id: S(t.raiser.id), full_name: t.raiser.name, phone: t.raiser.phone } : null });
   const CS = { pending: "pending", approved: "approved", paid: "paid", cancelled: "rejected" };
-  const mapCommission = c => ({ id: S(c.id), partner_id: S(c.dsa_user_id), booking_id: S(c.booking_id), amount: num(c.amount), status: CS[c.status] || c.status, payment_id: c.paid_reference ? "pay-" + c.id : null, created_at: c.created_at, paid_at: c.paid_at,
+  const mapCommission = c => ({ id: S(c.id), lead_id: S(c.lead_id), partner_id: S(c.dsa_user_id), booking_id: S(c.booking_id), amount: num(c.amount), status: CS[c.status] || c.status, payment_id: c.paid_reference ? "pay-" + c.id : null, created_at: c.created_at, paid_at: c.paid_at, paid_mode: c.paid_mode, paid_reference: c.paid_reference,
     partner: pc(c.dsa), booking: { id: S(c.booking_id), ref_code: c.lead ? c.lead.ref_code : "", lead: c.lead ? { name: c.lead.customer_name, ref_code: c.lead.ref_code, pincode: c.lead.pincode } : null, plan: null } });
   const mapCity = c => ({ id: S(c.id), name: c.name, district: c.name, tier: 2, status: c.status });
 
@@ -241,6 +241,74 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     },
     async dsaActivateSim() { fail("SIM and OTT activation is not part of the installation workflow in this version."); },
     setAutoAssign: async on => { need("admin"); await put("/settings/auto_assign", { value: on ? "1" : "0" }); return true; },
+
+    /* ---- server-side aggregates + pages (the dashboards never download whole lists) ---- */
+    /* KPIs, charts and per-PIN numbers for whoever is logged in, computed by the API (GET /reports/dashboard). UI status names. */
+    async dashboard(o) {
+      const d = await get("/reports/dashboard" + qs({ months: o && o.months, pins: o && o.pins })), L = d.leads || {}, B = d.bookings || {};
+      return { ...d, leads: { new: L.new || 0, contacted: L.contacted || 0, follow_up: L.followup || 0, booked: L.scheduled || 0, installed: L.installed || 0, lost: (L.lost || 0) + (L.cancelled || 0) },
+        bookings: { scheduled: (B.scheduled || 0) + (B.rescheduled || 0), installed: B.completed || 0, cancelled: B.cancelled || 0 },
+        commission: { pending: 0, approved: 0, paid: 0, rejected: 0, ...(d.commission || {}), rejected: (d.commission || {}).cancelled || 0 },
+        charges: d.charges || {}, charges_count: d.charges_count || {} };
+    },
+    /* per partner: leads by status, installs, fees paid (TIP) / commission (DSA). One row per partner, not per lead. Keyed by user id. */
+    async partnerTotals() {
+      need("admin"); const d = await get("/reports/partners"), m = r => ({ leads: r.total, leads_month: r.leads_month || 0, installs: r.installs || 0, paid_amount: r.paid_amount || 0, paid_count: r.paid_count || 0, comm_paid: r.comm_paid || 0, comm_count: r.comm_count || 0 });
+      return { tip: Object.fromEntries(d.tips.map(r => [S(r.user_id), m(r)])), dsa: Object.fromEntries(d.dsas.map(r => [S(r.user_id), m(r)])) };
+    },
+    /* admin money numbers: collected / paid-out by month, collected by kind, open dues */
+    async money(o) { need("admin"); const d = await get("/reports/money" + qs({ months: o && o.months })); return { ...d, by_kind: Object.fromEntries(Object.entries(d.by_kind || {}).map(([k, v]) => [CK[k] || k, v])) }; },
+    /* approved commissions grouped per DSA (ready to pay) */
+    async payables() { need("admin"); const r = await get("/reports/payables"); return r.map(x => ({ partner_id: S(x.dsa_user_id), partner: { id: S(x.dsa_user_id), name: x.name, type: "dsa" }, count: x.count, total: x.total, ids: x.ids.map(S) })); },
+    /* for the customers on one page: how many requests each made + the latest one. { [customerId]: { requests, latest } } */
+    async customerSummaries(ids) {
+      need("admin"); if (!ids.length) return {};
+      const rows = await get("/reports/customers" + qs({ ids: ids.join(",") })); return Object.fromEntries(rows.map(r => [S(r.customer_user_id), { requests: r.requests, latest: mapLead(r.latest) }]));
+    },
+    /* One page of a list, filtered by the server: { items, total, page, limit }. f = { page, limit, status, q, ... } in UI status names. */
+    async pageLeads(f) {
+      f = f || {}; if (f.status === "assigned") return { items: [], total: 0, page: 1, limit: f.limit || 10 };   // the API has no separate "assigned" status
+      const p = { page: f.page || 1, limit: f.limit || 10, statuses: f.status === "tobook" ? "contacted,followup" : undefined, status: f.status && !["all", "open", "due", "tobook"].includes(f.status) ? (LSBACK[f.status] || (f.status === "booked" ? "scheduled" : f.status)) : undefined, q: f.q, open: f.status === "open" ? 1 : undefined, unassigned: f.unassigned ? 1 : undefined, due: f.status === "due" ? 1 : undefined, sort: f.sort, pincode: f.pincode };
+      const d = await get("/leads" + qs(p)); return { items: d.items.map(mapLead), total: d.total, page: d.page, limit: d.limit };
+    },
+    async pageBookings(f) {
+      f = f || {}; if (f.device === "reboots") return { items: [], total: 0, page: 1, limit: f.limit || 10 };   // restart counts are not reported by the API yet
+      const d = await get("/bookings" + qs({ page: f.page || 1, limit: f.limit || 10, status: f.status && f.status !== "all" ? ({ installed: "completed" })[f.status] || f.status : undefined, q: f.q, scheduled_from: f.from, scheduled_to: f.to, device: ["offline", "weak", "unlinked"].includes(f.device) ? f.device : undefined }));
+      const dv = f.devices && d.items.some(x => x.lead && x.lead.care_plan) ? (await get("/care-plan/devices" + qs({ lead_ids: d.items.map(x => x.lead_id).join(","), limit: 100 })).catch(() => ({ items: [] }))).items : [];   // modem rows of just this page
+      return { items: d.items.map(b => mapBooking(b, dv)), total: d.total, page: d.page, limit: d.limit };
+    },
+    async pageTickets(f) {
+      f = f || {}; const d = await get("/tickets" + qs({ page: f.page || 1, limit: f.limit || 10, status: f.status && !["all", "open_all"].includes(f.status) ? f.status : undefined, open: f.status === "open_all" ? 1 : undefined, q: f.q }));
+      return { items: d.items.map(mapTicket), total: d.total, page: d.page, limit: d.limit };
+    },
+    async pageCharges(f) {
+      f = f || {}; if (me && me.role === "dsa") return { items: [], total: 0, page: 1, limit: f.limit || 10 };
+      const d = await get("/charges" + qs({ page: f.page || 1, limit: f.limit || 10, status: f.status && f.status !== "all" ? ({ due: "pending" })[f.status] || f.status : undefined, kind: f.kind ? CKBACK[f.kind] || f.kind : undefined, q: f.q }));
+      return { items: d.items.map(mapCharge), total: d.total, page: d.page, limit: d.limit };
+    },
+    async pageCommissions(f) {
+      f = f || {}; if (me && me.role === "tip") return { items: [], total: 0, page: 1, limit: f.limit || 10 };
+      const d = await get("/commissions" + qs({ page: f.page || 1, limit: f.limit || 10, status: f.status && f.status !== "all" ? ({ rejected: "cancelled" })[f.status] || f.status : undefined, q: f.q, lead_ids: f.lead_ids }));
+      return { items: d.items.map(mapCommission), total: d.total, page: d.page, limit: d.limit };
+    },
+    async pageCustomers(f) { need("admin"); f = f || {}; const d = await get("/users" + qs({ role: "customer", page: f.page || 1, limit: f.limit || 10, q: f.q })); return { items: d.items.map(mapUser), total: d.total, page: d.page, limit: d.limit }; },
+    /* admin logins: one role at a time (admin / dsa / tip / customer) */
+    async pageTeam(f) {
+      need("admin"); f = f || {}; const d = await get("/users" + qs({ role: f.role || undefined, page: f.page || 1, limit: f.limit || 10, q: f.q }));
+      return { items: d.items.map(u => ({ ...mapUser(u), partner: ["dsa", "tip"].includes(u.role) ? pc(u) : null, pw_set_at: null })), total: d.total, page: d.page, limit: d.limit };
+    },
+    async pageMessages(f) {
+      need("admin"); f = f || {}; const d = await get("/notifications" + qs({ page: f.page || 1, limit: f.limit || 10, q: f.q }));
+      return { items: (d.items || []).map(n => ({ id: n.id, to_phone: n.phone || "", template: n.template, params: n.payload ? Object.values(n.payload).map(String) : [], status: n.status, simulated: n.status !== "sent", created_at: n.created_at, sent_at: n.created_at })), total: d.total, page: d.page, limit: d.limit };
+    },
+    async getLead(id) { return mapLead(await get("/leads/" + id)); },
+    async getPartner(id) { need("admin"); return mapPartner(await get("/users/" + id)); },
+    async getBooking(id) { const b = await get("/bookings/" + id); return mapBooking(b, []); },
+    /* partners of one kind ("dsa" | "tip"); status uses the UI names (active / pending / suspended) */
+    async pagePartners(f) {
+      need("admin"); f = f || {}; const ps = f.status && f.status !== "all" ? ({ active: "approved", suspended: "suspended", pending: "pending", rejected: "rejected" })[f.status] : undefined;
+      const d = await get("/users" + qs({ role: f.type, partner_status: ps, page: f.page || 1, limit: f.limit || 10, q: f.q })); return { items: d.items.map(mapPartner), total: d.total, page: d.page, limit: d.limit };
+    },
 
     /* ---- bookings ---- */
     /* modem data is only fetched when at least one booking is on the Care plan (otherwise it is a full extra pull for nothing) */
@@ -427,7 +495,8 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       return deviceFor(bookingId).then(async d => { if (onQueued) onQueued(); const t = await post(`/care-plan/devices/${d.id}/speed-test`);
         return { id: S(t.id), booking_id: S(bookingId), kind: "router", status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: true, created_at: t.created_at }; });
     },
-    async adminAcs() { need("admin"); const [p, d] = await Promise.all([this.adminPartners(), devices()]); return p.filter(x => x.type === "tip").map(x => ({ ...x, linked: d.filter(v => String(v.tip_user_id) === x.id).length })); },
+    async carePlanSummary() { const d = await get("/care-plan/summary"); return { ...d, zones: d.zones || [] }; },
+    async adminAcs() { need("admin"); const [p, sm] = await Promise.all([this.adminPartners(), get("/care-plan/summary")]); return p.filter(x => x.type === "tip").map(x => ({ ...x, linked: (sm.tips || {})[x.id] || 0 })); },
     async saveAcs() { fail("GenieACS is configured on the server (GENIEACS_NBI_URL), not per partner."); },
   };
   return apiFor;

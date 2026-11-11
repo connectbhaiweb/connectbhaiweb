@@ -31,7 +31,7 @@ import { WaitlistModule } from './waitlist/waitlist.module';
 @Module({
   imports: [JobsModule, 
     ConfigModule.forRoot({ isGlobal: true, cache: true, envFilePath: ['.env'], validationSchema: envValidationSchema, validationOptions: { abortEarly: false } as any }),
-    ThrottlerModule.forRoot([{ ttl: Number(process.env.THROTTLE_TTL_SECONDS ?? 60) * 1000, limit: Number(process.env.THROTTLE_LIMIT ?? 120) }]),
+    ThrottlerModule.forRoot([{ ttl: Number(process.env.THROTTLE_TTL_SECONDS ?? 60) * 1000, limit: Number(process.env.THROTTLE_LIMIT ?? 300) }]),
     PrismaModule, SettingsModule, UploadsModule, NotificationsModule, AuthModule,
     LocationsModule, CatalogueModule, UsersModule, LeadsModule, BookingsModule, PaymentsModule, CommissionsModule,
     TicketsModule, ChatModule, CarePlanModule, WaitlistModule, ReportsModule,

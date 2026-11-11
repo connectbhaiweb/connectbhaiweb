@@ -5,6 +5,7 @@ import { AuthUser, CurrentUser, Public, Roles } from '../common/decorators';
 import { pageArgs, paged } from '../common/pagination';
 import { UploadsService } from '../uploads/uploads.service';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { fulltextIds } from '../common/utils/fulltext';
 import { publicUser } from '../common/utils/serialize';
 import { ActiveDto, CreateAdminDto, PartnerStatusDto, RegisterPartnerDto, UpdateMeDto, UserQuery } from './users.dto';
 import { UsersService } from './users.service';
@@ -17,16 +18,17 @@ export class UsersController {
   register(@Body() d: RegisterPartnerDto) { return this.users.registerPartner(d); }
 
   @ApiBearerAuth() @Get('users/me')
-  async me(@CurrentUser() u: AuthUser) { return publicUser(await this.prisma.user.findUniqueOrThrow({ where: { id: u.id } })); }
+  async me(@CurrentUser() u: AuthUser) { return publicUser(await this.prisma.user.findUniqueOrThrow({ where: { id: u.id }, omit: { password_hash: true, aadhaar_enc: true, pan_enc: true, bank_account_enc: true } })); }   // runs on every page load: do not read the encrypted KYC columns
 
   @ApiBearerAuth() @Patch('users/me')
   async updateMe(@CurrentUser() u: AuthUser, @Body() d: UpdateMeDto) { return publicUser(await this.prisma.user.update({ where: { id: u.id }, data: d })); }
 
   @ApiBearerAuth() @Roles('admin') @Get('users')
   async list(@Query() q: UserQuery) {
+    const ids = q.q ? await fulltextIds(this.prisma, 'users', q.q) : null;   // index lookup; null (1 character / no index) = slow "contains" filter below
     const where: Prisma.UserWhereInput = {
       role: q.role, partner_status: q.partner_status,
-      ...(q.q ? { OR: [{ name: { contains: q.q } }, { phone: { contains: q.q } }, { partner_code: { contains: q.q } }] } : {}),
+      ...(q.q ? (ids ? { id: { in: ids } } : { OR: [{ name: { contains: q.q } }, { phone: { contains: q.q } }, { partner_code: { contains: q.q } }] }) : {}),
     };
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({ where, orderBy: { id: 'desc' }, omit: { password_hash: true, aadhaar_enc: true, pan_enc: true, bank_account_enc: true }, ...pageArgs(q) }),

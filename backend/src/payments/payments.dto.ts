@@ -6,6 +6,7 @@ export class ChargeQuery extends PageQuery {
   @IsOptional() @IsIn(['tip_onboarding', 'tip_install_fee', 'tip_care_plan_fee', 'customer_payment', 'other']) kind?: string;
   @IsOptional() @IsIn(['pending', 'paid', 'failed', 'waived', 'cancelled', 'refunded']) status?: string;
   @IsOptional() @Type(() => Number) @IsInt() payer_user_id?: number;
+  @IsOptional() @IsString() q?: string;
 }
 export class PayDto { @IsOptional() @IsString() payment_token?: string; }
 export class VerifyPaymentDto {

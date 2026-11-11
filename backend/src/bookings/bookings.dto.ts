@@ -21,4 +21,10 @@ export class CompleteBookingDto {
 export class BookingQuery extends PageQuery {
   @IsOptional() @IsIn(['scheduled', 'completed', 'rescheduled', 'cancelled']) status?: string;
   @IsOptional() @Type(() => Number) @IsInt() lead_id?: number;
+  @IsOptional() @IsString() q?: string;
+  /** modem state filter for the Care plan page */
+  @IsOptional() @IsIn(['offline', 'weak', 'unlinked']) device?: string;
+  /** scheduled_at window: from (inclusive) to (exclusive) */
+  @IsOptional() @IsDateString() scheduled_from?: string;
+  @IsOptional() @IsDateString() scheduled_to?: string;
 }

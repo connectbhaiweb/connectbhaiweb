@@ -12,6 +12,7 @@ import { CreateAreaDto, CreateCityDto, PINCODE_RE, TipPincodeDto, TipPincodeQuer
 @ApiTags('locations') @Controller()
 export class LocationsController {
   private cache = new TtlCache(process.env.APP_ENV === 'test' ? 0 : 60_000);   // cities and areas barely change
+  private geoCache = new TtlCache(process.env.APP_ENV === 'test' ? 0 : 3_600_000, 2000);
   constructor(private prisma: PrismaService, private cfg: ConfigService, private pins: PincodeService) {}
 
   // ---------- public ----------
@@ -55,9 +56,12 @@ export class LocationsController {
     url.search = new URLSearchParams({ format: 'jsonv2', lat: String(q.lat), lon: String(q.lng), addressdetails: '1', zoom: '18' }).toString();
     let body: any;
     try {
-      const r = await fetch(url, { headers: { 'user-agent': this.cfg.getOrThrow<string>('GEOCODER_USER_AGENT'), 'accept-language': 'en' }, signal: AbortSignal.timeout(Number(this.cfg.get('GEOCODER_TIMEOUT_MS')) || 5000) });
-      if (!r.ok) throw new Error(String(r.status));
-      body = await r.json();
+      // the same spot (about 100 m) gives the same answer: keep it for an hour instead of asking the geocoder again
+      body = await this.geoCache.get(`${Number(q.lat).toFixed(3)},${Number(q.lng).toFixed(3)}`, async () => {
+        const r = await fetch(url, { headers: { 'user-agent': this.cfg.getOrThrow<string>('GEOCODER_USER_AGENT'), 'accept-language': 'en' }, signal: AbortSignal.timeout(Number(this.cfg.get('GEOCODER_TIMEOUT_MS')) || 5000) });
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      });
     } catch {
       throw new ServiceUnavailableException('Could not look up your location right now. Please type your PIN code.');
     }

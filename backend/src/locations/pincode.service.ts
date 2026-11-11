@@ -17,14 +17,16 @@ type Post = { state: string; district: string; areas: string[] } | null;
 @Injectable()
 export class PincodeService {
   private cache = new Map<string, { value: Post; until: number }>();
+  private down = 0;   // until when India Post is treated as unreachable
   constructor(private prisma: PrismaService, private cfg: ConfigService) {}
 
   /** @internal for tests */
-  clearCache() { this.cache.clear(); }
+  clearCache() { this.cache.clear(); this.down = 0; }
 
   private async fromIndiaPost(pin: string): Promise<Post | undefined> {
     const hit = this.cache.get(pin);
     if (hit && hit.until > Date.now()) return hit.value;
+    if (this.down > Date.now()) return undefined;
     try {
       const base = this.cfg.getOrThrow<string>('PINCODE_API_URL').replace(/\/$/, '');
       const r = await fetch(`${base}/${pin}`, { headers: { 'user-agent': this.cfg.getOrThrow<string>('GEOCODER_USER_AGENT') }, signal: AbortSignal.timeout(Number(this.cfg.get('GEOCODER_TIMEOUT_MS')) || 5000) });
@@ -36,14 +38,17 @@ export class PincodeService {
       this.cache.set(pin, { value, until: Date.now() + 24 * 3_600_000 });
       return value;
     } catch {
-      return undefined;   // India Post unreachable: caller falls back to local data
+      this.down = Date.now() + 60_000;   // India Post unreachable: skip it for a minute so requests do not each wait for the timeout
+      return undefined;   // caller falls back to local data
     }
   }
 
   async lookup(pincode: string): Promise<PinInfo> {
     if (!PINCODE_RE.test(pincode)) throw new BadRequestException('Enter a valid 6-digit PIN code');
-    const post = await this.fromIndiaPost(pincode);
-    const ours = await this.prisma.area.findMany({ where: { pincode }, include: { city: true }, take: 50 });
+    const [post, ours] = await Promise.all([   // independent: run side by side
+      this.fromIndiaPost(pincode),
+      this.prisma.area.findMany({ where: { pincode }, include: { city: true }, take: 50 }),
+    ]);
     if (post === undefined && !ours.length) throw new ServiceUnavailableException('PIN lookup is unavailable right now. You can still type the area yourself.');
     return {
       pincode,

@@ -36,6 +36,13 @@ export class WaitlistController {
     return paged(items, total, q);
   }
 
+  /** Counts per city (waiting / notified) without sending every row to the dashboard. */
+  @ApiBearerAuth() @Roles('admin') @Get('summary')
+  async summary() {
+    const rows = await this.prisma.waitlist.groupBy({ by: ['city_id'], _count: { _all: true, notified_at: true } });
+    return rows.map((r) => ({ city_id: Number(r.city_id), total: r._count._all, notified: r._count.notified_at, waiting: r._count._all - r._count.notified_at }));
+  }
+
   /** When a city goes live: tell everyone on its waitlist. */
   @ApiBearerAuth() @Roles('admin') @Post('notify/:cityId') @HttpCode(200)
   async notifyCity(@Param('cityId', ParseIntPipe) cityId: number) {

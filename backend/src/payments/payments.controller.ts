@@ -1,3 +1,4 @@
+import { fulltextIds, leadTextWhere } from '../common/utils/fulltext';
 import { BadRequestException, Body, Controller, ForbiddenException, Get, Headers, HttpCode, NotFoundException, Param, ParseIntPipe, Post, Query, RawBodyRequest, Req } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -38,7 +39,12 @@ export class PaymentsController {
 
   @ApiBearerAuth() @Roles('admin', 'tip', 'customer') @Get('charges')
   async list(@Query() q: ChargeQuery, @CurrentUser() u: AuthUser) {
+    const s = q.q?.trim();
     const where: Prisma.ChargeWhereInput = { kind: q.kind as any, status: q.status as any, payer_user_id: u.role === 'admin' ? q.payer_user_id : u.id };
+    if (s) {
+      const uids = await fulltextIds(this.prisma, 'users', s);
+      where.OR = [{ invoice_no: { contains: s } }, { description: { contains: s } }, uids ? { payer_user_id: { in: uids } } : { payer: { OR: [{ name: { contains: s } }, { phone: { contains: s } }] } }, { lead: await leadTextWhere(this.prisma, s) }];
+    }
     const [items, total] = await Promise.all([
       this.prisma.charge.findMany({ where, orderBy: { id: 'desc' }, include: { charge_leads: true, payer: { select: { id: true, name: true, phone: true, role: true, partner_code: true } } }, ...pageArgs(q) }),
       this.prisma.charge.count({ where }),

@@ -5,6 +5,8 @@
 import { API, AppError, BOOK, BOOK_NEXT, BOOK_TONE, CATS, COMM, COMM_TONE, KIND, LEAD, LEAD_NEXT, LEAD_TONE, PRODUCT_NAME, PW_RULE, SHEET_COLS, TICKET, TICKET_TONE, ZONES, ZONE_BY_PIN, ZONE_NAME, addDays, esc, fdate, fdt, inr, isPhone, isPin, loadDemo, migrateCities, planFromRow, productOf, pwOk, resetDemoData, todayISO } from "./api";
 import { SUPPORT, LIVE, REST } from "./config";
 import { areaIndex } from "./areas";
+import { dashboard as dashStats, fetchPage, partnerTotals, money as moneyStats, payables, carePlanSummary } from "./paging";
+import { cachedRow, clearServerTables, fillServerTables, initServerTables, resetServerTable, serverTable } from "./serverTable";
 import { publish } from "./runtime";
 import { ROLE_HOME, ROLE_NAME, initials, pathFor } from "./shared";
 /* =====================================================================
@@ -174,7 +176,7 @@ async function render() {
   const v = S.view;
   if (v === "home") { if (!app.children.length) app.innerHTML = skeleton("home"); return track(renderHome()); }
   if (v === "speed") { app.innerHTML = ""; return; }   // the speed test is a React page (components/speed/SpeedTest.jsx)
-  if (v === "router") { app.innerHTML = skeleton("dash"); return track(renderRouter().catch(e => { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load router status.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; })); }
+  if (v === "router") { app.innerHTML = skeleton("dash"); clearServerTables(); return track(renderRouter().then(() => fillServerTables()).catch(e => { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load router status.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; })); }
   const need = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" }[v];
   const u = me();
   if (!u || u.role !== need) {
@@ -184,8 +186,8 @@ async function render() {
     return;
   }
   if (REACT_VIEWS[v] && REACT_VIEWS[v](S.tab)) { app.innerHTML = ""; window.dispatchEvent(new CustomEvent("cb:render", { detail: { view: v, tab: S.tab } })); return; }
-  app.innerHTML = skeleton("dash");
-  try { await track(({ my: renderCustomer, dsa: renderDSA, tip: renderTIP, admin: renderAdmin }[v])()); scrollChat(); }
+  app.innerHTML = skeleton("dash"); clearServerTables();
+  try { await track(({ my: renderCustomer, dsa: renderDSA, tip: renderTIP, admin: renderAdmin }[v])()); fillServerTables(); scrollChat(); }
   catch (e) { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load this page.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; }
 }
 
@@ -599,49 +601,6 @@ function partnerDash(s) {
 }
 const zoneOf = l => (l && l.pincode) || null;   // 'zone' is now the AREA: its PIN code
 const zoneOpts = cur => `<option value="">— No zone —</option><optgroup label="Indore city">${ZONES.filter(z => z.kind === "city").map(z => `<option value="${z.id}" ${cur === z.id ? "selected" : ""}>${z.name}</option>`).join("")}</optgroup><optgroup label="Rural tehsils">${ZONES.filter(z => z.kind === "rural").map(z => `<option value="${z.id}" ${cur === z.id ? "selected" : ""}>${z.name}</option>`).join("")}</optgroup>`;
-function zoneReport(leads, locs, partners) {   // leads grouped by AREA (PIN code + area name)
-  const per = S.zonePeriod || "month", cut = per === "all" ? "" : (per === "month" ? monthKeys(1)[0] : monthKeys(3)[0]) + "-01", zf = S.zoneFilter || "all", idx = areaIndex(locs);
-  const pins = [...new Set([...locs.map(x => x.pincode), ...leads.map(l => l.pincode)].filter(Boolean))];
-  const rows = pins.map(pin => {
-    const all = leads.filter(l => l.pincode === pin), n = all.filter(l => (l.created_at || "") >= cut).length, won = all.filter(l => l.status === "installed").length, closed = all.filter(l => ["installed", "lost"].includes(l.status)).length;
-    const tips = new Set(locs.filter(x => x.pincode === pin).flatMap(x => (x.coverage || []).map(c => c.tip_partner_id).filter(Boolean)));
-    const dsas = partners.filter(p => p.type === "dsa" && p.status === "active" && (p.service_pincodes || "").split(",").map(x => x.trim()).includes(pin)).length;
-    return { pin, name: idx.get(pin) || "", n, total: all.length, won, conv: closed ? Math.round(won / closed * 100) : 0, open: all.filter(l => !["installed", "lost"].includes(l.status)).length, dsa: dsas, tip: tips.size };
-  }).sort((a, b) => b.n - a.n || b.total - a.total || a.pin.localeCompare(b.pin));
-  const top = rows[0], maxN = Math.max(1, ...rows.map(r => r.n)), quiet = rows.filter(r => !r.n).length, perTxt = { month: "this month", "3m": "last 3 months", all: "all time" }[per];
-  return `<div class="card stack" style="margin-bottom:16px"><div class="row"><div style="min-width:0;flex:1 1 280px"><h3>Where leads come from</h3><p class="muted small">Leads grouped by the customer's PIN code and area. Top 4 areas shown; use the link below to see them all.</p></div>
-      <div class="chips">${[["month", "This month"], ["3m", "Last 3 months"], ["all", "All time"]].map(([k, l]) => `<button type="button" class="chip" data-act="zone-period" data-v="${k}" aria-pressed="${per === k}">${l}</button>`).join("")}</div></div>
-    <p class="small">${top && top.n ? `Most leads from <b>${esc(top.pin)}${top.name ? " · " + esc(top.name) : ""}</b> (${top.n}, ${perTxt}). ` : "No leads in this period yet. "}${quiet ? `${quiet} area${quiet === 1 ? " has" : "s have"} no leads ${perTxt}.` : ""}</p>
-    <div class="bars">${rows.slice(0, 4).filter(r => r.n).map(r => `<div class="bar"><span>${esc(r.pin)}${r.name ? " · " + esc(r.name) : ""}</span><span class="t"><i style="width:${r.n / maxN * 100}%;background:var(--ok)"></i></span><b>${r.n}</b></div>`).join("")}</div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Area</th><th class="r">Leads ${perTxt}</th><th class="r">All time</th><th class="r">Installed</th><th class="r">Open</th><th class="r">DSAs</th><th class="r">TIPs</th><th></th></tr></thead><tbody>
-    ${(S.zoneAll ? rows : rows.slice(0, 4)).map(r => `<tr><td><b class="mono">${esc(r.pin)}</b><br><span class="muted">${esc(r.name)}</span></td><td class="r">${r.n}</td><td class="r">${r.total}</td><td class="r">${r.won}${r.total ? ` (${r.conv}%)` : ""}</td><td class="r">${r.open}</td><td class="r">${r.dsa}</td><td class="r">${r.tip}</td>
-      <td><button class="btn btn-ghost btn-sm" data-act="zone-filter" data-v="${zf === r.pin ? "all" : r.pin}" type="button">${zf === r.pin ? "Show all leads" : "Show these leads"}</button></td></tr>`).join("")}</tbody></table></div>
-    ${rows.length > 4 ? `<div><button class="linkbtn small" data-act="zone-all" type="button">${S.zoneAll ? "Show top 4 areas only" : `Show all ${rows.length} areas`}</button></div>` : ""}</div>`;
-}
-function adminPartnerReport(leads, partners, bookings, comms, charges, st) {
-  const keys = monthKeys(6), act = partners.filter(p => p.status !== "suspended" && (p.status === "active" || p.approved_at));
-  const rows = act.map(p => pStats(p, leads, bookings, comms, charges, st)).sort((a, b) => (a.p.type === b.p.type ? 0 : a.p.type === "tip" ? -1 : 1) || b.thisMonth - a.thisMonth);
-  const paid = charges.filter(c => c.status === "paid"), coll = k => sumBy(paid.filter(c => mKey(c.paid_at) === k), c => c.amount);
-  const payout = k => sumBy(comms.filter(c => c.status === "paid" && mKey(c.created_at) === k), c => c.amount);
-  const tot = { coll: sumBy(paid, c => c.amount), reg: sumBy(paid.filter(c => c.kind === "registration_fee"), c => c.amount), plat: sumBy(paid.filter(c => c.kind === "platform_fee"), c => c.amount), cust: sumBy(paid.filter(c => c.kind === "customer_payment"), c => c.amount),
-    payPaid: sumBy(comms.filter(c => c.status === "paid"), c => c.amount), payOwed: sumBy(comms.filter(c => ["pending", "approved"].includes(c.status)), c => c.amount), due: sumBy(charges.filter(c => ["due", "failed"].includes(c.status)), c => c.amount) };
-  const below = rows.filter(r => r.thisMonth < r.target);
-  const delivered = keys.map(k => leads.filter(l => (l.assigned_dsa_id || l.assigned_tip_id) && l.source !== "dsa" && mKey(l.assigned_at || l.created_at) === k).length);
-  return `<h3 style="margin:0 0 10px;font-size:18px">Connect Bhai money</h3>
-    <div class="kpis"><div class="kpi"><span>Collected</span><b>${inr(tot.coll)}</b><small>Reg. ${inrK(tot.reg)} · platform ${inrK(tot.plat)} · customers ${inrK(tot.cust)}</small></div><div class="kpi"><span>Paid to DSAs</span><b>${inr(tot.payPaid)}</b><small>${inr(tot.payOwed)} still owed</small></div>
-      <div class="kpi"><span>Net so far</span><b>${inr(tot.coll - tot.payPaid)}</b><small>collected − DSA payouts</small></div><div class="kpi"><span>Due from TIPs & customers</span><b>${inr(tot.due)}</b><small>open charges</small></div></div>
-    <div class="split"><div class="card"><h3>Collected vs paid out</h3><p class="muted small" style="margin-bottom:10px">Money in (fees, customer payments) and DSA commission paid, by month.</p>${colChart(keys, [{ name: "Collected", color: "var(--ok)", values: keys.map(coll) }, { name: "Paid to DSAs", color: "var(--warn)", values: keys.map(payout) }], inrK)}</div>
-      <div class="card"><h3>Leads delivered to DSAs & TIPs</h3><p class="muted small" style="margin-bottom:10px">Website and callback leads assigned to a DSA or TIP, by month.</p>${colChart(keys, [{ name: "Leads delivered", color: "var(--blue)", values: delivered }])}</div></div>
-    <h3 style="margin:22px 0 6px;font-size:18px">DSA & TIP performance & lead promise · ${mLabel(keys[5])}</h3>
-    <p class="muted small" style="margin-bottom:10px">${below.length ? `<b style="color:var(--warn)">${below.length} DSA/TIP${below.length === 1 ? " is" : "s are"} below the promised leads this month.</b> Assign more leads from Leads, or add PIN codes in Locations.` : "Every active DSA and TIP has received the promised leads this month."} Targets are set per DSA/TIP (DSA & TIP list → Edit) or by default in Billing & fees.</p>
-    <div class="tbl-wrap"><table class="tbl" style="min-width:980px"><thead><tr><th>DSA / TIP</th><th>Leads this month</th><th class="r">Total leads</th><th class="r">Installed</th><th class="r">Conversion</th><th class="r">Earning</th><th class="r">Money with Connect Bhai</th><th>Contact</th></tr></thead><tbody>
-    ${rows.map(r => { const pct = Math.min(100, Math.round(r.thisMonth / (r.target || 1) * 100)), ok = r.thisMonth >= r.target;
-      return `<tr><td><b>${esc(r.p.name)}</b><br><span class="muted small">${r.p.type.toUpperCase()} · PINs ${esc(r.p.service_pincodes || "—")}</span></td>
-        <td style="min-width:150px"><b>${r.thisMonth}</b> / ${r.target} ${ok ? pill("Met", "p-ok") : pill("Below", "p-warn")}<div class="prog ${ok ? "ok" : ""}" style="height:8px;margin-top:6px"><i style="width:${pct}%"></i></div></td>
-        <td class="r num">${r.given.length}</td><td class="r num">${r.isT ? r.inst.length : r.won}</td><td class="r num">${r.conv}%</td>
-        <td class="r num">${r.isT ? inr(r.billing) + `<br><span class="muted small">monthly billing${r.share ? " · est. " + inr(r.billing * r.share / 100) + " income" : ""}</span>` : inr(r.comm.pending + r.comm.approved + r.comm.paid) + `<br><span class="muted small">${inr(r.comm.paid)} paid · ${inr(r.comm.pending + r.comm.approved)} owed</span>`}</td>
-        <td class="r num">${r.isT ? inr(r.fee.paid) + `<br><span class="muted small">fees paid · ${inr(r.fee.due)} due</span>` : "—"}</td><td>${contactBtns(r.p)}</td></tr>`; }).join("") || `<tr><td colspan="8" class="muted">No active DSAs or TIPs yet.</td></tr>`}</tbody></table></div>`;
-}
 function partnerPre(p) {
   const u = me();
   return `<div class="contacts">${contactCard("You (" + (p.type === "tip" ? "TIP" : "DSA") + ")", { name: p.name, firm: p.firm, phone: p.phone, email: p.email || u.email }, { noBtns: true, extra: `<div class="cacts"><button class="cbtn" data-act="edit-profile" type="button">Edit name / email</button></div>` })}
@@ -649,53 +608,50 @@ function partnerPre(p) {
 }
 async function renderDSA() {
   const tab = S.tab || "home";
-  const [leads, cs, partner] = await Promise.all([API.partnerLeads(), API.myCommissions(), API.myPartner()]);
-  const open = leads.filter(l => !["installed", "lost"].includes(l.status));
-  const due = leads.filter(l => l.status === "follow_up" && l.next_follow_up && l.next_follow_up <= todayISO());
+  /* the numbers come from the server's aggregates; the lists below load one page at a time (serverTable) */
+  const [st, partner] = await Promise.all([dashStats(API, "dsa", { months: 1 }), API.myPartner()]);
+  const L = st.leads, open = L.new + L.contacted + L.follow_up + L.booked + (L.assigned || 0), C = st.commission;
   const filt = S.dsaFilter || "open";
-  const shown = filt === "open" ? open : filt === "due" ? due : filt === "all" ? leads : leads.filter(l => l.status === filt);
+  const charges = tab === "payments" || partner.status !== "active" ? await API.myCharges() : [];
   let body;
-  if (tab === "leads") body = `<div class="kpis"><div class="kpi"><span>Open leads</span><b>${open.length}</b></div><div class="kpi"><span>Follow-ups due</span><b>${due.length}</b><small>today or earlier</small></div><div class="kpi"><span>Booked</span><b>${leads.filter(l => l.status === "booked").length}</b></div><div class="kpi"><span>Installed</span><b>${leads.filter(l => l.status === "installed").length}</b></div></div>
+  if (tab === "leads") body = `<div class="kpis"><div class="kpi"><span>Open leads</span><b>${open}</b></div><div class="kpi"><span>Follow-ups due</span><b>${st.followups_due}</b><small>today or earlier</small></div><div class="kpi"><span>Booked</span><b>${L.booked}</b></div><div class="kpi"><span>Installed</span><b>${L.installed}</b></div></div>
     <div class="chips" style="margin-bottom:14px">${[["open", "Open"], ["due", "Follow-up due"], ["assigned", "New to call"], ["contacted", "Contacted"], ["booked", "Booked"], ["installed", "Installed"], ["lost", "Lost"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="dsa-filter" data-v="${k}" aria-pressed="${filt === k}">${l}</button>`).join("")}</div>
-    ${shown.length ? `<div class="list">${shown.map(l => leadRow(l, "dsa")).join("")}</div>` : `<div class="empty"><b>No leads here yet.</b><p class="muted" style="max-width:52ch">Website requests from your PIN codes (<b>${esc(partner.service_pincodes || "none set")}</b>) are assigned to you automatically. Requests from other areas go to admin, who can assign them to you. You can also add customers you meet in the field.</p><button class="btn btn-primary" data-act="dsa-add" type="button">Add lead</button></div>`}`;
-  if (tab === "installs") { const bk = leads.filter(l => l.booking); body = bk.length ? `<div class="list">${bk.map(l => `<div class="item"><div class="ih"><h3>${esc(l.name)}</h3>${bookPill(l.booking.status)}<span class="spacer"></span><span class="mono muted">${esc(l.booking.ref_code)}</span></div><div class="meta"><span><b>${esc(fmtPh(l.phone))}</b></span>${l.email ? `<span>${esc(l.email)}</span>` : ""}<span>${planLine(l.plan)}</span><span>Scheduled <b>${fdate(l.booking.scheduled_date)}</b></span>${l.tip ? `<span>TIP <b>${esc(l.tip.name)}</b></span>` : ""}</div>${contactBtns({ phone: l.phone, email: l.email }, { thread: "lead:" + l.id })}${contactLine("Installer", l.tip)}</div>`).join("")}</div>` : `<div class="empty"><b>No installations yet.</b></div>`; }
-  if (tab === "commission") body = commissionList(cs);
-  const charges = await API.myCharges();
-  if (tab === "home") { const [bk, st] = await Promise.all([API.partnerBookings(), API.getSettings()]); body = partnerDash(pStats(partner, leads, bk, cs, charges, st)); }
+    ${serverTable("dsa-leads", { role: "dsa", kind: "leads", filters: () => ({ status: S.dsaFilter || "open" }), label: "Search leads", html: rows => `<div class="list">${rows.map(l => leadRow(l, "dsa")).join("")}</div>`,
+      empty: `No leads here yet. Website requests from your PIN codes (${partner.service_pincodes || "none set"}) are assigned to you automatically. You can also add customers you meet in the field.` })}`;
+  if (tab === "installs") body = serverTable("dsa-installs", { role: "dsa", kind: "bookings", label: "Search installations", empty: "No installations yet.", html: rows => `<div class="list">${rows.map(b => `<div class="item"><div class="ih"><h3>${esc(b.lead.name)}</h3>${bookPill(b.status)}<span class="spacer"></span><span class="mono muted">${esc(b.ref_code)}</span></div><div class="meta"><span><b>${esc(fmtPh(b.lead.phone))}</b></span><span>${planLine(b.plan)}</span><span>Scheduled <b>${fdate(b.scheduled_date)}</b></span>${b.tip ? `<span>TIP <b>${esc(b.tip.name)}</b></span>` : ""}</div>${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}${contactLine("Installer", b.tip)}</div>`).join("")}</div>` });
+  if (tab === "commission") body = `<div class="kpis"><div class="kpi"><span>Pending approval</span><b>${inr(C.pending)}</b></div><div class="kpi"><span>Approved</span><b>${inr(C.approved)}</b><small>awaiting payment</small></div><div class="kpi"><span>Paid</span><b>${inr(C.paid)}</b></div><div class="kpi"><span>Installs</span><b>${st.commission_count}</b></div></div>
+    ${serverTable("dsa-comm", { role: "dsa", kind: "commissions", label: "Search earnings", empty: "No commissions yet. Commissions are created when an installation is completed.", html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Booking</th><th>Customer</th><th>Plan</th><th>Installed</th><th class="r">Amount</th><th>Status</th></tr></thead><tbody>${rows.map(c => `<tr><td class="mono">${esc(c.booking.ref_code)}</td><td>${esc(c.booking.lead ? c.booking.lead.name : "")}</td><td>${esc(c.booking.plan ? c.booking.plan.name : "")}</td><td>${fdate(c.booking.installed_at || c.created_at)}</td><td class="r num">${inr(c.amount)}</td><td>${commPill(c.status)}</td></tr>`).join("")}</tbody></table></div>` })}`;
   if (tab === "payments") body = chargeList(charges, "Nothing due to Connect Bhai.");
   if (partner.status !== "active" && !["payments", "chat"].includes(tab)) body = activationCard(partner, charges);
   if (tab === "chat") body = await chatTab();
-  app.innerHTML = dashShell(esc(partner.name), "DSA portal · " + esc(partner.firm || ""), [["home", "Dashboard"], ["leads", "Leads & follow-ups", open.length], ["installs", "Installation status", leads.filter(l => l.booking).length], ["commission", "My earnings", cs.length], ["payments", "Fees to Connect Bhai", charges.filter(c => ["due", "failed"].includes(c.status)).length], ["chat", "Chat", await unreadCount()]], tab, body, partner.status === "active" ? `<button class="btn btn-primary" data-act="dsa-add" type="button">Add lead</button>` : "", partnerPre(partner));
+  app.innerHTML = dashShell(esc(partner.name), "DSA portal · " + esc(partner.firm || ""), [["home", "Dashboard"], ["leads", "Leads & follow-ups", open], ["installs", "Installation status", st.bookings.scheduled + st.bookings.installed + st.bookings.cancelled], ["commission", "My earnings", st.commission_count], ["payments", "Fees to Connect Bhai", 0], ["chat", "Chat", await unreadCount()]], tab, body, partner.status === "active" ? `<button class="btn btn-primary" data-act="dsa-add" type="button">Add lead</button>` : "", partnerPre(partner));
 }
 async function renderTIP() {
   const tab = S.tab || "home";
-  const [leads, bookings, tickets, cs, partner] = await Promise.all([API.partnerLeads(), API.partnerBookings(), API.partnerTickets(), API.myCommissions(), API.myPartner()]);
-  const toBook = leads.filter(l => ["assigned", "contacted", "follow_up"].includes(l.status));
-  const active = bookings.filter(b => ["scheduled", "in_progress"].includes(b.status));
-  const customers = bookings.filter(b => b.status === "installed");
-  const openT = tickets.filter(t => ["open", "in_progress"].includes(t.status));
+  const [st, partner] = await Promise.all([dashStats(API, "tip", { months: 1 }), API.myPartner()]);
+  const L = st.leads, toBook = L.contacted + L.follow_up + (L.assigned || 0), activeN = st.installs_pending, customersN = st.installs_total, openT = st.open_tickets, cc = st.charges_count || {};
+  const dueN = (cc.pending || 0) + (cc.due || 0) + (cc.failed || 0);
+  const charges = tab === "payments" || partner.status !== "active" ? await API.myCharges() : [];   // a TIP's own fee list is short; the bill list below is paged on the server
   let body;
-  if (tab === "bookings") body = `<div class="kpis"><div class="kpi"><span>To schedule</span><b>${toBook.length}</b></div><div class="kpi"><span>Installs pending</span><b>${active.length}</b></div><div class="kpi"><span>Active customers</span><b>${customers.length}</b></div><div class="kpi"><span>Open tickets</span><b>${openT.length}</b></div></div>
+  if (tab === "bookings") body = `<div class="kpis"><div class="kpi"><span>To schedule</span><b>${toBook}</b></div><div class="kpi"><span>Installs pending</span><b>${activeN}</b></div><div class="kpi"><span>Active customers</span><b>${customersN}</b></div><div class="kpi"><span>Open tickets</span><b>${openT}</b></div></div>
     <h3 style="margin:6px 0 10px;font-size:17px">Installations</h3>
-    ${active.length ? `<div class="list">${active.map(b => `<div class="item"><div class="ih"><h3>${esc(b.lead.name)}</h3>${bookPill(b.status)}<span class="spacer"></span><span class="mono muted">${esc(b.ref_code)}</span></div>
+    ${serverTable("tip-active", { role: "tip", kind: "bookings", filters: () => ({ status: "scheduled" }), label: "Search installations", empty: "No installations pending.", html: rows => `<div class="list">${rows.map(b => `<div class="item"><div class="ih"><h3>${esc(b.lead.name)}</h3>${bookPill(b.status)}<span class="spacer"></span><span class="mono muted">${esc(b.ref_code)}</span></div>
       <div class="meta"><span><b>${esc(fmtPh(b.lead.phone))}</b></span>${b.lead.email ? `<span>${esc(b.lead.email)}</span>` : ""}<span>${esc(b.lead.address || b.lead.area || "")} · ${esc(b.lead.pincode)}</span><span>${planLine(b.plan)}</span><span>Scheduled <b>${fdate(b.scheduled_date)}</b></span></div>
       ${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id, text: "Namaste " + b.lead.name + ", Connect Bhai installer here about your connection " + b.ref_code })}${contactLine("Agent", b.dsa)}
-      <div class="row"><button class="btn btn-primary btn-sm" data-act="booking-status" data-id="${b.id}" type="button">Update installation</button>${mapLink(b.lead, true)}</div></div>`).join("")}</div>` : `<div class="empty"><b>No installations pending.</b></div>`}
+      <div class="row"><button class="btn btn-primary btn-sm" data-act="booking-status" data-id="${b.id}" type="button">Update installation</button>${mapLink(b.lead, true)}</div></div>`).join("")}</div>` })}
     <h3 style="margin:22px 0 10px;font-size:17px">Assigned leads to schedule</h3>
-    ${toBook.length ? `<div class="list">${toBook.map(l => leadRow(l, "tip")).join("")}</div>` : `<div class="empty"><b>Nothing to schedule.</b></div>`}`;
-  if (tab === "customers") body = customers.length ? `<div class="notice info" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span style="flex:1 1 320px">Enter the ONT serial when you mark an installation complete, and set the modem's ACS URL to your own GenieACS (or Connect Bhai's, as agreed with admin). Keep the ACS link on after installation so the customer stays on the Care plan. Use it only with the provider's written authorisation.</span><button class="btn btn-primary btn-sm" data-go="router" type="button">Manage modems</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Customer</th><th>Connection ref</th><th>Plan</th><th>Installed</th><th>Authorised</th><th>Router status</th><th></th></tr></thead><tbody>
-    ${customers.map(b => `<tr><td><b>${esc(b.lead.name)}</b><br><span class="muted">${esc(fmtPh(b.lead.phone))}</span>${b.lead.email ? `<br><span class="muted small">${esc(b.lead.email)}</span>` : ""}${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}</td><td class="mono">${esc(b.connection_ref || "—")}<br><span class="muted">ONT ${esc(b.ont_serial || "not linked")}</span></td><td>${esc(b.plan ? b.plan.name : "")}<br><span class="muted">${b.plan ? b.plan.speed_mbps + " Mbps" : ""}</span></td><td>${fdate(b.installed_at)}</td><td>${b.authorized ? pill("Authorised", "p-ok") : pill("Pending", "p-warn")}</td><td>${deviceView(b.device)}${b.device && b.device.acs ? `<div style="margin-top:4px">${rxPill(b.device)}</div>` : ""}<div class="small" id="rt-${b.id}" style="margin-top:4px"></div></td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button">Refresh</button><button class="btn btn-soft btn-sm" data-act="router-test" data-id="${b.id}" type="button">Router test</button></div></td></tr>`).join("")}</tbody></table></div>`
-    : `<div class="empty"><b>No installed customers yet.</b></div>`;
-  if (tab === "tickets") body = tickets.length ? `<div class="list">${tickets.map(t => `<div class="item"><div class="ih"><h3>${esc(t.category)}</h3>${tickPill(t.status)}<span class="spacer"></span><span class="mono muted">${esc(t.ref_code)}</span></div>
-    <p>${esc(t.description)}</p>${t.booking.lead ? contactBtns({ phone: t.booking.lead.phone, email: t.booking.lead.email }, { thread: "lead:" + t.booking.lead.id }) : ""}<div class="meta"><span>${esc(t.booking.lead ? t.booking.lead.name : "")} · <b>${esc(t.booking.lead ? fmtPh(t.booking.lead.phone) : "")}</b>${t.booking.lead && t.booking.lead.email ? " · " + esc(t.booking.lead.email) : ""}</span><span>${esc(t.booking.connection_ref || "")}</span><span>Raised <b>${fdate(t.created_at)}</b></span>${t.resolution_note ? `<span>Note: <b>${esc(t.resolution_note)}</b></span>` : ""}</div>
-    <div class="row"><button class="btn btn-soft btn-sm" data-act="ticket-status" data-id="${t.id}" data-s="${t.status}" type="button">Update ticket</button></div></div>`).join("")}</div>` : `<div class="empty"><b>No service tickets.</b></div>`;
-  const charges = await API.myCharges();
-  if (tab === "home") body = partnerDash(pStats(partner, leads, bookings, cs, charges, await API.getSettings()));
+    ${serverTable("tip-toschedule", { role: "tip", kind: "leads", filters: () => ({ status: "tobook" }), label: "Search leads", empty: "Nothing to schedule.", html: rows => `<div class="list">${rows.map(l => leadRow(l, "tip")).join("")}</div>` })}`;
+  if (tab === "customers") body = `<div class="notice info" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span style="flex:1 1 320px">Enter the ONT serial when you mark an installation complete, and set the modem's ACS URL to your own GenieACS (or Connect Bhai's, as agreed with admin). Keep the ACS link on after installation so the customer stays on the Care plan. Use it only with the provider's written authorisation.</span><button class="btn btn-primary btn-sm" data-go="router" type="button">Manage modems</button></div>
+    ${serverTable("tip-customers", { role: "tip", kind: "bookings", filters: () => ({ status: "installed", devices: true }), label: "Search customers", empty: "No installed customers yet.", html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Customer</th><th>Connection ref</th><th>Plan</th><th>Installed</th><th>Authorised</th><th>Router status</th><th></th></tr></thead><tbody>
+    ${rows.map(b => `<tr><td><b>${esc(b.lead.name)}</b><br><span class="muted">${esc(fmtPh(b.lead.phone))}</span>${b.lead.email ? `<br><span class="muted small">${esc(b.lead.email)}</span>` : ""}${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}</td><td class="mono">${esc(b.connection_ref || "—")}<br><span class="muted">ONT ${esc(b.ont_serial || "not linked")}</span></td><td>${esc(b.plan ? b.plan.name : "")}<br><span class="muted">${b.plan ? b.plan.speed_mbps + " Mbps" : ""}</span></td><td>${fdate(b.installed_at)}</td><td>${b.authorized ? pill("Authorised", "p-ok") : pill("Pending", "p-warn")}</td><td>${deviceView(b.device)}${b.device && b.device.acs ? `<div style="margin-top:4px">${rxPill(b.device)}</div>` : ""}<div class="small" id="rt-${b.id}" style="margin-top:4px"></div></td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button">Refresh</button><button class="btn btn-soft btn-sm" data-act="router-test" data-id="${b.id}" type="button">Router test</button></div></td></tr>`).join("")}</tbody></table></div>` })}`;
+  if (tab === "tickets") body = serverTable("tip-tickets", { role: "tip", kind: "tickets", label: "Search tickets", empty: "No service tickets.", html: rows => `<div class="list">${rows.map(t => `<div class="item"><div class="ih"><h3>${esc(t.category)}</h3>${tickPill(t.status)}<span class="spacer"></span><span class="mono muted">${esc(t.ref_code)}</span></div>
+    <p>${esc(t.description)}</p>${t.booking && t.booking.lead ? contactBtns({ phone: t.booking.lead.phone, email: t.booking.lead.email }, { thread: "lead:" + t.lead_id }) : ""}<div class="meta"><span>${esc(t.booking && t.booking.lead ? t.booking.lead.name : "")} · <b>${esc(t.booking && t.booking.lead ? fmtPh(t.booking.lead.phone) : "")}</b></span><span>Raised <b>${fdate(t.created_at)}</b></span>${t.resolution_note ? `<span>Note: <b>${esc(t.resolution_note)}</b></span>` : ""}</div>
+    <div class="row"><button class="btn btn-soft btn-sm" data-act="ticket-status" data-id="${t.id}" data-s="${t.status}" type="button">Update ticket</button></div></div>`).join("")}</div>` });
   if (tab === "plans") body = await tipPlansBody();
-  if (tab === "payments") body = `<p class="muted" style="margin-bottom:12px">Registration fee and the platform fee of ${inr(partner.commission_per_install)} per installation (plus GST), payable to Connect Bhai.</p>` + chargeList(charges, "Nothing due to Connect Bhai.");
+  if (tab === "payments") body = `<p class="muted" style="margin-bottom:12px">Registration fee and the platform fee of ${inr(partner.commission_per_install)} per installation (plus GST), payable to Connect Bhai.</p>` + `<div class="kpis"><div class="kpi"><span>Due now</span><b>${inr((st.charges.pending || 0) + (st.charges.due || 0) + (st.charges.failed || 0))}</b><small>${dueN} payment${dueN === 1 ? "" : "s"}</small></div><div class="kpi"><span>Paid</span><b>${inr(st.charges.paid || 0)}</b></div></div>` + serverTable("tip-charges", { role: "tip", kind: "charges", label: "Search payments", empty: "Nothing due to Connect Bhai.", html: rows => chargeRows(rows) });
   if (partner.status !== "active" && !["payments", "chat", "plans"].includes(tab)) body = activationCard(partner, charges);
   if (tab === "chat") body = await chatTab();
-  app.innerHTML = dashShell(esc(partner.name), "TIP portal", [["home", "Dashboard"], ["bookings", "Bookings & installs", toBook.length + active.length], ["customers", "Customers & status", customers.length], ["tickets", "Service tickets", openT.length], ["plans", "Plans & offers"], ["payments", "Payments to Connect Bhai", charges.filter(c => ["due", "failed"].includes(c.status)).length], ["chat", "Chat", await unreadCount()]], tab, body, "", partnerPre(partner));
+  app.innerHTML = dashShell(esc(partner.name), "TIP portal", [["home", "Dashboard"], ["bookings", "Bookings & installs", toBook + activeN], ["customers", "Customers & status", customersN], ["tickets", "Service tickets", openT], ["plans", "Plans & offers"], ["payments", "Payments to Connect Bhai", dueN], ["chat", "Chat", await unreadCount()]], tab, body, "", partnerPre(partner));
 }
 async function openLead(id) {
   const l = await API.leadDetail(id), u = me();
@@ -723,8 +679,12 @@ function openBook(id) {
     ${field("bk-date", "Installation date", `<input id="bk-date" name="date" type="date" min="${todayISO()}" value="${addDays(1)}">`)}
     <button class="btn btn-primary" type="submit">Create booking</button></form>`);
 }
+/* Every page of a list, 100 rows at a time. Only for pickers that really need all choices (active DSAs / TIPs); never for tables. */
+async function allPages(kind, f) {
+  const out = []; for (let page = 1; ; page++) { const r = await fetchPage(API, "admin", kind, { ...f, page, limit: 100 }); out.push(...r.items); if (out.length >= r.total || !r.items.length) return out; }
+}
 async function openBookingStatus(id) {
-  const b = (me().role === "admin" ? await API.adminBookings() : await API.partnerBookings()).find(x => x.id === id);
+  const b = cachedRow("bookings", id) || (API.getBooking ? await API.getBooking(id) : (me().role === "admin" ? await API.adminBookings() : await API.partnerBookings()).find(x => x.id === id));
   if (!b) { toast("Booking not found.", true); return; }
   const next = BOOK_NEXT[b.status];
   openModal(`<h2>Update installation</h2><p class="muted small" style="margin:2px 0 12px"><span class="mono">${esc(b.ref_code)}</span> · ${esc(b.lead.name)} · ${bookPill(b.status)}</p>
@@ -747,40 +707,46 @@ function openTicketStatus(id, cur) {
 async function renderAdmin() {
   const tab = S.tab || "overview";
   await loadCities();
-  /* Load only what the open tab needs. The tab badges come from one cheap counts call, not from whole lists. */
-  const [bd, unread] = await Promise.all([API.adminBadges(), unreadCount()]);
-  let leads = [], partners = [];
-  if (tab === "overview") [leads, partners] = await Promise.all([API.adminLeads({ status: "new" }), API.adminPartners({ partner_status: "pending" })]);
-  else if (["leads", "partners", "reports"].includes(tab)) [leads, partners] = await Promise.all([API.adminLeads(), API.adminPartners()]);
-  const newL = leads.filter(l => l.status === "new"), pendingP = partners.filter(p => p.status === "pending");
+  /* Load only what the open tab needs. Numbers come from the server's aggregates; every list below is one page at a time (serverTable). */
+  const [bd, unread] = await Promise.all([API.adminBadges ? API.adminBadges() : Promise.all([fetchPage(API, "admin", "leads", { status: "new", limit: 1 }), fetchPage(API, "admin", "partners", { status: "pending", limit: 1 })]).then(([a, b]) => ({ new_leads: a.total, pending_partners: b.total, waiting: null })), unreadCount()]);
   const newCount = bd.new_leads, pendingCount = bd.pending_partners, pendingPlans = null, waiting = bd.waiting || null;
   const tabs = [["overview", "Overview"], ["leads", "Leads", newCount], ["partners", "DSA & TIP", pendingCount], ["team", "Team & logins"], ["providers", "Providers"], ["plans", "Plans", pendingPlans], ["locations", "Locations"], ["cities", "Cities & waiting list", waiting], ["billing", "Billing & fees"], ["commissions", "DSA payouts"], ["payments", "Payout history"], ["chat", "Chat", unread], ["messages", "WhatsApp log"], ["reports", "Reports"]];
   let body = "";
   if (tab === "overview") {
-    const [bookings, tickets, cs] = await Promise.all([API.adminBookings(), API.adminTickets(), API.adminCommissions()]);
-    body = `<div class="kpis"><div class="kpi"><span>Unassigned leads</span><b>${newL.length}</b><small>need assignment</small></div><div class="kpi"><span>Installs pending</span><b>${bookings.filter(b => ["scheduled", "in_progress"].includes(b.status)).length}</b></div><div class="kpi"><span>Open tickets</span><b>${tickets.filter(t => ["open", "in_progress"].includes(t.status)).length}</b></div><div class="kpi"><span>Commission to approve</span><b>${inr(cs.filter(c => c.status === "pending").reduce((a, c) => a + Number(c.amount), 0))}</b></div></div>
+    const [d, nl, pd, pt] = await Promise.all([dashStats(API, "admin", { months: 1 }), fetchPage(API, "admin", "leads", { status: "new", unassigned: true, limit: 5 }), fetchPage(API, "admin", "partners", { type: "dsa", status: "pending", limit: 5 }), fetchPage(API, "admin", "partners", { type: "tip", status: "pending", limit: 5 })]);
+    const newL = nl.items, pendingP = [...pd.items, ...pt.items].slice(0, 5);
+    body = `<div class="kpis"><div class="kpi"><span>Unassigned leads</span><b>${d.unassigned}</b><small>need assignment</small></div><div class="kpi"><span>Installs pending</span><b>${d.installs_pending}</b></div><div class="kpi"><span>Open tickets</span><b>${d.open_tickets}</b></div><div class="kpi"><span>Commission to approve</span><b>${inr(d.commission.pending)}</b></div></div>
     <div class="split"><div class="card"><div class="row"><h3>Leads waiting for assignment</h3><span class="spacer"></span><button class="linkbtn small" data-tab="leads" type="button">All leads</button></div>
-      <div class="list" style="margin-top:10px">${newL.length ? newL.map(l => `<div class="item"><div class="ih"><h3>${esc(l.name)}</h3><span class="mono muted small">${esc(l.ref_code)}</span></div><div class="meta"><span>PIN <b>${esc(l.pincode)}</b></span><span>${planLine(l.plan)}</span></div><div class="row"><button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">Assign</button></div></div>`).join("") : `<p class="muted">All leads are assigned.</p>`}</div></div>
+      <div class="list" style="margin-top:10px">${newL.length ? newL.map(l => `<div class="item"><div class="ih"><h3>${esc(l.name)}</h3><span class="mono muted small">${esc(l.ref_code)}</span></div><div class="meta"><span>PIN <b>${esc(l.pincode)}</b></span><span>${planLine(l.plan)}</span></div><div class="row"><button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">Assign</button></div></div>`).join("") + (nl.total > newL.length ? `<p class="muted small">+ ${nl.total - newL.length} more in Leads</p>` : "") : `<p class="muted">All leads are assigned.</p>`}</div></div>
       <div class="card"><div class="row"><h3>DSA & TIP applications</h3><span class="spacer"></span><button class="linkbtn small" data-tab="partners" type="button">All DSAs & TIPs</button></div>
       <div class="list" style="margin-top:10px">${pendingP.length ? pendingP.map(p => `<div class="item"><div class="ih"><h3>${esc(p.name)}</h3>${pill(p.type.toUpperCase(), "p-blue")}</div><div class="meta"><span>${esc(p.firm || "")}</span><span><b>${esc(fmtPh(p.phone))}</b></span>${p.email ? `<span>${esc(p.email)}</span>` : ""}<span>PINs ${esc(p.service_pincodes || "—")}</span>${p.fee_paid_at ? pill("Fee paid", "p-ok") : pill("Fee not paid", "p-warn")}</div><div class="row"><button class="btn btn-soft btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Review</button></div></div>`).join("") : `<p class="muted">No pending applications.</p>`}</div></div></div>`;
   }
   if (tab === "leads") {
-    const f = S.adminLeadFilter || "all", zf = S.zoneFilter || "all", zlocs = await API.adminLocations(), aidx = areaIndex(zlocs);
-    const inArea = leads.filter(l => zf === "all" || l.pincode === zf);   // the status chips count only the leads of the chosen area
-    const shown = inArea.filter(l => f === "all" || l.status === f);
-    const zoneHtml = zoneReport(leads, zlocs, partners);
-    const stt = await API.getSettings(), auto = Number(stt.auto_assign) === 1;
+    const f = S.adminLeadFilter || "all", zf = S.zoneFilter || "all", [d, stt] = await Promise.all([dashStats(API, "admin", { months: 1, pins: 50 }), API.getSettings()]), auto = Number(stt.auto_assign) === 1;
+    const pins = d.top_pins, pinName = pin => { const x = pins.find(q => q.pincode === pin); return x && x.areas && x.areas[0] || ""; };
+    const top4 = pins.slice(0, 4), maxN = Math.max(1, ...top4.map(r => r.leads));
+    const zoneHtml = `<div class="card stack" style="margin-bottom:16px"><div style="min-width:0"><h3>Where leads come from</h3><p class="muted small">All-time leads grouped by the customer's PIN code and area, busiest first.</p></div>
+      <div class="bars">${top4.map(r => `<div class="bar"><span>${esc(r.pincode)}${r.areas && r.areas[0] ? " · " + esc(r.areas[0]) : ""}</span><span class="t"><i style="width:${r.leads / maxN * 100}%;background:var(--ok)"></i></span><b>${r.leads}</b></div>`).join("")}</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Area</th><th class="r">Leads</th><th class="r">Installed</th><th></th></tr></thead><tbody>
+      ${(S.zoneAll ? pins : top4).map(r => `<tr><td><b class="mono">${esc(r.pincode)}</b><br><span class="muted">${esc((r.areas && r.areas[0]) || "")}</span></td><td class="r">${r.leads}</td><td class="r">${r.installs}${r.leads ? ` (${Math.round(r.installs / r.leads * 100)}%)` : ""}</td>
+        <td><button class="btn btn-ghost btn-sm" data-act="zone-filter" data-v="${zf === r.pincode ? "all" : r.pincode}" type="button">${zf === r.pincode ? "Show all leads" : "Show these leads"}</button></td></tr>`).join("")}</tbody></table></div>
+      ${pins.length > 4 ? `<div><button class="linkbtn small" data-act="zone-all" type="button">${S.zoneAll ? "Show top 4 areas only" : `Show the top ${pins.length} areas`}</button></div>` : ""}</div>`;
+    const L = d.leads;
     body = `<div class="card row" style="margin-bottom:14px;padding:14px 16px"><div style="min-width:0;flex:1 1 260px"><b>Auto-assign new leads by PIN code is ${auto ? "ON" : "OFF"}</b><p class="muted small">${auto ? "Each new request goes to the active DSA serving that PIN code (fewest open leads first) and to the TIP covering it. You can still reassign any lead." : "Every new request waits here for you to assign it."}</p></div><button class="btn ${auto ? "btn-ghost" : "btn-primary"} btn-sm" data-act="auto-assign" data-v="${auto ? 0 : 1}" type="button">Turn ${auto ? "off" : "on"}</button></div>
-    ${zoneHtml}<div class="row small" style="margin-bottom:10px;gap:8px"><b>Area</b><select class="sel" id="zone-pick" aria-label="Filter leads by area"><option value="all">All areas (${leads.length})</option>${[...new Set(leads.map(l => l.pincode))].sort().map(pin => `<option value="${pin}" ${zf === pin ? "selected" : ""}>${pin}${aidx.get(pin) ? " · " + esc(aidx.get(pin)) : ""} · ${leads.filter(l => l.pincode === pin).length}</option>`).join("")}</select>${zf !== "all" ? `<span class="muted">Showing ${shown.length} lead${shown.length === 1 ? "" : "s"} in ${esc(zf)}${aidx.get(zf) ? " · " + esc(aidx.get(zf)) : ""}</span>` : ""}</div>
-    <div class="chips" style="margin-bottom:14px">${["all", ...Object.keys(LEAD).filter(k => !(REST && k === "assigned"))].map(k => `<button type="button" class="chip" data-act="admin-lead-filter" data-v="${k}" aria-pressed="${f === k}">${k === "all" ? "All" : LEAD[k]} (${k === "all" ? inArea.length : inArea.filter(l => l.status === k).length})</button>`).join("")}</div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Customer</th><th>PIN · area</th><th>Plan</th><th>Status</th><th>DSA</th><th>TIP</th><th></th></tr></thead><tbody>
-    ${shown.map(l => `<tr><td class="mono" style="white-space:nowrap">${esc(l.ref_code)}<br><span class="muted">${fdate(l.created_at)}</span></td><td><b>${esc(l.name)}</b><br><span class="muted">${esc(fmtPh(l.phone))}</span>${l.email ? `<br><span class="muted small">${esc(l.email)}</span>` : ""}${contactBtns({ phone: l.phone, email: l.email }, { thread: "lead:" + l.id })}</td><td><b class="mono">${esc(l.pincode)}</b><br><span class="muted">${esc(l.area || aidx.get(l.pincode) || "")}</span></td><td>${l.plan ? esc(l.plan.provider.name) + "<br><span class='muted'>" + esc(l.plan.name) + "</span>" : "<span class='muted'>Callback</span>"}</td><td>${leadPill(l.status, l.product)}<br>${productChip(l)}</td><td>${esc((l.dsa && l.dsa.name) || "—")}</td><td>${esc((l.tip && l.tip.name) || "—")}</td>
-      <td><div class="row" style="flex-wrap:nowrap">${!["installed", "lost"].includes(l.status) ? `<button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">${l.dsa || l.tip ? "Reassign" : "Assign"}</button>` : ""}<button class="btn btn-ghost btn-sm" data-act="lead" data-id="${l.id}" type="button">Open</button>${l.tip && ["assigned", "contacted", "follow_up"].includes(l.status) ? `<button class="btn btn-ghost btn-sm" data-act="book" data-id="${l.id}" type="button">Book</button>` : ""}${l.booking && ["scheduled", "in_progress"].includes(l.booking.status) ? `<button class="btn btn-ghost btn-sm" data-act="booking-status" data-id="${l.booking.id}" type="button">Install</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`;
+    ${zoneHtml}<div class="row small" style="margin-bottom:10px;gap:8px"><b>Area</b><select class="sel" id="zone-pick" aria-label="Filter leads by area"><option value="all">All areas (${d.leads_total})</option>${pins.map(r => `<option value="${esc(r.pincode)}" ${zf === r.pincode ? "selected" : ""}>${esc(r.pincode)}${pinName(r.pincode) ? " · " + esc(pinName(r.pincode)) : ""} · ${r.leads}</option>`).join("")}</select>${zf !== "all" ? `<span class="muted">Showing leads in ${esc(zf)}${pinName(zf) ? " · " + esc(pinName(zf)) : ""}</span>` : ""}</div>
+    <div class="chips" style="margin-bottom:14px">${["all", ...Object.keys(LEAD).filter(k => !(REST && k === "assigned"))].map(k => `<button type="button" class="chip" data-act="admin-lead-filter" data-v="${k}" aria-pressed="${f === k}">${k === "all" ? "All" : LEAD[k]}${zf === "all" ? ` (${k === "all" ? d.leads_total : L[k] || 0})` : ""}</button>`).join("")}</div>
+    ${serverTable("adm-leads", { role: "admin", kind: "leads", label: "Search leads", empty: "No leads here.", filters: () => ({ status: S.adminLeadFilter || "all", pincode: (S.zoneFilter || "all") === "all" ? undefined : S.zoneFilter }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Customer</th><th>PIN · area</th><th>Plan</th><th>Status</th><th>DSA</th><th>TIP</th><th></th></tr></thead><tbody>
+    ${rows.map(l => `<tr><td class="mono" style="white-space:nowrap">${esc(l.ref_code)}<br><span class="muted">${fdate(l.created_at)}</span></td><td><b>${esc(l.name)}</b><br><span class="muted">${esc(fmtPh(l.phone))}</span>${l.email ? `<br><span class="muted small">${esc(l.email)}</span>` : ""}${contactBtns({ phone: l.phone, email: l.email }, { thread: "lead:" + l.id })}</td><td><b class="mono">${esc(l.pincode)}</b><br><span class="muted">${esc(l.area || pinName(l.pincode))}</span></td><td>${l.plan ? esc(l.plan.provider.name) + "<br><span class='muted'>" + esc(l.plan.name) + "</span>" : "<span class='muted'>Callback</span>"}</td><td>${leadPill(l.status, l.product)}<br>${productChip(l)}</td><td>${esc((l.dsa && l.dsa.name) || "—")}</td><td>${esc((l.tip && l.tip.name) || "—")}</td>
+      <td><div class="row" style="flex-wrap:nowrap">${!["installed", "lost"].includes(l.status) ? `<button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">${l.dsa || l.tip ? "Reassign" : "Assign"}</button>` : ""}<button class="btn btn-ghost btn-sm" data-act="lead" data-id="${l.id}" type="button">Open</button>${l.tip && ["assigned", "contacted", "follow_up"].includes(l.status) ? `<button class="btn btn-ghost btn-sm" data-act="book" data-id="${l.id}" type="button">Book</button>` : ""}${l.booking && ["scheduled", "in_progress"].includes(l.booking.status) ? `<button class="btn btn-ghost btn-sm" data-act="booking-status" data-id="${l.booking.id}" type="button">Install</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>` })}`;
   }
-  if (tab === "partners") body = `<div class="row" style="margin-bottom:12px"><span class="muted">${partners.length} DSAs & TIPs · ${pendingP.length} pending</span><span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-partner" data-id="" type="button">Add DSA / TIP</button></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Type</th><th>Mobile</th><th>Service PINs</th><th class="r">Per install</th><th>KYC</th><th>Status</th><th></th></tr></thead><tbody>
-    ${partners.map(p => `<tr><td><b>${esc(p.name)}</b><br><span class="muted">${esc(p.firm || "")}</span></td><td>${p.type.toUpperCase()}</td><td>${esc(fmtPh(p.phone))}${p.email ? `<br><span class="muted small">${esc(p.email)}</span>` : ""}${contactBtns(p)}</td><td>${esc(p.service_pincodes || "—")}</td><td class="r num">${inr(p.commission_per_install)}</td><td>${p.kyc_verified ? pill("Verified", "p-ok") : pill("Pending", "p-warn")}</td><td>${p.status === "pending" && p.approved_at ? pill("Approved · fee due", "p-blue") : p.status === "pending" && p.fee_paid_at ? pill("Fee paid · check KYC", "p-blue") : pill(p.status[0].toUpperCase() + p.status.slice(1), { active: "p-ok", pending: "p-warn", suspended: "p-bad" }[p.status])}</td>
-      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Edit</button>${p.status === "pending" && !p.approved_at ? `<button class="btn btn-soft btn-sm" data-act="approve-partner" data-id="${p.id}" type="button">Approve</button>` : p.status === "suspended" ? `<button class="btn btn-soft btn-sm" data-act="partner-status" data-id="${p.id}" data-s="active" type="button">Reactivate</button>` : p.status === "active" ? `<button class="btn btn-danger btn-sm" data-act="partner-status" data-id="${p.id}" data-s="suspended" type="button">Suspend</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`;
+  if (tab === "partners") {
+    const pt = S.partnerType || "dsa";
+    body = `<div class="row" style="margin-bottom:12px"><span class="muted">${pendingCount} pending</span><span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-partner" data-id="" type="button">Add DSA / TIP</button></div>
+    <div class="chips" style="margin-bottom:12px">${[["dsa", "DSAs"], ["tip", "TIPs"]].map(([k, l]) => `<button type="button" class="chip" data-act="partner-type" data-v="${k}" aria-pressed="${pt === k}">${l}</button>`).join("")}</div>
+    ${serverTable("adm-partners-" + pt, { role: "admin", kind: "partners", label: "Search DSAs and TIPs", empty: "No one here yet.", filters: () => ({ type: pt }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Type</th><th>Mobile</th><th>Service PINs</th><th class="r">Per install</th><th>KYC</th><th>Status</th><th></th></tr></thead><tbody>
+    ${rows.map(p => `<tr><td><b>${esc(p.name)}</b><br><span class="muted">${esc(p.firm || "")}</span></td><td>${p.type.toUpperCase()}</td><td>${esc(fmtPh(p.phone))}${p.email ? `<br><span class="muted small">${esc(p.email)}</span>` : ""}${contactBtns(p)}</td><td>${esc(p.service_pincodes || "—")}</td><td class="r num">${inr(p.commission_per_install)}</td><td>${p.kyc_verified ? pill("Verified", "p-ok") : pill("Pending", "p-warn")}</td><td>${p.status === "pending" && p.approved_at ? pill("Approved · fee due", "p-blue") : p.status === "pending" && p.fee_paid_at ? pill("Fee paid · check KYC", "p-blue") : pill(p.status[0].toUpperCase() + p.status.slice(1), { active: "p-ok", pending: "p-warn", suspended: "p-bad" }[p.status])}</td>
+      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Edit</button>${p.status === "pending" && !p.approved_at ? `<button class="btn btn-soft btn-sm" data-act="approve-partner" data-id="${p.id}" type="button">Approve</button>` : p.status === "suspended" ? `<button class="btn btn-soft btn-sm" data-act="partner-status" data-id="${p.id}" data-s="active" type="button">Reactivate</button>` : p.status === "active" ? `<button class="btn btn-danger btn-sm" data-act="partner-status" data-id="${p.id}" data-s="suspended" type="button">Suspend</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>` })}`;
+  }
   if (tab === "providers") { const pv = await API.adminProviders(); body = `<div class="row" style="margin-bottom:12px"><span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-provider" data-id="" type="button">Add provider</button></div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Provider</th><th>Type</th><th>Website</th><th>Status</th><th></th></tr></thead><tbody>${pv.map(p => `<tr><td><div class="row" style="flex-wrap:nowrap">${plogo(p)}<b>${esc(p.name)}</b> ${demoBadge(p.is_demo)}</div></td><td>${KIND[p.kind]}</td><td>${p.website ? esc(p.website) : "—"}</td><td>${p.is_active ? pill("Active", "p-ok") : pill("Hidden", "p-grey")}</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-provider" data-id="${p.id}" type="button">Edit</button><button class="btn btn-ghost btn-sm" data-act="toggle-provider" data-id="${p.id}" type="button">${p.is_active ? "Hide" : "Show"}</button></div></td></tr>`).join("")}</tbody></table></div>`; }
   if (tab === "plans") body = await adminPlansBody();
@@ -789,36 +755,48 @@ async function renderAdmin() {
     <div class="list">${locs.map(l => `<div class="item"><div class="ih"><h3><span class="mono">${esc(l.pincode)}</span> · ${esc(l.area)}</h3><span class="muted small">${esc(l.city || "")}</span><span class="spacer"></span><span class="muted small">${l.coverage.length} provider${l.coverage.length === 1 ? "" : "s"}</span></div>
       ${l.coverage.length ? `<div class="row">${l.coverage.map(c => `<span class="pill p-grey" style="padding:5px 10px;white-space:normal">${esc(c.provider ? c.provider.name : "")} · ${esc((c.technology || "").toUpperCase())}${c.tip ? " · TIP " + esc(c.tip.name) : ""} <button class="linkbtn" data-act="remove-coverage" data-id="${c.id}" type="button" aria-label="Remove" style="text-decoration:none;margin-left:4px">×</button></span>`).join("")}</div>` : `<p class="muted small">No provider coverage yet. Customers here can request a callback.</p>`}</div>`).join("")}</div>`; }
   if (tab === "commissions") {
-    const cs = await API.adminCommissions();
-    const byP = {}; cs.filter(c => c.status === "approved").forEach(c => { (byP[c.partner_id] = byP[c.partner_id] || { p: c.partner, ids: [], total: 0 }); byP[c.partner_id].ids.push(c.id); byP[c.partner_id].total += Number(c.amount); });
-    body = `${Object.keys(byP).length ? `<div class="card" style="margin-bottom:16px"><h3>Ready to pay</h3><div class="list" style="margin-top:10px">${Object.entries(byP).map(([pid, x]) => `<div class="row"><b>${esc(x.p.name)}</b><span class="muted">${x.ids.length} approved</span><span class="spacer"></span><b class="num">${inr(x.total)}</b><button class="btn btn-primary btn-sm" data-act="payout" data-id="${pid}" data-ids="${x.ids.join(",")}" data-total="${x.total}" type="button">Record payout</button></div>`).join("")}</div></div>` : ""}
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Booking</th><th>Created</th><th class="r">Amount</th><th>Status</th><th></th></tr></thead><tbody>
-    ${cs.map(c => `<tr><td><b>${esc(c.partner.name)}</b><br><span class="muted">${c.partner.type.toUpperCase()}</span></td><td class="mono">${esc(c.booking ? c.booking.ref_code : "")}</td><td>${fdate(c.created_at)}</td><td class="r num">${inr(c.amount)}</td><td>${commPill(c.status)}</td><td>${c.status === "pending" ? `<div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="commission" data-id="${c.id}" data-s="approved" type="button">Approve</button><button class="btn btn-danger btn-sm" data-act="commission" data-id="${c.id}" data-s="rejected" type="button">Reject</button></div>` : ""}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">No commissions yet.</td></tr>`}</tbody></table></div>`;
+    const pay = await payables(API);
+    body = `${pay.length ? `<div class="card" style="margin-bottom:16px"><h3>Ready to pay</h3><div class="list" style="margin-top:10px">${pay.map(x => `<div class="row"><b>${esc(x.partner.name)}</b><span class="muted">${x.count} approved</span><span class="spacer"></span><b class="num">${inr(x.total)}</b><button class="btn btn-primary btn-sm" data-act="payout" data-id="${x.partner_id}" data-ids="${x.ids.join(",")}" data-total="${x.total}" type="button">Record payout</button></div>`).join("")}</div></div>` : ""}
+    ${serverTable("adm-comm", { role: "admin", kind: "commissions", label: "Search payouts", empty: "No commissions yet.", html: cs => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Booking</th><th>Created</th><th class="r">Amount</th><th>Status</th><th></th></tr></thead><tbody>
+    ${cs.map(c => `<tr><td><b>${esc(c.partner.name)}</b><br><span class="muted">${c.partner.type.toUpperCase()}</span></td><td class="mono">${esc(c.booking ? c.booking.ref_code : "")}</td><td>${fdate(c.created_at)}</td><td class="r num">${inr(c.amount)}</td><td>${commPill(c.status)}</td><td>${c.status === "pending" ? `<div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="commission" data-id="${c.id}" data-s="approved" type="button">Approve</button><button class="btn btn-danger btn-sm" data-act="commission" data-id="${c.id}" data-s="rejected" type="button">Reject</button></div>` : ""}</td></tr>`).join("")}</tbody></table></div>` })}`;
   }
   if (tab === "billing") body = await adminBilling();
   if (tab === "team") body = await adminTeam();
   if (tab === "chat") body = await chatTab();
   if (tab === "messages") body = await adminMessages();
-  if (tab === "payments") { const ps = await API.adminPayments(); body = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>DSA / TIP</th><th>Method</th><th>Reference</th><th class="r">Amount</th></tr></thead><tbody>${ps.map(p => `<tr><td>${fdate(p.paid_at)}</td><td><b>${esc(p.partner.name)}</b></td><td>${esc({ upi: "UPI", bank_transfer: "Bank transfer", cheque: "Cheque", cash: "Cash" }[p.method] || p.method)}</td><td class="mono">${esc(p.reference || "")}</td><td class="r num">${inr(p.amount)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No payments recorded.</td></tr>`}</tbody></table></div>`; }
-  if (tab === "reports") {
-    const [bookings, cs, chg, st2] = await Promise.all([API.adminBookings(), API.adminCommissions(), API.adminCharges(), API.getSettings()]);
-    const partnerRep = adminPartnerReport(leads, partners, bookings, cs, chg, st2);
-    const counts = Object.keys(LEAD).map(k => [LEAD[k], leads.filter(l => l.status === k).length]);
-    const max = Math.max(1, ...counts.map(c => c[1]));
-    const inst = leads.filter(l => l.status === "installed").length, closed = inst + leads.filter(l => l.status === "lost").length;
-    const byPin = {}; leads.forEach(l => (byPin[l.pincode] = (byPin[l.pincode] || 0) + 1));
-    const pinRows = Object.entries(byPin).sort((a, b) => b[1] - a[1]); const pmax = Math.max(1, ...pinRows.map(r => r[1]));
-    const sum = s => cs.filter(c => c.status === s).reduce((a, c) => a + Number(c.amount), 0);
-    body = `${partnerRep}<h3 style="margin:22px 0 10px;font-size:18px">Lead funnel</h3><div class="kpis"><div class="kpi"><span>Total leads</span><b>${leads.length}</b></div><div class="kpi"><span>Installed</span><b>${inst}</b></div><div class="kpi"><span>Win rate</span><b>${closed ? Math.round(inst / closed * 100) : 0}%</b><small>installed ÷ closed leads</small></div><div class="kpi"><span>Commission paid</span><b>${inr(sum("paid"))}</b><small>${inr(sum("approved"))} approved · ${inr(sum("pending"))} pending</small></div></div>
-    <div class="split"><div class="card"><h3>Leads by status</h3><div class="bars" style="margin-top:12px">${counts.map(([l, n]) => `<div class="bar"><span>${l}</span><span class="t"><i style="width:${n / max * 100}%"></i></span><b>${n}</b></div>`).join("")}</div></div>
-    <div class="card"><h3>Leads by PIN code</h3><div class="bars" style="margin-top:12px">${pinRows.map(([p, n]) => `<div class="bar"><span class="mono">${p}</span><span class="t"><i style="width:${n / pmax * 100}%"></i></span><b>${n}</b></div>`).join("")}</div></div></div>
-    <p class="muted small" style="margin-top:10px">${bookings.length} bookings in total. Reports are calculated from the same database as every portal.</p>`;
-  }
+  if (tab === "payments") body = serverTable("adm-payouts", { role: "admin", kind: "commissions", label: "Search payouts", empty: "No payments recorded.", filters: () => ({ status: "paid" }), html: ps => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>DSA / TIP</th><th>Method</th><th>Reference</th><th class="r">Amount</th></tr></thead><tbody>${ps.map(p => `<tr><td>${fdate(p.paid_at)}</td><td><b>${esc(p.partner.name)}</b></td><td>${esc({ upi: "UPI", bank_transfer: "Bank transfer", cheque: "Cheque", cash: "Cash" }[p.paid_mode || p.method] || p.paid_mode || p.method || "")}</td><td class="mono">${esc(p.paid_reference || p.reference || "")}</td><td class="r num">${inr(p.amount)}</td></tr>`).join("")}</tbody></table></div>` });
+  if (tab === "reports") body = await adminReports();
   app.innerHTML = dashShell("Admin dashboard", "Connect Bhai · Indore", tabs, tab, body);
 }
+/* Reports tab: money and lead numbers come from the server (/reports/dashboard, /reports/money, /reports/partners); the per-partner table is paged. */
+async function adminReports() {
+  const keys = monthKeys(6), cur = keys[5];
+  const [d, m, st, totals] = await Promise.all([dashStats(API, "admin", { months: 6, pins: 50 }), moneyStats(API, 6), API.getSettings(), partnerTotals(API)]);
+  const kind = k => m.by_kind[k] || 0, collected = Object.values(m.collected).reduce((a, b) => a + b, 0), payPaid = d.commission.paid, payOwed = d.commission.pending + d.commission.approved;
+  const inst = d.leads.installed, closed = inst + d.leads.lost, L = d.leads, counts = Object.keys(LEAD).map(k => [LEAD[k], L[k] || 0]), max = Math.max(1, ...counts.map(c => c[1])), pmax = Math.max(1, ...d.top_pins.map(r => r.leads));
+  const target = p => Number(p.lead_target) || Number(st.lead_target_default) || 20, share = Number(st.tip_share_percent) || 0;
+  const pt = S.perfType || "tip";
+  const money = `<h3 style="margin:0 0 10px;font-size:18px">Connect Bhai money</h3>
+    <div class="kpis"><div class="kpi"><span>Collected</span><b>${inr(collected)}</b><small>Reg. ${inrK(kind("registration_fee"))} · platform ${inrK(kind("platform_fee"))} · customers ${inrK(kind("customer_payment"))}</small></div><div class="kpi"><span>Paid to DSAs</span><b>${inr(payPaid)}</b><small>${inr(payOwed)} still owed</small></div>
+      <div class="kpi"><span>Net so far</span><b>${inr(collected - payPaid)}</b><small>collected − DSA payouts</small></div><div class="kpi"><span>Due from TIPs & customers</span><b>${inr(m.due)}</b><small>open charges</small></div></div>
+    <div class="split"><div class="card"><h3>Collected vs paid out</h3><p class="muted small" style="margin-bottom:10px">Money in (fees, customer payments) and DSA commission paid, by month.</p>${colChart(keys, [{ name: "Collected", color: "var(--ok)", values: keys.map(k => m.collected[k] || 0) }, { name: "Paid to DSAs", color: "var(--warn)", values: keys.map(k => m.paid_out[k] || 0) }], inrK)}</div>
+      <div class="card"><h3>Leads delivered to DSAs & TIPs</h3><p class="muted small" style="margin-bottom:10px">Website and callback leads assigned to a DSA or TIP, by month.</p>${colChart(keys, [{ name: "Leads delivered", color: "var(--blue)", values: keys.map(k => m.delivered[k] || 0) }])}</div></div>
+    <h3 style="margin:22px 0 6px;font-size:18px">DSA & TIP performance & lead promise · ${mLabel(cur)}</h3>
+    <p class="muted small" style="margin-bottom:10px">Targets are set per DSA/TIP (DSA & TIP list → Edit) or by default in Billing & fees.</p>
+    <div class="chips" style="margin-bottom:12px">${[["tip", "TIPs"], ["dsa", "DSAs"]].map(([k, l]) => `<button type="button" class="chip" data-act="perf-type" data-v="${k}" aria-pressed="${pt === k}">${l}</button>`).join("")}</div>
+    ${serverTable("adm-perf-" + pt, { role: "admin", kind: "partners", label: "Search DSAs and TIPs", empty: "No active DSAs or TIPs yet.", filters: () => ({ type: pt, status: "active" }), html: rows => `<div class="tbl-wrap"><table class="tbl" style="min-width:980px"><thead><tr><th>DSA / TIP</th><th>Leads this month</th><th class="r">Total leads</th><th class="r">Installed</th><th class="r">Conversion</th><th class="r">${pt === "tip" ? "Fees paid" : "Commission paid"}</th><th>Contact</th></tr></thead><tbody>
+    ${rows.map(p => { const t = (totals[pt] || {})[p.id] || { leads: 0, leads_month: 0, installs: 0, paid_amount: 0, comm_paid: 0 }, tg = target(p), ok = t.leads_month >= tg, pct = Math.min(100, Math.round(t.leads_month / (tg || 1) * 100));
+      return `<tr><td><b>${esc(p.name)}</b><br><span class="muted small">${p.type.toUpperCase()} · PINs ${esc(p.service_pincodes || "—")}</span></td>
+        <td style="min-width:150px"><b>${t.leads_month}</b> / ${tg} ${ok ? pill("Met", "p-ok") : pill("Below", "p-warn")}<div class="prog ${ok ? "ok" : ""}" style="height:8px;margin-top:6px"><i style="width:${pct}%"></i></div></td>
+        <td class="r num">${t.leads}</td><td class="r num">${t.installs}</td><td class="r num">${t.leads ? Math.round(t.installs / t.leads * 100) : 0}%</td><td class="r num">${inr(pt === "tip" ? t.paid_amount : t.comm_paid)}</td><td>${contactBtns(p)}</td></tr>`; }).join("")}</tbody></table></div>` })}`;
+  return `${money}<h3 style="margin:22px 0 10px;font-size:18px">Lead funnel</h3><div class="kpis"><div class="kpi"><span>Total leads</span><b>${d.leads_total}</b></div><div class="kpi"><span>Installed</span><b>${inst}</b></div><div class="kpi"><span>Win rate</span><b>${closed ? Math.round(inst / closed * 100) : 0}%</b><small>installed ÷ closed leads</small></div><div class="kpi"><span>Commission paid</span><b>${inr(payPaid)}</b><small>${inr(d.commission.approved)} approved · ${inr(d.commission.pending)} pending</small></div></div>
+    <div class="split"><div class="card"><h3>Leads by status</h3><div class="bars" style="margin-top:12px">${counts.map(([l, n]) => `<div class="bar"><span>${l}</span><span class="t"><i style="width:${n / max * 100}%"></i></span><b>${n}</b></div>`).join("")}</div></div>
+    <div class="card"><h3>Leads by PIN code</h3><div class="bars" style="margin-top:12px">${d.top_pins.map(r => `<div class="bar"><span class="mono">${esc(r.pincode)}</span><span class="t"><i style="width:${r.leads / pmax * 100}%"></i></span><b>${r.leads}</b></div>`).join("")}</div></div></div>
+    <p class="muted small" style="margin-top:10px">${d.installs_total} installations completed, ${d.installs_pending} pending. Reports are calculated by the server from the same database as every portal.</p>`;
+}
 async function openAssign(id) {
-  const [leads, partners, locs] = await Promise.all([API.adminLeads(), API.adminPartners(), API.adminLocations()]);
-  const l = leads.find(x => x.id === id);
+  const [lead, dsas, tips, locs] = await Promise.all([cachedRow("leads", id) || (API.getLead ? API.getLead(id) : API.adminLeads().then(a => a.find(x => x.id === id))), allPages("partners", { type: "dsa", status: "active" }), allPages("partners", { type: "tip", status: "active" }), API.adminLocations()]);
+  const l = lead, partners = [...dsas, ...tips];
   const act = t => partners.filter(p => p.type === t && p.status === "active");
   const covTip = (() => { const c = locs.filter(x => x.pincode === l.pincode).flatMap(x => x.coverage).find(c => c.tip && (!l.plan || c.provider_id === l.plan.provider_id)); return c ? c.tip_partner_id : ""; })();
   const sugDsa = (act("dsa").find(p => (p.service_pincodes || "").includes(l.pincode)) || {}).id || "";
@@ -831,7 +809,7 @@ async function openAssign(id) {
       <button class="btn btn-primary" type="submit">Assign lead</button></form>`);
 }
 async function openPartner(id) {
-  const p = id ? (await API.adminPartners()).find(x => x.id === id) : { type: "dsa", commission_per_install: 300 };
+  const p = id ? (cachedRow("partners", id) || (API.getPartner ? await API.getPartner(id) : (await API.adminPartners()).find(x => x.id === id))) : { type: "dsa", commission_per_install: 300 };
   openModal(`<h2>${id ? "DSA / TIP details" : "Add DSA / TIP"}</h2><form class="stack" data-form="partner" data-id="${id || ""}" novalidate style="margin-top:12px">
     <div class="grid2">${field("pt-type", "Type", `<select id="pt-type" name="type"><option value="dsa" ${p.type === "dsa" ? "selected" : ""}>DSA</option><option value="tip" ${p.type === "tip" ? "selected" : ""}>TIP</option></select>`)}
     ${field("pt-name", "Name", `<input id="pt-name" name="name" value="${esc(p.name || "")}">`)}
@@ -856,7 +834,7 @@ async function openProvider(id) {
     <button class="btn btn-primary" type="submit">Save provider</button></form>`);
 }
 async function openCoverage() {
-  const [locs, pv, pt] = await Promise.all([API.adminLocations(), API.adminProviders(), API.adminPartners()]);
+  const [locs, pv, pt] = await Promise.all([API.adminLocations(), API.adminProviders(), allPages("partners", { type: "tip", status: "active" })]);
   openModal(`<h2>Add coverage</h2><form class="stack" data-form="coverage" novalidate style="margin-top:12px">
     ${field("cv-loc", "PIN code / area", `<select id="cv-loc" name="location_id"><option value="">Choose</option>${locs.map(l => `<option value="${l.id}">${l.pincode} · ${esc(l.area)}</option>`).join("")}</select>`)}
     ${field("cv-prov", "Provider", `<select id="cv-prov" name="provider_id"><option value="">Choose</option>${pv.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select>`)}
@@ -869,7 +847,7 @@ async function openCoverage() {
    LOGIN
    ===================================================================== */
 const STAGING_PW = "Demo@Connect2026";   // staging only: must match SEED_DEMO_PASSWORD on the API
-const STAGING_LOGINS = (typeof location !== "undefined" && /staging/i.test(location.hostname)) ? [["Admin", "9999999999", STAGING_PW], ["TIP", "9100000001", STAGING_PW], ["DSA", "9000000001", STAGING_PW], ["Customer", "9811000000", STAGING_PW]] : null;
+const STAGING_LOGINS = (typeof location !== "undefined" && /staging/i.test(location.hostname)) ? [["Admin", "9999999999", STAGING_PW], ["TIP", "9100000001", STAGING_PW], ["DSA", "9000000001", STAGING_PW]] : null;
 function openLogin(tab) {
   const acc = LIVE ? [] : API.demoAccounts(), otp = tab === "otp";
   const desc = { customer: "Bookings, complaints, my modem (restart, Wi-Fi), speed tests", dsa: "Leads, follow-ups, installation status, commission", tip: "Bookings, installations, tickets, modem control", admin: "DSAs &amp; TIPs, plans, team logins, payments, reports" };
@@ -945,11 +923,12 @@ const chPill = s => pill(s[0].toUpperCase() + s.slice(1), CH_TONE[s] || "p-grey"
 function chargeList(cs, emptyMsg) {
   const due = cs.filter(c => ["due", "failed"].includes(c.status)), sum = a => a.reduce((t, c) => t + Number(c.amount), 0);
   return `<div class="kpis"><div class="kpi"><span>Due now</span><b>${inr(sum(due))}</b><small>${due.length} payment${due.length === 1 ? "" : "s"}</small></div><div class="kpi"><span>Paid</span><b>${inr(sum(cs.filter(c => c.status === "paid")))}</b></div></div>
-  ${cs.length ? `<div class="list">${cs.map(c => `<div class="item"><div class="ih"><h3>${esc(c.description)}</h3>${chPill(c.status)}<span class="spacer"></span><span class="mono muted">${esc(c.ref_code)}</span></div>
-    <div class="meta"><span>${KIND_NAME[c.kind] || c.kind}</span><span>${inr(c.base_amount)} + GST ${inr(c.gst_amount)} = <b>${inr(c.amount)}</b></span><span>${c.status === "paid" ? "Paid " + fdate(c.paid_at) + (c.gateway_payment_id ? ` · <span class="mono">${esc(c.gateway_payment_id)}</span>` : "") : "Raised " + fdate(c.created_at)}</span></div>
-    ${["due", "failed"].includes(c.status) ? `<div class="row"><button class="btn btn-primary btn-sm" data-act="pay" data-id="${c.id}" type="button">Pay ${inr(c.amount)}</button><span class="muted small">UPI, cards, net banking via Razorpay</span></div>` : ""}</div>`).join("")}</div>`
+  ${cs.length ? chargeRows(cs)
     : `<div class="empty"><b>${emptyMsg}</b></div>`}`;
 }
+const chargeRows = cs => `<div class="list">${cs.map(c => `<div class="item"><div class="ih"><h3>${esc(c.description)}</h3>${chPill(c.status)}<span class="spacer"></span><span class="mono muted">${esc(c.ref_code)}</span></div>
+    <div class="meta"><span>${KIND_NAME[c.kind] || c.kind}</span><span>${inr(c.base_amount)} + GST ${inr(c.gst_amount)} = <b>${inr(c.amount)}</b></span><span>${c.status === "paid" ? "Paid " + fdate(c.paid_at) + (c.gateway_payment_id ? ` · <span class="mono">${esc(c.gateway_payment_id)}</span>` : "") : "Raised " + fdate(c.created_at)}</span></div>
+    ${["due", "failed"].includes(c.status) ? `<div class="row"><button class="btn btn-primary btn-sm" data-act="pay" data-id="${c.id}" type="button">Pay ${inr(c.amount)}</button><span class="muted small">UPI, cards, net banking via Razorpay</span></div>` : ""}</div>`).join("")}</div>`;
 function customerPayCard(leads) {
   const o = [];
   leads.filter(l => l.status !== "lost" && l.plan).forEach(l => {
@@ -999,14 +978,13 @@ function paySuccess(c) {
   render();
 }
 async function adminTeam() {
-  const all = await API.adminTeam(), f = S.teamFilter || "team";
-  const shown = all.filter(p => f === "all" || (f === "team" ? p.role !== "customer" : p.role === p.role && p.role === "customer")).sort((a, b) => Number(b.id) - Number(a.id));   // newest first
+  const f = S.teamFilter || "admin";
   const pwTxt = p => !p.has_password ? pill("No password · OTP only", "p-grey") : p.must_change ? pill("One-time password issued", "p-warn") : pill("Own password set", "p-ok");
   return `<div class="card row" style="margin-bottom:14px;padding:14px 16px"><div style="min-width:0;flex:1 1 300px"><b>Create logins for your team</b><p class="muted small">Username is the person's mobile number. A one-time password is sent on WhatsApp; they set their own password at first login. TIPs and DSAs also get their login automatically when they register and pay the fee.</p></div><button class="btn btn-primary btn-sm" data-act="create-user" type="button">Create login</button></div>
-    <div class="chips" style="margin-bottom:12px">${[["team", "Team (admin, TIP, DSA)"], ["customers", "Customers"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="team-filter" data-v="${k}" aria-pressed="${f === k}">${l} (${k === "all" ? all.length : all.filter(p => k === "team" ? p.role !== "customer" : p.role === "customer").length})</button>`).join("")}</div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Role</th><th>Username (mobile)</th><th>Email</th><th>Password</th><th>Status</th><th></th></tr></thead><tbody>
-    ${shown.map(p => `<tr><td><b>${esc(p.full_name || "—")}</b>${p.partner && p.partner.name !== p.full_name ? `<br><span class="muted small">${esc(p.partner.name)}</span>` : ""}</td><td>${pill(ROLE_NAME[p.role], { admin: "p-bad", tip: "p-blue", dsa: "p-blue", customer: "p-grey" }[p.role])}</td><td class="mono">${esc(p.phone || "")}</td><td>${p.email ? esc(p.email) : "—"}</td><td>${pwTxt(p)}${p.pw_set_at ? `<br><span class="muted small">${fdt(p.pw_set_at)}</span>` : ""}</td><td>${p.disabled ? pill("Disabled", "p-bad") : pill("Active", "p-ok")}</td>
-      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="reset-user" data-id="${p.id}" data-name="${esc(p.full_name || p.phone)}" type="button">Reset password</button>${p.id === me().id ? "" : `<button class="btn ${p.disabled ? "btn-ghost" : "btn-danger"} btn-sm" data-act="toggle-user" data-id="${p.id}" data-v="${p.disabled ? 0 : 1}" type="button">${p.disabled ? "Enable" : "Disable"}</button>`}</div></td></tr>`).join("") || `<tr><td colspan="7" class="muted">No users here.</td></tr>`}</tbody></table></div>`;
+    <div class="chips" style="margin-bottom:12px">${[["admin", "Admins"], ["tip", "TIPs"], ["dsa", "DSAs"], ["customer", "Customers"]].map(([k, l]) => `<button type="button" class="chip" data-act="team-filter" data-v="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
+    ${serverTable("adm-team", { role: "admin", kind: "team", label: "Search logins", empty: "No users here.", filters: () => ({ role: S.teamFilter || "admin" }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Role</th><th>Username (mobile)</th><th>Email</th><th>Password</th><th>Status</th><th></th></tr></thead><tbody>
+    ${rows.map(p => `<tr><td><b>${esc(p.full_name || "—")}</b>${p.partner && p.partner.name !== p.full_name ? `<br><span class="muted small">${esc(p.partner.name)}</span>` : ""}</td><td>${pill(ROLE_NAME[p.role], { admin: "p-bad", tip: "p-blue", dsa: "p-blue", customer: "p-grey" }[p.role])}</td><td class="mono">${esc(p.phone || "")}</td><td>${p.email ? esc(p.email) : "—"}</td><td>${pwTxt(p)}${p.pw_set_at ? `<br><span class="muted small">${fdt(p.pw_set_at)}</span>` : ""}</td><td>${p.disabled ? pill("Disabled", "p-bad") : pill("Active", "p-ok")}</td>
+      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="reset-user" data-id="${p.id}" data-name="${esc(p.full_name || p.phone)}" type="button">Reset password</button>${p.id === me().id ? "" : `<button class="btn ${p.disabled ? "btn-ghost" : "btn-danger"} btn-sm" data-act="toggle-user" data-id="${p.id}" data-v="${p.disabled ? 0 : 1}" type="button">${p.disabled ? "Enable" : "Disable"}</button>`}</div></td></tr>`).join("")}</tbody></table></div>` })}`;
 }
 function openCreateUser() {
   openModal(`<h2>Create login</h2><p class="muted" style="margin:4px 0 12px">The username is the mobile number. A one-time password is created and sent on WhatsApp.</p>
@@ -1021,11 +999,12 @@ function openCreateUser() {
       <button class="btn btn-primary" type="submit">Create login and send on WhatsApp</button></form>`);
 }
 async function adminBilling() {
-  const [cs, st] = await Promise.all([API.adminCharges(), API.getSettings()]);
-  const f = S.billFilter || "due", shown = f === "all" ? cs : cs.filter(c => c.status === f);
-  const sum = a => a.reduce((t, c) => t + Number(c.amount), 0), month = new Date().toISOString().slice(0, 7);
-  return `<div class="kpis"><div class="kpi"><span>Due to Connect Bhai</span><b>${inr(sum(cs.filter(c => ["due", "failed"].includes(c.status))))}</b></div><div class="kpi"><span>Collected this month</span><b>${inr(sum(cs.filter(c => c.status === "paid" && (c.paid_at || "").startsWith(month))))}</b></div>
-    <div class="kpi"><span>Registration fees</span><b>${inr(sum(cs.filter(c => c.status === "paid" && c.kind === "registration_fee")))}</b><small>collected</small></div><div class="kpi"><span>Platform fees</span><b>${inr(sum(cs.filter(c => c.status === "paid" && c.kind === "platform_fee")))}</b><small>collected</small></div></div>
+  const [m, st] = await Promise.all([moneyStats(API, 1), API.getSettings()]);
+  const f = S.billFilter || "due", month = new Date().toISOString().slice(0, 7);
+  const cnt = await Promise.all(["due", "paid", "failed", "waived", "all"].map(k => fetchPage(API, "admin", "charges", { status: k, limit: 1 }).then(r => [k, r.total])));   // one count per chip, not the lists
+  const n = Object.fromEntries(cnt);
+  return `<div class="kpis"><div class="kpi"><span>Due to Connect Bhai</span><b>${inr(m.due)}</b></div><div class="kpi"><span>Collected this month</span><b>${inr(m.collected[month] || 0)}</b></div>
+    <div class="kpi"><span>Registration fees</span><b>${inr(m.by_kind.registration_fee || 0)}</b><small>collected</small></div><div class="kpi"><span>Platform fees</span><b>${inr(m.by_kind.platform_fee || 0)}</b><small>collected</small></div></div>
   <div class="split" style="margin-bottom:16px"><form class="card stack" data-form="settings" novalidate><h3>Fees</h3>
       <div class="grid2">${field("st-tip", "TIP registration fee (₹)", `<input id="st-tip" name="registration_fee_tip" type="number" min="0" value="${esc(st.registration_fee_tip)}">`)}${field("st-dsa", "DSA registration fee (₹)", `<input id="st-dsa" name="registration_fee_dsa" type="number" min="0" value="${esc(st.registration_fee_dsa)}">`)}
       ${field("st-gst", "GST (%)", `<input id="st-gst" name="gst_percent" type="number" min="0" max="28" value="${esc(st.gst_percent)}">`)}
@@ -1033,30 +1012,33 @@ async function adminBilling() {
       ${field("st-share", "TIP share of monthly rental (%)", `<input id="st-share" name="tip_share_percent" type="number" min="0" max="100" value="${esc(st.tip_share_percent ?? 0)}">`, "Used to estimate TIP income on their dashboard")}</div>
       <p class="muted small">Platform fee per installation is set on each TIP. Fees apply to new charges only.</p><button class="btn btn-primary" type="submit">Save fees</button></form>
     <div class="card stack"><h3>Collect money</h3><p class="muted">Create a charge for a TIP or customer. They get a WhatsApp message and can pay online with UPI, card or net banking through Razorpay.</p><button class="btn btn-primary" data-act="new-charge" type="button">Create charge</button></div></div>
-  <div class="chips" style="margin-bottom:12px">${[["due", "Due"], ["paid", "Paid"], ["failed", "Failed"], ["waived", "Waived"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="billing-filter" data-v="${k}" aria-pressed="${f === k}">${l} (${k === "all" ? cs.length : cs.filter(c => c.status === k).length})</button>`).join("")}</div>
-  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Payer</th><th>Type</th><th>Description</th><th class="r">Total</th><th>Status</th><th></th></tr></thead><tbody>
+  <div class="chips" style="margin-bottom:12px">${[["due", "Due"], ["paid", "Paid"], ["failed", "Failed"], ["waived", "Waived"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="billing-filter" data-v="${k}" aria-pressed="${f === k}">${l} (${n[k]})</button>`).join("")}</div>
+  ${serverTable("adm-bills", { role: "admin", kind: "charges", label: "Search charges", empty: "No charges here.", filters: () => ({ status: S.billFilter || "due" }), html: shown => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Payer</th><th>Type</th><th>Description</th><th class="r">Total</th><th>Status</th><th></th></tr></thead><tbody>
   ${shown.map(c => `<tr><td class="mono">${esc(c.ref_code)}<br><span class="muted">${fdate(c.created_at)}</span></td><td><b>${esc(c.partner ? c.partner.name : c.customer ? c.customer.full_name || "Customer" : "")}</b><br><span class="muted">${c.partner ? c.partner.type.toUpperCase() : "Customer"} · ${esc(c.partner ? c.partner.phone : c.customer ? c.customer.phone : "")}</span></td><td>${KIND_NAME[c.kind]}</td><td>${esc(c.description)}</td><td class="r num">${inr(c.amount)}<br><span class="muted">incl. GST ${inr(c.gst_amount)}</span></td><td>${chPill(c.status)}${c.paid_via ? `<br><span class="muted small">${esc(c.paid_via)}</span>` : ""}</td>
-    <td>${["due", "failed"].includes(c.status) ? `<div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="charge-action" data-id="${c.id}" data-a="paid_offline" type="button">Mark paid</button>${c.status === "due" ? `<button class="btn btn-ghost btn-sm" data-act="charge-action" data-id="${c.id}" data-a="waived" type="button">Waive</button>` : ""}</div>` : ""}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">No charges here.</td></tr>`}</tbody></table></div>`;
+    <td>${["due", "failed"].includes(c.status) ? `<div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="charge-action" data-id="${c.id}" data-a="paid_offline" type="button">Mark paid</button>${c.status === "due" ? `<button class="btn btn-ghost btn-sm" data-act="charge-action" data-id="${c.id}" data-a="waived" type="button">Waive</button>` : ""}</div>` : ""}</td></tr>`).join("")}</tbody></table></div>` })}`;
 }
 const WA_NAME = { cb_request_received: "Request received", cb_new_lead: "New lead (DSA / TIP)", cb_install_scheduled: "Installation scheduled", cb_installed: "Installed", cb_new_ticket: "New ticket (TIP)", cb_ticket_update: "Ticket update",
   cb_payment_due: "Payment due", cb_payment_received: "Payment receipt", cb_partner_approved: "DSA / TIP approved", cb_router_offline: "Router offline", cb_router_offline_tip: "Router offline (TIP)", cb_wifi_changed: "Wi-Fi changed", cb_modem_restarted: "Modem restarted", cb_new_message: "New chat message", cb_partner_registered: "Registration confirmed (DSA / TIP)", cb_partner_credentials: "Login details (DSA / TIP)", cb_login_created: "Login created (team)", cb_password_reset: "Password reset by admin", cb_password_changed: "Password changed", cb_waitlist_joined: "Joined city waiting list", cb_city_launched: "City launched (waiting list)" };
 async function adminMessages() {
-  const ns = await API.adminNotifications();
   return `<p class="muted" style="margin-bottom:12px">Every WhatsApp message the system sends, using approved Meta templates.${LIVE ? "" : " In this prototype messages are simulated, not sent."}</p>
-  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Time</th><th>To</th><th>Message</th><th>Details</th><th>Status</th></tr></thead><tbody>
-  ${ns.map(n => `<tr><td>${fdt(n.created_at)}</td><td class="mono">${esc(n.to_phone)}</td><td><b>${esc(WA_NAME[n.template] || n.template)}</b><br><span class="muted mono small">${esc(n.template)}</span></td><td class="small">${esc((n.params || []).join(" · "))}</td><td>${pill(n.status, n.status === "sent" ? "p-ok" : n.status === "failed" ? "p-bad" : "p-warn")}${n.simulated ? ` <span class="badge sim">Simulated</span>` : ""}${n.error ? `<br><span class="small" style="color:var(--bad)">${esc(n.error.slice(0, 80))}</span>` : ""}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No messages yet.</td></tr>`}</tbody></table></div>`;
+  ${serverTable("adm-msgs", { role: "admin", kind: "messages", label: "Search messages", empty: "No messages yet.", html: ns => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Time</th><th>To</th><th>Message</th><th>Details</th><th>Status</th></tr></thead><tbody>
+  ${ns.map(n => `<tr><td>${fdt(n.created_at)}</td><td class="mono">${esc(n.to_phone)}</td><td><b>${esc(WA_NAME[n.template] || n.template)}</b><br><span class="muted mono small">${esc(n.template)}</span></td><td class="small">${esc((n.params || []).join(" · "))}</td><td>${pill(n.status, n.status === "sent" ? "p-ok" : n.status === "failed" ? "p-bad" : "p-warn")}${n.simulated ? ` <span class="badge sim">Simulated</span>` : ""}${n.error ? `<br><span class="small" style="color:var(--bad)">${esc(n.error.slice(0, 80))}</span>` : ""}</td></tr>`).join("")}</tbody></table></div>` })}`;
 }
 async function openNewCharge() {
-  const [pt, cu] = await Promise.all([API.adminPartners(), API.adminCustomers()]);
+  const pt = [...await allPages("partners", { type: "dsa" }), ...await allPages("partners", { type: "tip" })];
   openModal(`<h2>Create charge</h2><form class="stack" data-form="new-charge" novalidate style="margin-top:12px">
     ${field("nc-payer", "Who pays", `<select id="nc-payer" name="payer_type"><option value="partner">DSA / TIP</option><option value="customer">Customer</option></select>`)}
     ${field("nc-partner", "DSA / TIP", `<select id="nc-partner" name="partner_id"><option value="">Choose</option>${pt.map(p => `<option value="${p.id}">${esc(p.name)} (${p.type.toUpperCase()})</option>`).join("")}</select>`)}
-    ${field("nc-customer", "Customer", `<select id="nc-customer" name="customer_id"><option value="">Choose</option>${cu.map(c => `<option value="${c.id}">${esc(c.full_name || "Customer")} · ${esc(c.phone || "")}</option>`).join("")}</select>`)}
+    ${field("nc-customer", "Customer", `<input id="nc-find" type="search" placeholder="Type a name or mobile to search" autocomplete="off"><select id="nc-customer" name="customer_id" style="margin-top:6px"><option value="">Search above, then choose</option></select>`)}
     ${field("nc-kind", "Type", `<select id="nc-kind" name="kind"><option value="registration_fee">Registration fee</option><option value="platform_fee">Platform fee</option><option value="customer_payment">Customer payment</option><option value="other">Other</option></select>`)}
     ${field("nc-desc", "Description", `<input id="nc-desc" name="description" placeholder="e.g. Router purchase, renewal fee">`)}
     ${field("nc-amt", "Amount before GST (₹)", `<input id="nc-amt" name="base" type="number" min="1">`, "GST is added automatically.")}
     <button class="btn btn-primary" type="submit">Create and send on WhatsApp</button></form>`);
   document.querySelector('[data-f="nc-customer"]').hidden = true;
+  /* customers are searched, 20 at a time, instead of listing every customer in a dropdown */
+  const find = document.getElementById("nc-find"), pick = document.getElementById("nc-customer"); let t = 0;
+  const run = async () => { const r = await fetchPage(API, "admin", "customers", { q: find.value.trim(), limit: 20 }); pick.innerHTML = `<option value="">Choose (${r.total} match${r.total === 1 ? "" : "es"}${r.total > 20 ? ", showing 20 — type more" : ""})</option>` + r.items.map(c => `<option value="${c.id}">${esc(c.full_name || "Customer")} · ${esc(c.phone || "")}</option>`).join(""); };
+  find.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => run().catch(() => {}), 250); }); run().catch(() => {});
 }
 function openChargeAction(id, a) {
   if (a === "waived") { guard(null, () => API.adminSetCharge(id, "waived")).then(() => { toast("Charge waived."); render(); }).catch(() => {}); return; }
@@ -1354,8 +1336,8 @@ function routerCard(b, withCustomer) {
     <div class="split" style="gap:12px;border-top:1px dashed var(--line);padding-top:8px"><div class="stack" style="gap:4px;min-width:0"><span class="muted small" style="font-weight:800">Recent speed tests</span><div class="stack" style="gap:4px" data-hist="${b.id}"><span class="muted small">Loading…</span></div></div>
       <div class="stack" style="gap:4px;min-width:0"><span class="muted small" style="font-weight:800">Recent modem actions</span><div class="stack" style="gap:4px" data-acts="${b.id}"><span class="muted small">Loading…</span></div></div></div></div>`;
 }
-function routerZones(list, zid, isOn, isOff, isWeak, idx) {   // modems grouped by AREA (PIN code)
-  const rows = [...new Set(list.map(zid).filter(Boolean))].map(pin => { const zl = list.filter(b => zid(b) === pin); return { pin, name: (idx && idx.get(pin)) || "", n: zl.length, on: zl.filter(isOn).length, off: zl.filter(isOff).length, weak: zl.filter(isWeak).length }; }).sort((a, b) => b.off - a.off || b.n - a.n);
+function routerZones(zones, idx) {   // modems grouped by AREA (PIN code); zones come from the server summary
+  const rows = zones.map(z => ({ pin: z.pincode, name: (idx && idx.get(z.pincode)) || "", n: z.n, on: z.on, off: z.off, weak: z.weak })).sort((a, b) => b.off - a.off || b.n - a.n);
   if (!rows.length) return "";
   const alerts = rows.filter(r => r.off >= OUTAGE_MIN);
   return `<div class="card stack" style="margin-bottom:16px"><h3>Modems by area</h3>
@@ -1395,32 +1377,28 @@ async function renderRouter() {
       <div class="card stack"><h3>${u ? "Not available for DSA accounts" : "Log in to see your modem"}</h3><p class="muted">${u ? "Modem status is shown to the customer, the installing TIP and admin." : "Log in with your WhatsApp number. In this demo, try 9876500001 (customer), 9876500201 (TIP) or 9876500999 (admin) with OTP 123456."}</p>${u ? "" : `<button class="btn btn-primary" data-act="login" type="button">Log in with WhatsApp</button>`}</div></div></div>`;
     return;
   }
-  let list = [];
-  if (u.role === "customer") list = (await API.myBookings()).filter(b => b.status === "installed");
-  else if (u.role === "tip") list = (await API.partnerBookings()).filter(b => b.status === "installed");
-  else list = (await API.adminBookings()).filter(b => b.status === "installed");
+  const many = u.role !== "customer", f = S.routerFilter || "all";
   const isLinked = b => !!(b.ont_serial && b.device && b.device.acs);
-  const isOn = b => !!(b.device && b.device.state === "online"), isOff = b => !!(b.device && b.device.state === "offline");
-  const isWeak = b => { const r = isLinked(b) ? RX(b.device.rx_dbm) : null; return !!(r && r[0] !== "Good"); }, manyRb = b => isLinked(b) && (b.device.reboots_7d || 0) >= 3;
-  const linked = list.filter(isLinked), live = list.filter(b => b.device && !b.device.is_simulated);
-  const f = S.routerFilter || "all";
-  const shown = f === "offline" ? list.filter(isOff) : f === "weak" ? list.filter(isWeak) : f === "reboots" ? list.filter(manyRb) : f === "unlinked" ? list.filter(b => !isLinked(b)) : list;
-  const many = u.role !== "customer";
-  let zoneHtml = "", acsHtml = "";
-  if (many) {
-    let locs = []; if (u.role === "admin") { try { locs = await API.adminLocations(); } catch (e) {} }
-    const zid = b => (b.lead && b.lead.pincode) || null;
-    zoneHtml = routerZones(list, zid, isOn, isOff, isWeak, areaIndex(locs));
-    if (u.role === "admin") { try { acsHtml = acsCard(await API.adminAcs()); } catch (e) {} }
+  const title = u.role === "customer" ? "My Care plan" : u.role === "tip" ? "Care plan · modems I installed" : "Care plan · all modems";
+  const sub = u.role === "customer" ? "Live status of your home modem. Restart it, change your Wi-Fi name or password, and test the line speed without Wi-Fi in between." : "Every installed modem through GenieACS: online / offline, fiber signal and restarts, by area. Search by customer, phone or reference.";
+  if (!many) {   // a customer has only their own few connections
+    const list = (await API.myBookings()).filter(b => b.status === "installed");
+    app.innerHTML = `<div class="wrap dash">${head(title, sub)}${CARE_NOTE}
+      ${list.length ? `<div class="list">${list.map(b => routerCard(b, false)).join("")}</div>` : `<div class="empty"><b>No installed connection yet.</b><p class="muted">Your modem appears here after installation.</p></div>`}</div>`;
+    list.forEach(b => loadHist(b.id)); return;
   }
-  app.innerHTML = `<div class="wrap dash">${head(u.role === "customer" ? "My Care plan" : u.role === "tip" ? "Care plan · modems I installed" : "Care plan · all modems", u.role === "customer" ? "Live status of your home modem. Restart it, change your Wi-Fi name or password, and test the line speed without Wi-Fi in between." : "Every installed modem through GenieACS: online / offline, fiber signal and restarts, with remote restart and Wi-Fi change.")}
-    ${many ? `<div class="kpis"><div class="kpi"><span>Installed</span><b>${list.length}</b><small>${linked.length} on GenieACS · ${live.length} live</small></div><div class="kpi"><span>Online</span><b style="color:var(--ok)">${list.filter(isOn).length}</b></div><div class="kpi"><span>Offline</span><b style="color:var(--bad)">${list.filter(isOff).length}</b></div><div class="kpi"><span>Weak fiber signal</span><b style="color:var(--warn)">${list.filter(isWeak).length}</b><small>worse than −25 dBm</small></div></div>
-      ${acsHtml}${zoneHtml}
-      <div class="chips" style="margin-bottom:14px">${[["all", "All"], ["offline", "Offline"], ["weak", "Weak signal"], ["reboots", "3+ restarts in 7 days"], ["unlinked", "Not linked"]].map(([k, l]) => `<button type="button" class="chip" data-act="router-filter" data-v="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>` : ""}
+  const sm = await carePlanSummary(API, u.role);
+  let zoneHtml = "", acsHtml = "", locs = [];
+  if (u.role === "admin") { try { locs = await API.adminLocations(); } catch (e) {} try { acsHtml = acsCard(await API.adminAcs()); } catch (e) {} }
+  zoneHtml = routerZones(sm.zones, areaIndex(locs));
+  const chips = [["all", "All"], ["offline", "Offline"], ["weak", "Weak signal"], ["reboots", "3+ restarts in 7 days"], ["unlinked", "Not linked"]];
+  app.innerHTML = `<div class="wrap dash">${head(title, sub)}
+    <div class="kpis"><div class="kpi"><span>Installed</span><b>${sm.installed}</b><small>${sm.linked} on GenieACS</small></div><div class="kpi"><span>Online</span><b style="color:var(--ok)">${sm.online}</b></div><div class="kpi"><span>Offline</span><b style="color:var(--bad)">${sm.offline}</b></div><div class="kpi"><span>Weak fiber signal</span><b style="color:var(--warn)">${sm.weak}</b></div></div>
+    ${acsHtml}${zoneHtml}
+    <div class="chips" style="margin-bottom:14px">${chips.map(([k, l]) => `<button type="button" class="chip" data-act="router-filter" data-v="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
     ${CARE_NOTE}
-    ${shown.length ? `<div class="list">${shown.map(b => routerCard(b, many)).join("")}</div>` : `<div class="empty"><b>${list.length ? "No modems in this filter." : u.role === "customer" ? "No installed connection yet." : "No installed modems yet."}</b><p class="muted">${u.role === "customer" ? "Your modem appears here after installation." : ""}</p></div>`}
+    ${serverTable("router-" + u.role, { role: u.role, kind: "bookings", filters: () => ({ status: "installed", devices: true, device: f === "all" ? undefined : f }), label: "Search modems", empty: "No installed modems yet.", html: rows => `<div class="list">${rows.map(b => routerCard(b, true)).join("")}</div>`, onData: r => r.items.forEach(b => loadHist(b.id)) })}
   </div>`;
-  shown.forEach(b => loadHist(b.id));
 }
 
 /* =====================================================================
@@ -1451,7 +1429,7 @@ const actions = {
   "change-password": () => openSetPassword("change"),
   "copy-cred": async b => { try { await navigator.clipboard.writeText(b.dataset.v); toast("Copied."); } catch (e) { toast("Select and copy the details by hand.", true); } },
   "create-user": () => openCreateUser(),
-  "team-filter": b => { S.teamFilter = b.dataset.v; render(); },
+  "team-filter": b => { S.teamFilter = b.dataset.v; resetServerTable("adm-team"); render(); },
   "reset-user": async b => { if (!confirm("Reset the password for " + b.dataset.name + "? A new one-time password will be sent on WhatsApp.")) return;
     const r = await guard(b, () => API.adminResetPassword(b.dataset.id)); openModal(`<h2>Password reset</h2><p class="muted" style="margin:4px 0 12px">Their old password no longer works.</p>${credBlock(r, esc(r.name || "") + " · " + ROLE_NAME[r.role])}`); render(); },
   "toggle-user": async b => { await guard(b, () => API.adminSetDisabled(b.dataset.id, b.dataset.v === "1")); toast(b.dataset.v === "1" ? "Login disabled." : "Login enabled."); render(); },
@@ -1489,7 +1467,7 @@ const actions = {
     <div class="field" data-f="as-kyc"><label class="check"><input type="checkbox" name="kyc"> KYC completed and SIM activated</label><span class="ferr" id="as-kyc-err"></span></div><button class="btn btn-primary" type="submit">Confirm activation</button></form>`),
   "story-toggle": b => { const st = document.getElementById("story"); const p = st.classList.toggle("paused"); b.textContent = p ? "▶" : "❚❚"; b.setAttribute("aria-label", p ? "Play animation" : "Pause animation"); },
   "story-replay": () => { const st = document.getElementById("story"); st.getAnimations({ subtree: true }).forEach(a => { a.currentTime = 0; }); },
-  "router-filter": b => { S.routerFilter = b.dataset.v; render(); },
+  "router-filter": b => { S.routerFilter = b.dataset.v; ["admin", "tip"].forEach(r => resetServerTable("router-" + r)); render(); },
   "edit-acs": b => openAcs(b.dataset.id).catch(e => toast(errMsg(e), true)),
   "modem-reboot": b => openModal(`<h2>Restart modem?</h2><p class="muted" style="margin:6px 0 16px">Internet and Wi-Fi will be off for about 2 minutes while the modem restarts. Phones and laptops reconnect by themselves.</p>
     <div class="row"><button class="btn btn-primary" data-act="modem-reboot-go" data-id="${esc(b.dataset.id)}" type="button">Restart now</button><button class="btn btn-ghost" data-act="close-modal" type="button">Cancel</button></div>`),
@@ -1529,11 +1507,12 @@ const actions = {
   "clear-compare": () => { S.compare = []; renderResults(); updateCompareBar(); },
   "request": b => openRequest(b.dataset.plan),
   "refresh-device": async b => { await guard(b, () => API.refreshDevice(b.dataset.id)); toast("Status refreshed (simulated)."); render(); },
-  "dsa-filter": b => { S.dsaFilter = b.dataset.v; render(); },
-  "admin-lead-filter": b => { S.adminLeadFilter = b.dataset.v; render(); },
-  "zone-filter": b => { S.zoneFilter = b.dataset.v; render(); setTimeout(() => { const t = document.querySelector("#tabbody .tbl-wrap"); if (t && b.dataset.v !== "all") t.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80); },
+  "dsa-filter": b => { S.dsaFilter = b.dataset.v; resetServerTable("dsa-leads"); render(); },
+  "admin-lead-filter": b => { S.adminLeadFilter = b.dataset.v; resetServerTable("adm-leads"); render(); },
+  "partner-type": b => { S.partnerType = b.dataset.v; render(); },
+  "perf-type": b => { S.perfType = b.dataset.v; render(); },
+  "zone-filter": b => { S.zoneFilter = b.dataset.v; resetServerTable("adm-leads"); render(); setTimeout(() => { const t = document.querySelector("#tabbody .tbl-wrap"); if (t && b.dataset.v !== "all") t.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80); },
   "zone-all": () => { S.zoneAll = !S.zoneAll; render(); },
-  "zone-period": b => { S.zonePeriod = b.dataset.v; render(); },
   "lead": b => openLead(b.dataset.id).catch(e => toast(errMsg(e), true)),
   "book": b => openBook(b.dataset.id),
   "booking-status": b => openBookingStatus(b.dataset.id).catch(e => toast(errMsg(e), true)),
@@ -1592,7 +1571,7 @@ const actions = {
   "pay": b => openPay(b.dataset.id),
   "charge-action": b => openChargeAction(b.dataset.id, b.dataset.a),
   "new-charge": () => openNewCharge(),
-  "billing-filter": b => { S.billFilter = b.dataset.v; render(); },
+  "billing-filter": b => { S.billFilter = b.dataset.v; resetServerTable("adm-bills"); render(); },
   "add-coverage": () => openCoverage(),
   "remove-coverage": async b => { await guard(null, () => API.removeCoverage(b.dataset.id)); toast("Coverage removed."); render(); },
   "commission": async b => { await guard(b, () => API.setCommission(b.dataset.id, b.dataset.s)); toast(b.dataset.s === "approved" ? "Commission approved." : "Commission rejected."); render(); },
@@ -1695,7 +1674,7 @@ const onChange = e => {
   if (e.target.name === "category" && e.target.closest("form[data-form=plan], form[data-form=tip-plan]")) { syncPlanForm(e.target.closest("form")); return; }
   if (e.target.name === "sim_conn") { const port = e.target.value === "port"; document.getElementById("sm-port").hidden = !port; document.getElementById("sm-prefwrap").hidden = port; return; }
   if (e.target.dataset && e.target.dataset.zoneLoc) { const v = e.target.value; guard(null, () => API.saveLocationZone(e.target.dataset.zoneLoc, v)).then(() => { toast(v ? "Zone set to " + ZONE_NAME[v] + "." : "Zone removed."); }).catch(() => {}); return; }
-  if (e.target.id === "zone-pick") { S.zoneFilter = e.target.value; render(); return; }
+  if (e.target.id === "zone-pick") { S.zoneFilter = e.target.value; resetServerTable("adm-leads"); render(); return; }
   if (e.target.id === "lc-pin") { const z = ZONE_BY_PIN[e.target.value.trim()], sel = document.getElementById("lc-zone"); if (z && sel && !sel.value) sel.value = z; }
   if (e.target.id === "cu-role") { const a = e.target.value === "admin"; ["cu-firm", "cu-pins"].forEach(k => { document.querySelector(`[data-f="${k}"]`).hidden = a; }); document.getElementById("cu-note").hidden = a; return; }
   if (e.target.id === "cp-what") { const a = e.target.value.split("|")[2], inp = document.getElementById("cp-amt"); if (inp) { inp.value = a || ""; if (!a) inp.focus(); } return; }
@@ -1984,6 +1963,7 @@ export function init({ navigate: nav }) {
   document.addEventListener("input", onInput);
   document.addEventListener("change", onChange);
   document.addEventListener("submit", onSubmit);
+  initServerTables(API);
   if (!booted) { booted = true; bootData(); }
   return () => {
     $("#modal")?.removeEventListener("click", onModalClick);

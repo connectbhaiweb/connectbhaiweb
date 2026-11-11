@@ -5,6 +5,7 @@ import { AuthUser } from '../common/decorators';
 import { pageArgs, paged } from '../common/pagination';
 import { JobsService } from '../common/jobs/jobs.service';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { fulltextIds } from '../common/utils/fulltext';
 import { normalizePhone } from '../common/utils/phone';
 import { leadScope } from '../common/utils/scope';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -64,11 +65,14 @@ export class LeadsService {
     const areas = await this.prisma.area.findMany({ where: { pincode: d.pincode }, include: { city: true } });
     if (!areas.length) throw new BadRequestException('We do not serve this PIN code yet. Join the waitlist.');
     if (d.area_id && !areas.some((a) => Number(a.id) === d.area_id)) throw new BadRequestException('area_id does not belong to this PIN code');
-    if (d.plan_id) {
-      const ok = await this.prisma.pincodePlanMapping.findFirst({ where: { pincode: d.pincode, plan_id: d.plan_id, is_available: true, plan: { is_active: true } } });
-      if (!ok) throw new BadRequestException('This plan is not available in your PIN code');
-    }
-    const dup = await this.prisma.lead.findFirst({ where: { customer_phone: phone, pincode: d.pincode, status: { in: OPEN } } });
+    // independent look-ups: one round trip instead of four
+    const [planOk, dup, existingCustomer, autoAssign] = await Promise.all([
+      d.plan_id ? this.prisma.pincodePlanMapping.findFirst({ where: { pincode: d.pincode, plan_id: d.plan_id, is_available: true, plan: { is_active: true } } }) : null,
+      this.prisma.lead.findFirst({ where: { customer_phone: phone, pincode: d.pincode, status: { in: OPEN } } }),
+      actor?.role === 'customer' ? null : this.prisma.user.findUnique({ where: { role_phone: { role: 'customer', phone } } }),
+      this.settings.getBool('auto_assign'),
+    ]);
+    if (d.plan_id && !planOk) throw new BadRequestException('This plan is not available in your PIN code');
     if (dup) throw new ConflictException(`You already have an open request (${dup.ref_code}) for this PIN code`);
 
     let source: Lead['source'] = d.source ?? 'website';
@@ -81,11 +85,8 @@ export class LeadsService {
       const dsa = await this.prisma.user.findFirst({ where: { id: brought_by, role: 'dsa', partner_status: 'approved', is_active: true } });
       if (!dsa) throw new BadRequestException('brought_by_user_id is not an active DSA');
     }
-    if (!customer_user_id) {
-      const existing = await this.prisma.user.findUnique({ where: { role_phone: { role: 'customer', phone } } });
-      customer_user_id = existing ? Number(existing.id) : null;
-    }
-    const tip = (await this.settings.getBool('auto_assign')) ? await this.pickTip(d.pincode) : null;
+    if (!customer_user_id) customer_user_id = existingCustomer ? Number(existingCustomer.id) : null;
+    const tip = autoAssign ? await this.pickTip(d.pincode) : null;
 
     const lead = await this.prisma.$transaction(async (tx) => {
       const created = await tx.lead.create({
@@ -113,14 +114,36 @@ export class LeadsService {
     if (q.status) and.push({ status: q.status as LeadStatus });
     if (q.pincode) and.push({ pincode: q.pincode });
     if (q.source) and.push({ source: q.source as any });
+    if (q.due) { const t = new Date(); and.push({ status: 'followup', followup_at: { lt: new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() + 1)) } }); }
+    if (q.statuses) { const ok = ['new', 'contacted', 'followup', 'scheduled', 'installed', 'lost', 'cancelled']; and.push({ status: { in: q.statuses.split(',').filter((x) => ok.includes(x)) as LeadStatus[] } }); }
+    if (q.open) and.push({ status: { in: ['new', 'contacted', 'followup', 'scheduled'] } });
     if (u.role === 'admin') {
       if (q.tip_user_id) and.push({ tip_user_id: q.tip_user_id });
       if (q.brought_by_user_id) and.push({ brought_by_user_id: q.brought_by_user_id });
+      if (q.unassigned) and.push({ brought_by_user_id: null, tip_user_id: null });
     }
-    if (q.q) and.push({ OR: [{ customer_name: { contains: q.q } }, { customer_phone: { contains: q.q } }, { ref_code: { contains: q.q } }] });
+    if (q.q) {
+      const s = q.q.trim();
+      // a full reference code ("CB-000142") is matched on the unique ref_code index; other text goes through the full-text index
+      // (any fragment of 2+ characters, e.g. the middle digits of a phone); a 1-character search keeps the slow "contains" filter
+      const ids = /^CB-\d{6,}$/i.test(s) ? null : await fulltextIds(this.prisma, 'leads', s);
+      if (/^CB-\d{6,}$/i.test(s)) and.push({ ref_code: s.toUpperCase() });
+      else if (ids) and.push({ id: { in: ids } });
+      else and.push({ OR: [{ customer_name: { contains: s } }, { customer_phone: { contains: s } }, { ref_code: { contains: s } }] });
+    }
     const where: Prisma.LeadWhereInput = { AND: and };
+    if (q.sort === 'followup') {
+      // MySQL has no NULLS LAST: leads with a follow-up date (earliest first), then the rest by last update
+      const take = Math.min(q.limit ?? 25, 50);
+      const [dated, total] = await Promise.all([
+        this.prisma.lead.findMany({ where: { AND: [where, { followup_at: { not: null } }] }, orderBy: [{ followup_at: 'asc' }, { updated_at: 'desc' }], include: leadInclude, relationLoadStrategy: 'join', take }),
+        this.prisma.lead.count({ where }),
+      ]);
+      const rest = dated.length < take ? await this.prisma.lead.findMany({ where: { AND: [where, { followup_at: null }] }, orderBy: { updated_at: 'desc' }, include: leadInclude, relationLoadStrategy: 'join', take: take - dated.length }) : [];
+      return paged([...dated, ...rest], total, q);
+    }
     const [items, total] = await Promise.all([
-      this.prisma.lead.findMany({ where, orderBy: { id: 'desc' }, include: leadInclude, ...pageArgs(q) }),
+      this.prisma.lead.findMany({ where, orderBy: { id: 'desc' }, include: leadInclude, relationLoadStrategy: 'join', ...pageArgs(q) }),
       this.prisma.lead.count({ where }),
     ]);
     return paged(items, total, q);

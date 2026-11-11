@@ -1,3 +1,4 @@
+import { leadTextWhere } from '../common/utils/fulltext';
 import { BadRequestException, Body, Controller, Get, HttpCode, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
@@ -11,6 +12,9 @@ import { NotificationsService } from '../notifications/notifications.service';
 class CommissionQuery extends PageQuery {
   @IsOptional() @IsIn(['pending', 'approved', 'paid', 'cancelled']) status?: string;
   @IsOptional() @Type(() => Number) @IsInt() dsa_user_id?: number;
+  @IsOptional() @IsString() q?: string;
+  /** comma-separated lead ids: the commissions of the leads on the current page */
+  @IsOptional() @IsString() lead_ids?: string;
 }
 class PayDto {
   @IsIn(['upi', 'bank', 'cash', 'other']) mode: 'upi' | 'bank' | 'cash' | 'other';
@@ -25,7 +29,7 @@ export class CommissionsController {
   /** DSA sees their own payouts (flat per installed lead); admin sees all. */
   @Roles('dsa', 'admin') @Get()
   async list(@Query() q: CommissionQuery, @CurrentUser() u: AuthUser) {
-    const where: Prisma.CommissionWhereInput = { status: q.status as any, dsa_user_id: u.role === 'dsa' ? u.id : q.dsa_user_id };
+    const where: Prisma.CommissionWhereInput = { status: q.status as any, dsa_user_id: u.role === 'dsa' ? u.id : q.dsa_user_id, ...(q.q?.trim() ? { lead: await leadTextWhere(this.prisma, q.q) } : {}), ...(q.lead_ids ? { lead_id: { in: q.lead_ids.split(',').map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 200) } } : {}) };
     const [items, total, sums] = await Promise.all([
       this.prisma.commission.findMany({ where, orderBy: { id: 'desc' }, include: { lead: { select: { ref_code: true, customer_name: true, pincode: true } }, dsa: { select: { id: true, name: true, partner_code: true } } }, ...pageArgs(q) }),
       this.prisma.commission.count({ where }),

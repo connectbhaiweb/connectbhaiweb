@@ -31,19 +31,28 @@ export class PartnerReminderService implements OnModuleInit, OnModuleDestroy {
     return (await this.dsaLeads(now)) + (await this.tipJobs(now)) + (await this.agreements(now));
   }
 
+  /** One query for "was this reminder already sent?" for a whole batch: returns a set of "userId:key". */
+  private async alreadySent(template: string, userIds: (bigint | number | null | undefined)[], key: string): Promise<Set<string>> {
+    const ids = [...new Set(userIds.filter((x): x is bigint | number => x != null).map((x) => BigInt(x)))];
+    if (!ids.length) return new Set();
+    const rows = await this.prisma.notification.findMany({ where: { template, user_id: { in: ids } }, select: { user_id: true, payload: true } });
+    return new Set(rows.map((r) => `${r.user_id}:${(r.payload as any)?.[key]}`));
+  }
+
   private async dsaLeads(now: Date): Promise<number> {
     const days = Number(this.cfg.get('DSA_LEAD_REMINDER_DAYS') ?? 2);
     if (!(days > 0)) return 0;
     const leads = await this.prisma.lead.findMany({
       where: { brought_by_user_id: { not: null }, status: { in: ['new', 'contacted', 'followup'] }, updated_at: { lte: new Date(now.getTime() - days * DAY) }, dsa: { is: { is_active: true, partner_status: 'approved' } } },
       include: { dsa: { select: { id: true, name: true, phone: true } } },
-      orderBy: { updated_at: 'asc' }, take: 50,
+      orderBy: { updated_at: 'asc' }, take: 300,   // wide window: already-reminded leads at the front must not hide newer ones
     });
+    const reminded = await this.alreadySent('dsa_lead_reminder', leads.map((l) => l.dsa?.id), 'ref_code');
     let sent = 0;
-    for (const l of leads) {
+    for (const l of leads.slice(0, 300)) {
       if (!l.dsa) continue;
-      const done = await this.prisma.notification.findFirst({ where: { template: 'dsa_lead_reminder', user_id: l.dsa.id, payload: { path: '$.ref_code', equals: l.ref_code } }, select: { id: true } });
-      if (done) continue;
+      if (reminded.has(`${l.dsa.id}:${l.ref_code}`)) continue;
+      if (sent >= 50) break;
       const waited = Math.max(days, Math.floor((now.getTime() - l.updated_at.getTime()) / DAY));
       await this.notify.send({ user_id: l.dsa.id, phone: l.dsa.phone, template: 'dsa_lead_reminder', payload: { name: l.dsa.name, ref_code: l.ref_code, customer: l.customer_name, since: `${waited} days` } });
       sent++;
@@ -58,13 +67,14 @@ export class PartnerReminderService implements OnModuleInit, OnModuleDestroy {
     const bookings = await this.prisma.booking.findMany({
       where: { status: 'scheduled', scheduled_at: { lte: new Date(now.getTime() - hours * 3_600_000) } },
       include: { lead: { select: { ref_code: true, customer_name: true } }, tip: { select: { id: true, name: true, phone: true, is_active: true } } },
-      orderBy: { scheduled_at: 'asc' }, take: 50,
+      orderBy: { scheduled_at: 'asc' }, take: 300,
     });
+    const reminded = await this.alreadySent('tip_job_reminder', bookings.map((b) => b.tip?.id), 'ref_code');
     let sent = 0;
     for (const b of bookings) {
       if (!b.tip?.is_active) continue;
-      const done = await this.prisma.notification.findFirst({ where: { template: 'tip_job_reminder', user_id: b.tip.id, payload: { path: '$.ref_code', equals: b.lead.ref_code } }, select: { id: true } });
-      if (done) continue;
+      if (reminded.has(`${b.tip.id}:${b.lead.ref_code}`)) continue;
+      if (sent >= 50) break;
       await this.notify.send({ user_id: b.tip.id, phone: b.tip.phone, template: 'tip_job_reminder', payload: { name: b.tip.name, ref_code: b.lead.ref_code, customer: b.lead.customer_name, when: dateIST(b.scheduled_at) } });
       sent++;
     }

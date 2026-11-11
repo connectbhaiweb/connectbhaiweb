@@ -1,8 +1,11 @@
 import { Controller, Get, Param, ParseIntPipe, Patch, Query } from '@nestjs/common';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthUser, CurrentUser, Roles } from '../common/decorators';
 import { PageQuery, pageArgs, paged } from '../common/pagination';
 import { PrismaService } from '../common/prisma/prisma.service';
+
+class LogQuery extends PageQuery { @IsOptional() @IsString() @MaxLength(60) q?: string; }
 
 @ApiTags('notifications') @ApiBearerAuth() @Controller('notifications')
 export class NotificationsController {
@@ -21,8 +24,9 @@ export class NotificationsController {
     return { ok: true };
   }
   /** Admin: full WhatsApp / message log. */
-  @Roles('admin') @Get() async all(@Query() q: PageQuery) {
-    const [items, total] = await Promise.all([this.prisma.notification.findMany({ orderBy: { id: 'desc' }, ...pageArgs(q) }), this.prisma.notification.count()]);
+  @Roles('admin') @Get() async all(@Query() q: LogQuery) {
+    const t = q.q?.trim(), where = t ? { OR: [{ phone: { contains: t } }, { template: { contains: t } }, { error: { contains: t } }] } : {};
+    const [items, total] = await Promise.all([this.prisma.notification.findMany({ where, orderBy: { id: 'desc' }, ...pageArgs(q) }), this.prisma.notification.count({ where })]);
     return paged(items, total, q);
   }
 }

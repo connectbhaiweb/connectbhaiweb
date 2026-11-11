@@ -15,7 +15,7 @@ export const envValidationSchema = Joi.object({
   SWAGGER_ENABLED: Joi.boolean().default(false),
   LOG_LEVEL: Joi.string().valid('error', 'warn', 'log', 'debug', 'verbose').default('log'),
   THROTTLE_TTL_SECONDS: Joi.number().default(60),
-  THROTTLE_LIMIT: Joi.number().default(120),
+  THROTTLE_LIMIT: Joi.number().default(300),
   THROTTLE_ENABLED: Joi.boolean().default(true),
 
   DATABASE_URL: Joi.string().uri({ scheme: ['mysql'] }).required(),

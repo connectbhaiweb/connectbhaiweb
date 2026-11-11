@@ -22,6 +22,16 @@ export class LeadQuery extends PageQuery {
   @IsOptional() @Type(() => Number) @IsInt() tip_user_id?: number;
   @IsOptional() @Type(() => Number) @IsInt() brought_by_user_id?: number;
   @IsOptional() @IsString() q?: string;
+  /** admin: only leads nobody has been assigned to yet (no DSA and no TIP) */
+  @IsOptional() @IsIn(['1', 'true']) unassigned?: string;
+  /** only leads still being worked (not installed / lost / cancelled) */
+  @IsOptional() @IsIn(['1', 'true']) open?: string;
+  /** 'followup': next follow-up first, then the most recently updated (page 1 only, for the "call today" list) */
+  @IsOptional() @IsIn(['followup']) sort?: string;
+  /** follow-ups due today or earlier */
+  @IsOptional() @IsIn(['1', 'true']) due?: string;
+  /** comma-separated statuses, e.g. "contacted,followup" */
+  @IsOptional() @IsString() statuses?: string;
 }
 export class TrackQuery {
   @IsString() ref_code: string;

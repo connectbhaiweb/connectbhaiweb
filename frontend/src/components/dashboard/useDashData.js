@@ -4,9 +4,10 @@ import { subscribe, getSnapshot, getServerSnapshot } from "@/lib/connectbhai/run
 
 /* Loads data for a React dashboard page through the existing API (same module instance the app uses).
    Re-loads when the app re-renders after an action (pay, restart, chat…) and when the tab regains focus. */
-export function useDashData(role, load) {
+export function useDashData(role, load, enabled = true) {   // enabled=false: the page is mounted on another tab, so nothing is fetched
+
   const { user, ready } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const active = ready && !!user && user.role === role;
+  const active = ready && !!user && user.role === role && enabled;
   const [tick, bump] = useReducer(x => x + 1, 0);
   const [st, setSt] = useState({ data: null, error: null, at: -1 });
 
@@ -23,7 +24,8 @@ export function useDashData(role, load) {
   useEffect(() => {
     if (!active) return;
     const again = () => bump();
-    const vis = () => { if (!document.hidden) bump(); };
+    let hiddenAt = 0;
+    const vis = () => { if (document.hidden) hiddenAt = Date.now(); else if (Date.now() - hiddenAt > 30_000) bump(); };   // a quick tab flick does not reload every list
     window.addEventListener("cb:render", again);
     document.addEventListener("visibilitychange", vis);
     return () => { window.removeEventListener("cb:render", again); document.removeEventListener("visibilitychange", vis); };

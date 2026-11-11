@@ -1,3 +1,4 @@
+import { leadTextWhere } from '../common/utils/fulltext';
 import { BadRequestException, Body, Controller, ForbiddenException, Get, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
@@ -23,6 +24,8 @@ class UpdateTicketDto {
 }
 class TicketQuery extends PageQuery {
   @IsOptional() @IsIn(['open', 'in_progress', 'resolved', 'closed']) status?: string;
+  @IsOptional() @IsString() q?: string;
+  @IsOptional() @IsIn(['1', 'true']) open?: string;
 }
 
 export const ticketScope = (u: AuthUser): Prisma.TicketWhereInput =>
@@ -49,9 +52,10 @@ export class TicketsController {
   }
 
   @Get() async list(@Query() q: TicketQuery, @CurrentUser() u: AuthUser) {
-    const where: Prisma.TicketWhereInput = { AND: [ticketScope(u), q.status ? { status: q.status as any } : {}] };
+    const s = q.q?.trim();
+    const where: Prisma.TicketWhereInput = { AND: [ticketScope(u), q.status ? { status: q.status as any } : q.open ? { status: { in: ['open', 'in_progress'] } } : {}, ...(s ? [{ OR: [{ ticket_code: { contains: s } }, { subject: { contains: s } }, { lead: await leadTextWhere(this.prisma, s) }] }] : [])] };
     const [items, total] = await Promise.all([
-      this.prisma.ticket.findMany({ where, orderBy: { id: 'desc' }, include: { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, pincode: true, plan: { select: { name: true, category: { select: { name: true, type: true, logo_url: true } } } } } }, raiser: { select: { id: true, name: true, phone: true } } }, ...pageArgs(q) }),
+      this.prisma.ticket.findMany({ where, orderBy: { id: 'desc' }, relationLoadStrategy: 'join', include: { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, pincode: true, plan: { select: { name: true, category: { select: { name: true, type: true, logo_url: true } } } } } }, raiser: { select: { id: true, name: true, phone: true } } }, ...pageArgs(q) }),
       this.prisma.ticket.count({ where }),
     ]);
     return paged(items, total, q);
