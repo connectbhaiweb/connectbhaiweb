@@ -123,7 +123,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
 
   /* ---------- settings ---------- */
   const settingsOut = d => ({ registration_fee_tip: num(d.tip_onboarding_fee), registration_fee_dsa: 0, gst_percent: num(d.gst_percent), tip_install_fee: num(d.tip_install_fee), care_plan_fee_per_lead: num(d.care_plan_fee_per_lead),
-    dsa_payout_per_lead: num(d.dsa_payout_per_lead), auto_assign: num(d.auto_assign), lead_target_default: 20, tip_share_percent: 0 });
+    dsa_payout_per_lead: num(d.dsa_payout_per_lead), tip_job_earning: num(d.tip_job_earning), auto_assign: num(d.auto_assign), lead_target_default: 20, tip_share_percent: 0 });
   const kv = rows => Object.fromEntries(rows.map(r => [r.key, r.value]));
 
   /* ---------- Razorpay checkout (live keys only; the mock gateway settles on the server) ---------- */
@@ -372,9 +372,12 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     },
     async adminPayments() { need("admin"); const r = (await all("/commissions", { status: "paid" })).items; return r.map(c => ({ id: S(c.id), partner_id: S(c.dsa_user_id), partner: pc(c.dsa), amount: num(c.amount), method: c.paid_mode, reference: c.paid_reference, paid_at: c.paid_at })); },
     async getSettings() { try { if (me && me.role === "admin") return settingsOut(kv(await get("/settings"))); } catch (e) { /* fall through */ } return settingsOut(await get("/settings/public", { anon: true })); },
-    async saveSettings(o) {
-      need("admin"); const m = { registration_fee_tip: "tip_onboarding_fee", gst_percent: "gst_percent" };
-      for (const [k, v] of Object.entries(m)) { const x = Number(o[k]); if (!(x >= 0)) fail("Enter 0 or more."); await put("/settings/" + v, { value: String(x) }); }
+    async saveSettings(o) {   // every money setting is a row in the app_settings table; only the values passed in are saved
+      need("admin");
+      const m = { registration_fee_tip: "tip_onboarding_fee", tip_install_fee: "tip_install_fee", care_plan_fee_per_lead: "care_plan_fee_per_lead", dsa_payout_per_lead: "dsa_payout_per_lead", tip_job_earning: "tip_job_earning", gst_percent: "gst_percent" };
+      const todo = Object.entries(m).filter(([k]) => o[k] !== undefined);
+      for (const [k] of todo) { const x = Number(o[k]); if (o[k] === "" || !(x >= 0)) fail("Enter 0 or more."); if (k === "gst_percent" && x > 100) fail("GST cannot be more than 100."); }
+      for (const [k, v] of todo) await put("/settings/" + v, { value: String(Number(o[k])) });
       return true;
     },
 

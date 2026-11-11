@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { encrypt, last4 } from '../src/common/utils/crypto';
+import { SETTING_DEFS } from '../src/settings/settings.defaults';
 
 const prisma = new PrismaClient();
 const j = (f: string) => JSON.parse(readFileSync(join(__dirname, 'seed-data', f), 'utf8'));
@@ -14,16 +15,9 @@ const num = (v: any, d = 0) => { const n = Number(v); return Number.isFinite(n) 
 const norm = (s: string) => String(s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
 async function settings() {
-  const defs: Record<string, [string | undefined, string, string]> = {
-    tip_onboarding_fee: [process.env.TIP_ONBOARDING_FEE, '0', 'TIP pays this (before GST) when filling the registration form'],
-    tip_install_fee: [process.env.TIP_INSTALL_FEE, '0', 'TIP pays this (before GST) for each installed lead'],
-    care_plan_fee_per_lead: [process.env.CARE_PLAN_FEE_PER_LEAD, '0', 'TIP pays this (before GST) per lead to enable Care Plan'],
-    dsa_payout_per_lead: [process.env.DSA_PAYOUT_PER_LEAD, '0', 'Paid to DSA only when the lead is installed'],
-    gst_percent: [process.env.GST_PERCENT, '18', 'GST on all TIP charges'],
-    auto_assign: [process.env.AUTO_ASSIGN === 'false' ? '0' : '1', '1', '1 = assign new leads to a TIP by pincode automatically'],
-  };
-  for (const [key, [v, d, description]] of Object.entries(defs)) {
-    await prisma.appSetting.upsert({ where: { key }, update: {}, create: { key, value: String(v ?? d), description } });
+  // Fees / GST / auto-assign live in the app_settings table and are edited by the admin. The seed only fills in a missing row and never overwrites a saved value.
+  for (const [key, { default: value, description }] of Object.entries(SETTING_DEFS)) {
+    await prisma.appSetting.upsert({ where: { key }, update: {}, create: { key, value, description } });
   }
 }
 

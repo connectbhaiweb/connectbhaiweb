@@ -1000,6 +1000,19 @@ function openCreateUser() {
       <p class="muted small" id="cu-note">For a new DSA or TIP, an account is also created (active, registration fee waived). If the DSA or TIP already exists with this mobile, the login is linked to it.</p>
       <button class="btn btn-primary" type="submit">Create login and send on WhatsApp</button></form>`);
 }
+/* The Fees form. With the real API every money setting is a row in the database table app_settings, edited here (no environment variables). */
+function feeFields(st) {
+  if (REST) return `<div class="grid2">${field("st-tip", "TIP registration fee (₹, before GST)", `<input id="st-tip" name="registration_fee_tip" type="number" min="0" value="${esc(st.registration_fee_tip)}">`, "Paid by a TIP when registering")}
+      ${field("st-inst", "TIP install fee per installed lead (₹, before GST)", `<input id="st-inst" name="tip_install_fee" type="number" min="0" value="${esc(st.tip_install_fee)}">`, "Charged to the TIP when an installation is completed")}
+      ${field("st-cp", "Care Plan fee per lead (₹, before GST)", `<input id="st-cp" name="care_plan_fee_per_lead" type="number" min="0" value="${esc(st.care_plan_fee_per_lead)}">`, "Paid by the TIP to turn Care Plan on for a customer")}
+      ${field("st-pay", "DSA payout per installed lead (₹)", `<input id="st-pay" name="dsa_payout_per_lead" type="number" min="0" value="${esc(st.dsa_payout_per_lead)}">`, "Paid to the DSA only when the lead is installed")}
+      ${field("st-job", "TIP earning per installed job (₹)", `<input id="st-job" name="tip_job_earning" type="number" min="0" value="${esc(st.tip_job_earning)}">`, "Amount shown in the “job completed” WhatsApp to the TIP")}
+      ${field("st-gst", "GST (%)", `<input id="st-gst" name="gst_percent" type="number" min="0" max="100" value="${esc(st.gst_percent)}">`, "Added to all TIP charges")}</div>`;
+  return `<div class="grid2">${field("st-tip", "TIP registration fee (₹)", `<input id="st-tip" name="registration_fee_tip" type="number" min="0" value="${esc(st.registration_fee_tip)}">`)}${field("st-dsa", "DSA registration fee (₹)", `<input id="st-dsa" name="registration_fee_dsa" type="number" min="0" value="${esc(st.registration_fee_dsa)}">`)}
+      ${field("st-gst", "GST (%)", `<input id="st-gst" name="gst_percent" type="number" min="0" max="28" value="${esc(st.gst_percent)}">`)}
+      ${field("st-target", "Leads promised per DSA/TIP / month", `<input id="st-target" name="lead_target_default" type="number" min="0" value="${esc(st.lead_target_default ?? 20)}">`, "Default; set per DSA/TIP in the DSA & TIP list")}
+      ${field("st-share", "TIP share of monthly rental (%)", `<input id="st-share" name="tip_share_percent" type="number" min="0" max="100" value="${esc(st.tip_share_percent ?? 0)}">`, "Used to estimate TIP income on their dashboard")}</div>`;
+}
 async function adminBilling() {
   const [m, st] = await Promise.all([moneyStats(API, 1), API.getSettings()]);
   const f = S.billFilter || "due", month = new Date().toISOString().slice(0, 7);
@@ -1008,10 +1021,7 @@ async function adminBilling() {
   return `<div class="kpis"><div class="kpi"><span>Due to Connect Bhai</span><b>${inr(m.due)}</b></div><div class="kpi"><span>Collected this month</span><b>${inr(m.collected[month] || 0)}</b></div>
     <div class="kpi"><span>Registration fees</span><b>${inr(m.by_kind.registration_fee || 0)}</b><small>collected</small></div><div class="kpi"><span>Platform fees</span><b>${inr(m.by_kind.platform_fee || 0)}</b><small>collected</small></div></div>
   <div class="split" style="margin-bottom:16px"><form class="card stack" data-form="settings" novalidate><h3>Fees</h3>
-      <div class="grid2">${field("st-tip", "TIP registration fee (₹)", `<input id="st-tip" name="registration_fee_tip" type="number" min="0" value="${esc(st.registration_fee_tip)}">`)}${field("st-dsa", "DSA registration fee (₹)", `<input id="st-dsa" name="registration_fee_dsa" type="number" min="0" value="${esc(st.registration_fee_dsa)}">`)}
-      ${field("st-gst", "GST (%)", `<input id="st-gst" name="gst_percent" type="number" min="0" max="28" value="${esc(st.gst_percent)}">`)}
-      ${field("st-target", "Leads promised per DSA/TIP / month", `<input id="st-target" name="lead_target_default" type="number" min="0" value="${esc(st.lead_target_default ?? 20)}">`, "Default; set per DSA/TIP in the DSA & TIP list")}
-      ${field("st-share", "TIP share of monthly rental (%)", `<input id="st-share" name="tip_share_percent" type="number" min="0" max="100" value="${esc(st.tip_share_percent ?? 0)}">`, "Used to estimate TIP income on their dashboard")}</div>
+      ${feeFields(st)}
       <p class="muted small">Platform fee per installation is set on each TIP. Fees apply to new charges only.</p><button class="btn btn-primary" type="submit">Save fees</button></form>
     <div class="card stack"><h3>Collect money</h3><p class="muted">Create a charge for a TIP or customer. They get a WhatsApp message and can pay online with UPI, card or net banking through Razorpay.</p><button class="btn btn-primary" data-act="new-charge" type="button">Create charge</button></div></div>
   <div class="chips" style="margin-bottom:12px">${[["due", "Due"], ["paid", "Paid"], ["failed", "Failed"], ["waived", "Waived"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="billing-filter" data-v="${k}" aria-pressed="${f === k}">${l} (${n[k]})</button>`).join("")}</div>
@@ -1892,7 +1902,13 @@ const forms = {
     if (!setErr(f, e)) return; const r = await guard(btn, () => API.dsaAddLead(d)); closeModal(); toast("Lead " + r.ref_code + " added" + (r.tip ? " · TIP: " + r.tip : "") + "."); S.dsaFilter = "open"; render();
   },
   "pay-charge": async (f, btn) => { const m = (f.querySelector("input[name=method]:checked") || {}).value || "upi"; btn.disabled = true; btn.textContent = "Processing payment…"; try { const c = await API.payCharge(f.dataset.id, m); paySuccess(c); } catch (e) { btn.disabled = false; btn.textContent = "Try again"; toast(errMsg(e), true); } },
-  settings: async (f, btn) => { const d = { registration_fee_tip: val(f, "registration_fee_tip"), registration_fee_dsa: val(f, "registration_fee_dsa"), gst_percent: val(f, "gst_percent"), lead_target_default: val(f, "lead_target_default"), tip_share_percent: val(f, "tip_share_percent") }, e = {};
+  settings: async (f, btn) => {
+    if (REST) {   // every fee is a row in app_settings
+      const keys = [["registration_fee_tip", "st-tip"], ["tip_install_fee", "st-inst"], ["care_plan_fee_per_lead", "st-cp"], ["dsa_payout_per_lead", "st-pay"], ["tip_job_earning", "st-job"], ["gst_percent", "st-gst"]], d = {}, e = {};
+      keys.forEach(([k, id]) => { d[k] = val(f, k); const n = Number(d[k]); if (d[k] === "" || !(n >= 0) || (k === "gst_percent" && n > 100)) e[id] = k === "gst_percent" ? "Enter 0 to 100." : "Enter 0 or more."; });
+      if (!setErr(f, e)) return; await guard(btn, () => API.saveSettings(d)); toast("Fees saved."); return;
+    }
+    const d = { registration_fee_tip: val(f, "registration_fee_tip"), registration_fee_dsa: val(f, "registration_fee_dsa"), gst_percent: val(f, "gst_percent"), lead_target_default: val(f, "lead_target_default"), tip_share_percent: val(f, "tip_share_percent") }, e = {};
     if (!(Number(d.lead_target_default) >= 0) || d.lead_target_default === "") e["st-target"] = "Enter 0 or more."; if (!(Number(d.tip_share_percent) >= 0 && Number(d.tip_share_percent) <= 100) || d.tip_share_percent === "") e["st-share"] = "Enter 0 to 100.";
     if (!(Number(d.registration_fee_tip) >= 0) || d.registration_fee_tip === "") e["st-tip"] = "Enter 0 or more."; if (!(Number(d.registration_fee_dsa) >= 0) || d.registration_fee_dsa === "") e["st-dsa"] = "Enter 0 or more."; if (!(Number(d.gst_percent) >= 0 && Number(d.gst_percent) <= 28)) e["st-gst"] = "Enter 0 to 28.";
     if (!setErr(f, e)) return; await guard(btn, () => API.saveSettings(d)); toast("Fees saved."); },

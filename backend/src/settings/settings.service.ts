@@ -1,32 +1,20 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { SETTING_DEFS } from './settings.defaults';
 
-/** Setting key -> [env variable, description]. DB value wins; env is the fallback/seed. */
-export const SETTING_DEFS: Record<string, [string, string]> = {
-  tip_onboarding_fee: ['TIP_ONBOARDING_FEE', 'TIP pays this (before GST) when filling the registration form'],
-  tip_install_fee: ['TIP_INSTALL_FEE', 'TIP pays this (before GST) for each installed lead'],
-  care_plan_fee_per_lead: ['CARE_PLAN_FEE_PER_LEAD', 'TIP pays this (before GST) per lead to enable Care Plan'],
-  dsa_payout_per_lead: ['DSA_PAYOUT_PER_LEAD', 'Paid to DSA only when the lead is installed'],
-  tip_job_earning: ['TIP_JOB_EARNING', 'Amount shown in the "job completed" WhatsApp to the TIP (rupees per installed job)'],
-  gst_percent: ['GST_PERCENT', 'GST on all TIP charges'],
-  auto_assign: ['AUTO_ASSIGN', '1/true = assign new leads to a TIP by pincode automatically'],
-};
+export { SETTING_DEFS };
 
 @Injectable()
 export class SettingsService {
-  constructor(private prisma: PrismaService, private cfg: ConfigService) {}
+  constructor(private prisma: PrismaService) {}
 
-  private envDefault(key: string): string {
-    const def = SETTING_DEFS[key];
-    return def ? String(this.cfg.get(def[0]) ?? '0') : '';
-  }
+  private defaultOf(key: string): string { return SETTING_DEFS[key]?.default ?? ''; }   // used only until the admin saves a value
   private cache = new Map<string, { v: string; t: number }>();   // settings are read on almost every request; 20s is plenty (writes clear it)
   async get(key: string): Promise<string> {
     const hit = this.cache.get(key);
     if (hit && Date.now() - hit.t < 20_000) return hit.v;
     const row = await this.prisma.appSetting.findUnique({ where: { key } });
-    const v = row ? row.value : this.envDefault(key);
+    const v = row ? row.value : this.defaultOf(key);
     this.cache.set(key, { v, t: Date.now() });
     return v;
   }
@@ -43,8 +31,8 @@ export class SettingsService {
     const map = new Map(rows.map((r) => [r.key, r]));
     return Object.keys(SETTING_DEFS).map((key) => ({
       key,
-      value: map.get(key)?.value ?? this.envDefault(key),
-      description: SETTING_DEFS[key][1],
+      value: map.get(key)?.value ?? this.defaultOf(key),
+      description: SETTING_DEFS[key].description,
       updated_at: map.get(key)?.updated_at ?? null,
       from_db: map.has(key),
     }));
@@ -60,13 +48,13 @@ export class SettingsService {
     return this.prisma.appSetting.upsert({
       where: { key },
       update: { value: String(value), updated_by: userId },
-      create: { key, value: String(value), description: SETTING_DEFS[key][1], updated_by: userId },
+      create: { key, value: String(value), description: SETTING_DEFS[key].description, updated_by: userId },
     });
   }
-  /** Writes env defaults for any key missing in the DB (used by the seed). */
+  /** Writes the default for any key missing in the DB (used by the seed). Never overwrites a value the admin saved. */
   async seedDefaults() {
     for (const key of Object.keys(SETTING_DEFS)) {
-      await this.prisma.appSetting.upsert({ where: { key }, update: {}, create: { key, value: this.envDefault(key), description: SETTING_DEFS[key][1] } });
+      await this.prisma.appSetting.upsert({ where: { key }, update: {}, create: { key, value: this.defaultOf(key), description: SETTING_DEFS[key].description } });
     }
   }
 }

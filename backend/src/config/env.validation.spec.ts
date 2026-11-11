@@ -9,7 +9,6 @@ describe('env validation', () => {
     expect(error).toBeUndefined();
     expect(value.PORT).toBe(4000);
     expect(value.API_PREFIX).toBe('api/v1');
-    expect(value.GST_PERCENT).toBe(18);
   });
   it('requires DATABASE_URL, secrets and encryption key', () => {
     expect(envValidationSchema.validate({}).error).toBeDefined();
@@ -31,7 +30,5 @@ describe('env validation', () => {
   });
   it('rejects bad values', () => {
     expect(run({ PORT: 99999 }).error).toBeDefined();
-    expect(run({ GST_PERCENT: 150 }).error).toBeDefined();
-    expect(run({ TIP_INSTALL_FEE: -1 }).error).toBeDefined();
   });
 });
