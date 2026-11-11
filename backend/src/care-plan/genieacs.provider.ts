@@ -68,6 +68,9 @@ export class GenieAcsProvider {
     return null;
   }
 
+  /** A modem counts as online if it contacted GenieACS within this window. Modem here checks in about every 30 s; keep it above your modems' periodic-inform interval. Override with ACS_ONLINE_WINDOW_SECONDS. */
+  private get onlineWindowMs() { const n = Number(this.cfg.get('ACS_ONLINE_WINDOW_SECONDS')); return (Number.isFinite(n) && n > 0 ? n : 120) * 1000; }
+
   async fetchStatus(deviceId: string): Promise<DeviceStatus> {
     if (this.isMock) {
       const h = this.seed(deviceId);
@@ -80,7 +83,7 @@ export class GenieAcsProvider {
     const lastInform = new Date(d._lastInform);
     const v = (p: string) => p.split('.').reduce((o: any, k) => o?.[k], d)?._value;
     return {
-      device_id: String(d._id), online: Date.now() - lastInform.getTime() < 10 * 60_000, last_seen_at: lastInform,
+      device_id: String(d._id), online: Date.now() - lastInform.getTime() < this.onlineWindowMs, last_seen_at: lastInform,
       rx_power_dbm: this.rxPower(v),
       wifi_ssid: v('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID') ?? v('Device.WiFi.SSID.1.SSID') ?? null,
       connected_clients: Number(v('InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.TotalAssociations') ?? 0),
@@ -102,7 +105,7 @@ export class GenieAcsProvider {
       const last = d._lastInform ? new Date(d._lastInform) : null;
       return {
         id: String(d._id), manufacturer: d._deviceId?._Manufacturer ?? null, model: d._deviceId?._ProductClass ?? null, serial: d._deviceId?._SerialNumber ?? null,
-        firmware: v(paths[0]) ?? null, last_inform: last ? last.toISOString() : null, online: !!last && Date.now() - last.getTime() < 10 * 60_000,
+        firmware: v(paths[0]) ?? null, last_inform: last ? last.toISOString() : null, online: !!last && Date.now() - last.getTime() < this.onlineWindowMs,
         rx_power_dbm: this.rxPower(v), wifi_ssid: v(paths[1]) ?? null, ip: v(paths[2]) || v(paths[3]) || null,
       };
     });
