@@ -99,7 +99,7 @@ export class BookingsService {
   async list(q: BookingQuery, u: AuthUser) {
     const where: Prisma.BookingWhereInput = { status: q.status as any, lead_id: q.lead_id, lead: leadScope(u) };
     const [items, total] = await Promise.all([
-      this.prisma.booking.findMany({ where, orderBy: { id: 'desc' }, relationLoadStrategy: 'join', include: { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, customer_user_id: true, brought_by_user_id: true, address: true, pincode: true, status: true, care_plan: true, plan: { select: { id: true, plan_code: true, name: true, price: true, speed_mbps: true, install_charge: true, category: { select: { id: true, name: true, type: true, logo_url: true } } } } } }, tip: { select: { id: true, name: true, partner_code: true, phone: true } } }, ...pageArgs(q) }),
+      this.prisma.booking.findMany({ where, orderBy: { id: 'desc' }, include: { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, customer_user_id: true, brought_by_user_id: true, address: true, pincode: true, status: true, care_plan: true, plan: { select: { id: true, plan_code: true, name: true, price: true, speed_mbps: true, install_charge: true, category: { select: { id: true, name: true, type: true, logo_url: true } } } } } }, tip: { select: { id: true, name: true, partner_code: true, phone: true } } }, ...pageArgs(q) }),
       this.prisma.booking.count({ where }),
     ]);
     return paged(items, total, q);
