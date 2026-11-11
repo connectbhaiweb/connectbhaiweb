@@ -75,6 +75,18 @@ describe('GenieAcsProvider.speedTest (TR-143)', () => {
     await expect(new GenieAcsProvider(cfg({ SPEEDTEST_MAX_MS: 1 })).speedTest('X')).rejects.toThrow('did not finish');
   });
 
+  it('withdraws what it queued on the modem when the test does not finish, so nothing runs later by surprise', async () => {
+    const urls: { url: string; method?: string }[] = [];
+    global.fetch = jest.fn(async (url: string, init: any = {}) => {
+      urls.push({ url: String(url), method: init.method });
+      if (String(url).includes('/tasks?')) return { ok: true, status: 202, json: async () => ({ _id: 'task-1' }) };   // modem did not answer: only queued
+      if (init.method === 'DELETE') return { ok: true, status: 200, json: async () => ({}) };
+      return { ok: true, status: 200, json: async () => [{ _id: 'X', InternetGatewayDevice: { DownloadDiagnostics: {} } }] };
+    }) as any;
+    await expect(new GenieAcsProvider(cfg({ SPEEDTEST_MAX_MS: 1 })).speedTest('X')).rejects.toThrow('did not finish');
+    expect(urls.some((u) => u.method === 'DELETE' && u.url.endsWith('/tasks/task-1'))).toBe(true);
+  });
+
   it('ignores an old Completed result until the modem reports a new run', async () => {
     let polls = 0;
     fakeAcs({

@@ -163,8 +163,15 @@ export class GenieAcsProvider {
     if (!r.ok) throw new Error(`GenieACS ${r.status}`);
     return r;
   }
-  private task(deviceId: string, body: object, ms = 25_000) {
-    return this.nbi(`/devices/${encodeURIComponent(deviceId)}/tasks?connection_request&timeout=${ms - 3000}`, { method: 'POST', body: JSON.stringify(body), ms });
+  /** Sends a task and returns its id when GenieACS only queued it (the modem did not answer in time), so the caller can withdraw it. */
+  private async task(deviceId: string, body: object, ms = 25_000): Promise<string | null> {
+    const r = await this.nbi(`/devices/${encodeURIComponent(deviceId)}/tasks?connection_request&timeout=${ms - 3000}`, { method: 'POST', body: JSON.stringify(body), ms });
+    if (r.status !== 202) return null;
+    const t: any = await r.json().catch(() => null);
+    return t?._id ?? null;
+  }
+  private async withdraw(ids: string[]) {   // best effort: never leave a queued download or refresh behind to run later on the customer's modem
+    await Promise.all(ids.map((id) => this.nbi(`/tasks/${encodeURIComponent(id)}`, { method: 'DELETE', ms: 10_000 }).catch(() => undefined)));
   }
   private async readObject(deviceId: string, path: string): Promise<any> {
     const r = await this.nbi(`/devices?query=${encodeURIComponent(JSON.stringify({ _id: deviceId }))}&projection=${encodeURIComponent(path)}`, { ms: 10_000 });
@@ -173,17 +180,29 @@ export class GenieAcsProvider {
   /** Sets the TR-143 parameters, asks the modem to start (DiagnosticsState=Requested), then waits for it to report `done`. Throws on an Error_* state or a timeout. */
   private async runDiagnostic(deviceId: string, name: 'DownloadDiagnostics' | 'IPPingDiagnostics', params: [string, string | number, string][], done: string): Promise<any> {
     const root = `InternetGatewayDevice.${name}`;
-    const before = (await this.readObject(deviceId, root).catch(() => ({})))?.BOMTime?._value;
-    await this.task(deviceId, { name: 'setParameterValues', parameterValues: [...params.map(([k, v, t]) => [`${root}.${k}`, v, t]), [`${root}.DiagnosticsState`, 'Requested', 'xsd:string']] });
-    const gap = Number(this.cfg.get('SPEEDTEST_POLL_MS') ?? 3000), deadline = Date.now() + Number(this.cfg.get('SPEEDTEST_MAX_MS') ?? 60_000);
-    do {
-      await new Promise((r) => setTimeout(r, gap));
-      await this.task(deviceId, { name: 'refreshObject', objectName: root }, 12_000).catch(() => undefined);
-      const o = await this.readObject(deviceId, root);
-      const state = o.DiagnosticsState?._value;
-      if (typeof state === 'string' && state.startsWith('Error')) throw new Error(`The modem reported ${state}`);
-      if (state === done && (name !== 'DownloadDiagnostics' || o.BOMTime?._value !== before || !before)) return o;
-    } while (Date.now() < deadline);
-    throw new Error('The modem did not finish the test in time');
+    const queued: string[] = [];   // tasks GenieACS could only queue; withdrawn if the test does not finish
+    let refreshQueued = false, polls = 0;
+    try {
+      const before = (await this.readObject(deviceId, root).catch(() => ({})))?.BOMTime?._value;
+      const set = await this.task(deviceId, { name: 'setParameterValues', parameterValues: [...params.map(([k, v, t]) => [`${root}.${k}`, v, t]), [`${root}.DiagnosticsState`, 'Requested', 'xsd:string']] });
+      if (set) queued.push(set);
+      const gap = Number(this.cfg.get('SPEEDTEST_POLL_MS') ?? 3000), deadline = Date.now() + Number(this.cfg.get('SPEEDTEST_MAX_MS') ?? 60_000);
+      do {
+        await new Promise((r) => setTimeout(r, gap));
+        // the modem reports the result in its own "diagnostics complete" inform, so mostly we just read; a refresh is asked for at most once at a time, every 5th look
+        if (!refreshQueued && polls++ % 5 === 4) {
+          const id = await this.task(deviceId, { name: 'refreshObject', objectName: root }, 12_000).catch(() => null);
+          if (id) { queued.push(id); refreshQueued = true; }
+        }
+        const o = await this.readObject(deviceId, root);
+        const state = o.DiagnosticsState?._value;
+        if (typeof state === 'string' && state.startsWith('Error')) throw new Error(`The modem reported ${state}`);
+        if (state === done && (name !== 'DownloadDiagnostics' || o.BOMTime?._value !== before || !before)) return o;
+      } while (Date.now() < deadline);
+      throw new Error('The modem did not finish the test in time');
+    } catch (e) {
+      await this.withdraw(queued);
+      throw e;
+    }
   }
 }
