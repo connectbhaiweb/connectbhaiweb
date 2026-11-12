@@ -1,4 +1,4 @@
-import { BadGatewayException, BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, ServiceUnavailableException, HttpCode, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, ServiceUnavailableException, HttpCode, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { IsIn, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
@@ -7,7 +7,9 @@ import { PageQuery, pageArgs, paged } from '../common/pagination';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { leadScope } from '../common/utils/scope';
 import { CarePlanSyncService } from './care-plan-sync.service';
+import { JobsService } from '../common/jobs/jobs.service';
 import { GenieAcsProvider } from './genieacs.provider';
+import { SPEED_TEST_JOB } from './speed-test.runner';
 
 class ActionDto {
   @IsIn(['reboot', 'change_wifi', 'factory_reset', 'refresh']) action: 'reboot' | 'change_wifi' | 'factory_reset' | 'refresh';
@@ -24,7 +26,7 @@ class DeviceQuery extends PageQuery { @IsOptional() @IsString() lead_ids?: strin
 
 @ApiTags('care-plan') @ApiBearerAuth() @Controller('care-plan')
 export class CarePlanController {
-  constructor(private prisma: PrismaService, private acs: GenieAcsProvider, private sync: CarePlanSyncService) {}
+  constructor(private prisma: PrismaService, private acs: GenieAcsProvider, private sync: CarePlanSyncService, private jobs: JobsService) {}
 
   private scope(u: AuthUser): Prisma.CarePlanDeviceWhereInput { return u.role === 'admin' ? {} : { lead: leadScope(u) , ...(u.role === 'dsa' ? { id: -1 } : {}) }; }
   private async device(id: number, u: AuthUser) {
@@ -114,23 +116,22 @@ export class CarePlanController {
     return this.prisma.deviceAction.update({ where: { id: row.id }, data: { status: res.ok ? 'done' : 'failed', error: res.error, completed_at: new Date() } });
   }
 
-  private readonly speedRunning = new Set<number>();
-  /** Runs the modem's own line test (it downloads a test file; ~10-60 s) and saves the result. Mock mode returns invented numbers, flagged simulated. */
-  @Post('devices/:id/speed-test')
+  /**
+   * Starts the modem's own line test and answers AT ONCE (202) with a row whose status is "running". The test itself runs in the
+   * background job queue (1-3 minutes: the modem only checks in about once a minute) and the job writes the numbers to the same row
+   * (status "done", or "failed" with the reason). Screens read GET /care-plan/devices/:id -> speed_tests. Mock mode finishes immediately, flagged simulated.
+   */
+  @Post('devices/:id/speed-test') @HttpCode(202)
   async speed(@Param('id', ParseIntPipe) id: number, @CurrentUser() u: AuthUser) {
     const dev = await this.device(id, u);
     if (!dev.is_active) throw new BadRequestException('Care Plan is not active for this device');
     if (!this.acs.isMock && !dev.genieacs_device_id) throw new BadRequestException('The router is not linked yet. Your installer links it at installation.');
-    if (this.speedRunning.has(id)) throw new ConflictException('A speed test is already running on this modem.');
-    this.speedRunning.add(id);
-    try {
-      const r = await this.acs.speedTest(dev.genieacs_device_id ?? dev.serial_number ?? `dev-${id}`);
-      const row = await this.prisma.speedTest.create({ data: { care_plan_device_id: id, download_mbps: r.download_mbps, upload_mbps: r.upload_mbps, ping_ms: r.ping_ms } });
-      return { ...row, simulated: r.simulated === true };
-    } catch (e: any) {
-      if (e?.status) throw e;   // already an HTTP error
-      throw new BadGatewayException(`Speed test failed: ${e?.message ?? 'the modem did not answer'}`);
-    } finally { this.speedRunning.delete(id); }
+    // a test whose job died never finishes: after 10 minutes it is closed as failed so the next one can start
+    await this.prisma.speedTest.updateMany({ where: { care_plan_device_id: id, status: 'running', tested_at: { lt: new Date(Date.now() - 10 * 60_000) } }, data: { status: 'failed', error: 'The test did not finish in time' } });
+    if (await this.prisma.speedTest.findFirst({ where: { care_plan_device_id: id, status: 'running' }, select: { id: true } })) throw new ConflictException('A speed test is already running on this modem.');
+    const row = await this.prisma.speedTest.create({ data: { care_plan_device_id: id, status: 'running' } });
+    await this.jobs.enqueue(SPEED_TEST_JOB, { speed_test_id: String(row.id) }, { maxAttempts: 1 });
+    return { ...(await this.prisma.speedTest.findUnique({ where: { id: row.id } })), simulated: this.acs.isMock };   // in tests the job has already run, so this is the finished row
   }
 
   /** Admin: every modem GenieACS knows, with the customer it is linked to (or none). Read-only; for the "Fetch from GenieACS" button. */

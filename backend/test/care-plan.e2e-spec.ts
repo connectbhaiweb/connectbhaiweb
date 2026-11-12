@@ -52,8 +52,9 @@ describe('care plan (modem monitoring)', () => {
     expect(detail.body.actions.length).toBe(2);
   });
   it('speed tests are stored and listed with the device', async () => {
-    const t = await c.http().post(`${P}/care-plan/devices/${dev}/speed-test`).set(bearer(a.dream)).expect(201);
-    expect(t.body.download_mbps).toBeGreaterThan(0);
+    const t = await c.http().post(`${P}/care-plan/devices/${dev}/speed-test`).set(bearer(a.dream)).expect(202);   // accepted: the job runs in the background (inline in tests, so it is already done)
+    expect(t.body.status).toBe('done');
+    expect(Number(t.body.download_mbps)).toBeGreaterThan(0);
     expect((await c.http().get(`${P}/care-plan/devices/${dev}`).set(bearer(a.dream))).body.speed_tests).toHaveLength(1);
   });
   it('only TIP / admin can edit modem identity', async () => {

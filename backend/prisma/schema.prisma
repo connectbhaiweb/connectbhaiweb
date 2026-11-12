@@ -568,6 +568,12 @@ model DeviceAction {
   @@map("device_actions")
 }
 
+enum SpeedTestStatus {
+  running
+  done
+  failed
+}
+
 model SpeedTest {
   id                  BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
   care_plan_device_id BigInt   @db.UnsignedBigInt
@@ -575,6 +581,8 @@ model SpeedTest {
   upload_mbps         Decimal? @db.Decimal(8, 2)
   ping_ms             Decimal? @db.Decimal(8, 2)
   tested_at           DateTime @default(now()) @db.DateTime(3)
+  status              SpeedTestStatus @default(done)   // running while the modem is still being asked; the background job fills the numbers in
+  error               String?  @db.VarChar(255)
   device CarePlanDevice @relation(fields: [care_plan_device_id], references: [id], onDelete: Cascade)
   @@index([care_plan_device_id, tested_at], map: "ix_st_dev")
   @@map("speed_tests")

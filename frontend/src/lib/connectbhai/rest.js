@@ -55,6 +55,20 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     return data;
   }
   const get = (p, o) => req("GET", p, undefined, o), post = (p, b, o) => req("POST", p, b || {}, o), patch = (p, b) => req("PATCH", p, b || {}), put = (p, b) => req("PUT", p, b || {}), del = p => req("DELETE", p);
+  /* A router speed test runs in the background on the server (1-3 min: the modem checks in about once a minute). The POST answers at once with a "running" row;
+     this waits by reading the saved row until the server marks it done or failed, so the result is the one stored in MySQL (the same one the Care plan screens list). */
+  const waitSpeedTest = async (deviceId, row, maxMs = 6 * 60 * 1000) => {
+    let t = row; const end = Date.now() + maxMs;
+    while (t && t.status === "running") {
+      if (Date.now() > end) fail("The speed test is still running on the server. Check the Care plan screen in a minute.");
+      await sleep(4000);
+      const x = await get("/care-plan/devices/" + deviceId);
+      t = (x.speed_tests || []).find(r => String(r.id) === String(row.id)) || t;
+      if (t) t = { ...t, simulated: x.simulated };
+    }
+    if (t && t.status === "failed") fail(t.error || "The speed test failed.");
+    return t;
+  };
   const qs = o => { const p = new URLSearchParams(); Object.entries(o || {}).forEach(([k, v]) => v != null && v !== "" && p.append(k, v)); const s = p.toString(); return s ? "?" + s : ""; };
   async function all(path, params) {   // follow pagination (limit 100) until everything is loaded
     const first = await get(path + qs({ ...params, page: 1, limit: 100 })), items = [...(first.items || [])], total = first.total || 0;
@@ -497,19 +511,19 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       return mapDevice((await get("/care-plan/devices/" + d.id)));
     },
     async deviceLog(bookingId) { const d = await deviceFor(bookingId); const x = await get("/care-plan/devices/" + d.id); return (x.actions || []).slice(0, 6).map(a => ({ id: S(a.id), booking_id: S(bookingId), action: a.action === "change_wifi" ? "wifi" : a.action, detail: a.detail || null, by_name: a.actor ? a.actor.name : "System", status: a.status || "done", simulated: true, created_at: a.created_at })); },
-    async speedTests(bookingId) { try { const d = await deviceFor(bookingId); const x = await get("/care-plan/devices/" + d.id); const dev = (x.speed_tests || []).map(t => ({ id: S(t.id), booking_id: S(bookingId), kind: "router", status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, jitter_ms: null, is_simulated: !!x.simulated, created_at: t.created_at })); return [...dev, ...localSpeed().filter(t => t.booking_id === String(bookingId))].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 6); } catch (e) { return localSpeed().filter(t => t.booking_id === String(bookingId)).slice(0, 6); } },
+    async speedTests(bookingId) { try { const d = await deviceFor(bookingId); const x = await get("/care-plan/devices/" + d.id); const dev = (x.speed_tests || []).map(t => ({ id: S(t.id), booking_id: S(bookingId), kind: "router", status: t.status || "done", error: t.error || null, download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, jitter_ms: null, is_simulated: !!x.simulated, created_at: t.created_at })); return [...dev, ...localSpeed().filter(t => t.booking_id === String(bookingId))].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 6); } catch (e) { return localSpeed().filter(t => t.booking_id === String(bookingId)).slice(0, 6); } },
     async recordSpeedTest(bookingId, r) {
       if (!me) fail("Log in to save results.");
       const t = { id: "local-" + Date.now(), booking_id: bookingId ? String(bookingId) : null, user_id: me.id, kind: "browser", status: "done", download_mbps: +r.down.toFixed(2), upload_mbps: +r.up.toFixed(2), ping_ms: Math.round(r.ping), jitter_ms: Math.round(r.jit), is_simulated: !!r.simulated, created_at: new Date().toISOString() };
       try { localStorage.setItem(speedKey, JSON.stringify([t, ...localSpeed()].slice(0, 50))); } catch (e) { /* ignore */ } return t;
     },
     routerTest(bookingId, onQueued) {
-      return deviceFor(bookingId).then(async d => { if (onQueued) onQueued(); const t = await post(`/care-plan/devices/${d.id}/speed-test`);
+      return deviceFor(bookingId).then(async d => { if (onQueued) onQueued(); const t = await waitSpeedTest(d.id, await post(`/care-plan/devices/${d.id}/speed-test`));
         return { id: S(t.id), booking_id: S(bookingId), kind: "router", status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: !!t.simulated, created_at: t.created_at }; });
     },
     /* QA 12/13: refresh and router test by device id (the dashboard Care plan list has no bookings loaded) */
     async deviceRefresh(id) { const r = await post(`/care-plan/devices/${id}/refresh`); return mapDevice(r.device || r); },
-    async deviceRouterTest(id) { const t = await post(`/care-plan/devices/${id}/speed-test`); return { status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: !!t.simulated }; },
+    async deviceRouterTest(id) { const t = await waitSpeedTest(id, await post(`/care-plan/devices/${id}/speed-test`)); return { status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: !!t.simulated }; },
     /* real modems for the React Care plan screens (one page of up to 100, in that screen's shape) */
     async carePlanDevices() {
       const d = await get("/care-plan/devices" + qs({ page: 1, limit: 100 })), q = v => v >= -25 ? "Good" : v >= -27 ? "Weak" : "Bad";

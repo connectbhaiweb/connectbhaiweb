@@ -5,7 +5,7 @@ const listed = (id: string, serial: string | null) => ({ id, manufacturer: 'Real
 function make(devices: any[], linked: any[], opts: { fail?: boolean; mock?: boolean } = {}) {
   const acs: any = { isMock: !!opts.mock, listDevices: opts.fail ? jest.fn().mockRejectedValue(new Error('down')) : jest.fn().mockResolvedValue(devices) };
   const prisma: any = { carePlanDevice: { findMany: jest.fn().mockResolvedValue(linked) } };
-  return new CarePlanController(prisma, acs, {} as any);
+  return new CarePlanController(prisma, acs, {} as any, {} as any);
 }
 
 describe('GET /care-plan/acs-devices', () => {

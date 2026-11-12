@@ -7,7 +7,7 @@ function make(taken: any = null) {
   const update = jest.fn().mockResolvedValue({ id: 7 });
   const findMany = jest.fn().mockResolvedValue([{ id: 7, serial_number: null, lead: { ref_code: 'CB7', customer_name: 'Asha', customer_phone: '9811000001' } }]);
   const prisma: any = { carePlanDevice: { findFirst, update, findMany } };
-  return { c: new CarePlanController(prisma, {} as any, {} as any), findFirst, update, findMany };
+  return { c: new CarePlanController(prisma, {} as any, {} as any, {} as any), findFirst, update, findMany };
 }
 
 describe('Care Plan: linking a modem to a customer', () => {
