@@ -43,7 +43,10 @@ export class CarePlanController {
       this.prisma.carePlanDevice.findMany({ where, orderBy: { id: 'desc' }, include: { lead: { select: { ref_code: true, customer_name: true } } }, ...pageArgs(q) }),
       this.prisma.carePlanDevice.count({ where }),
     ]);
-    return paged(items, total, q);
+    // latest finished speed test per modem, so the admin table can show the Wi-Fi speed
+    const last = items.length ? await this.prisma.speedTest.findMany({ where: { care_plan_device_id: { in: items.map((d) => d.id) }, status: 'done', download_mbps: { not: null } }, orderBy: [{ tested_at: 'desc' }, { id: 'desc' }], distinct: ['care_plan_device_id'], select: { care_plan_device_id: true, download_mbps: true, tested_at: true } }) : [];
+    const byDev = new Map(last.map((r) => [String(r.care_plan_device_id), r]));
+    return paged(items.map((d) => { const r = byDev.get(String(d.id)); return { ...d, speed_mbps: r ? Number(r.download_mbps) : null, speed_at: r ? r.tested_at : null }; }), total, q);
   }
 
   /** Care plan page numbers (installed / online / offline / weak / not linked, by PIN code, and linked modems per TIP) without sending any device rows. */

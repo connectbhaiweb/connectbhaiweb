@@ -191,6 +191,7 @@ function DeviceActs({ d, onDone }) {
         setMsg({ ok: true, t: "Testing… up to 5 min" });
         const t = await API.deviceRouterTest(d.id);
         setMsg({ ok: true, t: `${Number(t.download_mbps).toFixed(1)} Mbps line speed${t.is_simulated ? " (simulated)" : ""}` });
+        onDone && onDone();   // reload the list so the Wi-Fi speed column shows the new result
       }
     } catch (e) { setMsg({ ok: false, t: (e && e.message) || "Could not reach the modem. Try again." }); }
     finally { setBusy(""); }
