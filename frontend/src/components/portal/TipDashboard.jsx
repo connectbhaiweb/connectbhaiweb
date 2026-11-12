@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarDays, ChartColumn, CircleCheck, Clock, CloudUpload, Coins, Database, Download, Loader, Ticket, Users, Wallet, Wifi } from "lucide-react";
 import { useDashData } from "@/components/dashboard/useDashData";
 import { Bars, CallWa, Card, Chip, Counts, Failed, Kpi, Loading, More, Period, Pin, PortalHead } from "./parts";
@@ -118,14 +118,19 @@ function Home({ data, s, months, setMonths }) {
   );
 }
 
+/* QA 8: one Leads tab for leads, installs (Booked) and customers (Installed); old /tip/bookings and /tip/customers links
+   arrive here with that filter preset (ui.js stores it in sessionStorage) */
+const takeFilter = () => { try { const v = sessionStorage.getItem("cb-tip-filter"); sessionStorage.removeItem("cb-tip-filter"); return v; } catch (e) { return null; } };
 function Leads({ stats, partner }) {
-  const [f, setF] = useState("open");
+  const [f, setF] = useState(() => takeFilter() || "open");
+  useEffect(() => { const on = () => { const v = takeFilter(); if (v) setF(v); }; window.addEventListener("cb:tip-filter", on); return () => window.removeEventListener("cb:tip-filter", on); }, []);
   const L = stats.leads, open = L.new + L.contacted + L.follow_up + L.booked;
   const F = [["open", "Open", open], ["assigned", "New to call", L.assigned || 0], ["contacted", "Contacted", L.contacted], ["follow_up", "Follow-up", L.follow_up], ["booked", "Booked", L.booked], ["installed", "Installed", L.installed], ["lost", "Lost", L.lost], ["all", "All", stats.leads_total]];
   const p = usePaged("tip", "leads", { status: f });
   return (
     <>
-      <PortalHead title="Leads" sub="Requests from your PIN codes. Call, schedule the installation and keep the status updated." pins={partner.service_pincodes} />
+      <PortalHead title="Leads" sub="Requests from your PIN codes, your installations (Booked) and your customers (Installed), in one place." pins={partner.service_pincodes} />
+      {f === "installed" && <p className="pt-note">Enter the ONT serial when you complete an installation and keep the modem linked to GenieACS, so the customer stays on the Care plan. <button type="button" className="pt-link" data-go="tip" data-go-tab="careplan">Manage modems</button></p>}
       <div className="pt-filters" role="group" aria-label="Filter leads">{F.map(([k, l, n]) => <button key={k} type="button" aria-pressed={f === k} onClick={() => setF(k)}>{l}<span>{n}</span></button>)}</div>
       <Card title={`${F.find(x => x[0] === f)[1]} leads (${p.total})`} Icon={Users}>
         <PagedBar p={p} label="Search leads" />
@@ -143,6 +148,8 @@ function Leads({ stats, partner }) {
                 <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="lead" data-id={l.id}>Update</button>
                 {l.status === "installed" && (l.care_plan ? <Chip s="care" label="Care plan on" tone="green" /> : <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="care-plan-buy" data-id={l.id}>Add Care plan</button>)}
                 {["assigned", "contacted", "follow_up"].includes(l.status) && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="book" data-id={l.id}>Schedule</button>}
+                {l.status === "booked" && l.booking && l.booking.id && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="booking-status" data-id={String(l.booking.id)}>Update installation</button>}
+                {l.status === "installed" && <button type="button" className="cu-btn cu-btn-soft pt-sm" data-go="tip" data-go-tab="careplan">Manage modem</button>}
               </span>
             </div>
           ))}

@@ -8,6 +8,7 @@ import { areaIndex } from "./areas";
 import { dashboard as dashStats, fetchPage, partnerTotals, money as moneyStats, payables, carePlanSummary } from "./paging";
 import { cachedRow, clearServerTables, fillServerTables, initServerTables, resetServerTable, serverTable } from "./serverTable";
 import { publish } from "./runtime";
+import { pinChipsIn, pinSuggest, pinSuggestBlur, pinSuggestKey } from "./pinSuggest";
 import { ROLE_HOME, ROLE_NAME, initials, pathFor } from "./shared";
 /* =====================================================================
    Connect Bhai · UI
@@ -23,10 +24,11 @@ const me = () => API.me();
 
 /* ---------- toast / modal ---------- */
 function toast(msg, bad) { const t = $("#toast"); t.textContent = msg; t.className = "toast" + (bad ? " bad" : ""); t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3200); }
-function openModal(html, wide) { const m = $("#modal"), b = $("#mbox"); b.className = "mbox" + (wide ? " wide" : ""); b.innerHTML = `<button class="mclose" data-act="close-modal" type="button" aria-label="Close">×</button>` + html; m.hidden = false; document.body.style.overflow = "hidden"; const f = b.querySelector("input:not([type=hidden]):not([type=checkbox]),select,textarea"); if (f) setTimeout(() => f.focus(), 40); }
+function openModal(html, wide) { const m = $("#modal"), b = $("#mbox"); b.className = "mbox" + (wide ? " wide" : ""); b.innerHTML = `<button class="mclose" data-act="close-modal" type="button" aria-label="Close">×</button>` + html; m.hidden = false; document.body.style.overflow = "hidden"; pinChipsIn(b); const f = b.querySelector("input:not([type=hidden]):not([type=checkbox]),select,textarea"); if (f) setTimeout(() => f.focus(), 40); }
 function closeModal() { $("#modal").hidden = true; document.body.style.overflow = ""; }
 const onModalClick = e => { if (e.target.id === "modal") closeModal(); };
 const onKeydown = e => {
+  if (pinSuggestKey(e)) return;   // the PIN list is open: ↓ ↑ Enter Esc belong to it
   if (e.key === "Escape" && !$("#modal").hidden) closeModal();
   if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("dialcard")) { e.preventDefault(); e.target.click(); }
 };
@@ -74,6 +76,8 @@ function setErr(form, map) {
   if (first) first.focus(); return Object.keys(map).length === 0;
 }
 const val = (form, name) => { const el = form.elements[name]; if (!el) return ""; if (el.type === "checkbox") return el.checked; const v = String(el.value || "").trim(); return /phone$/.test(name) ? normPhone(v) : v; };
+/* QA 12: what a Refresh actually found */
+const stateMsg = d => !d ? "Status refreshed." : d.state === "online" ? "Router is online." : d.state === "offline" ? `Router is offline${d.last_seen ? " (last seen " + fdt(d.last_seen) + ")" : ""}.` : "The router has not reported to GenieACS yet.";
 function deviceView(d) {
   const live = d && !d.is_simulated;
   const tag = live ? `<span class="badge live" title="Reported by the modem through GenieACS (Care plan)">Live · GenieACS</span>`
@@ -143,10 +147,22 @@ setInterval(async () => {   // keep an open chat fresh (new messages from the ot
 
 /* ---------- header ---------- */
 /* The header is a React component (components/Header.jsx). Legacy code calls this whenever the session changes. */
-function renderHeader() { const u = me(); publish({ user: u ? { role: u.role, full_name: u.full_name } : null }); }
+function renderHeader() {
+  const u = me(); publish({ user: u ? { role: u.role, full_name: u.full_name } : null });
+  try { if (u) localStorage.setItem("cb-role", u.role); else localStorage.removeItem("cb-role"); } catch (e) {}   // lets the pre-paint script in layout.js cover "/" for partners
+}
+/* QA: a full-screen "opening your dashboard" cover (CSS: html[data-entering]) from login, or from "/" for a signed-in partner,
+   until the dashboard shell is on screen (DashboardShell removes it); a 10 s fallback never leaves it stuck. */
+function entering(on) {
+  const el = document.documentElement; clearTimeout(entering.t);
+  if (on) { el.setAttribute("data-entering", ""); entering.t = setTimeout(() => el.removeAttribute("data-entering"), 10000); }
+  else el.removeAttribute("data-entering");
+}
+const PARTNER_HOME = { dsa: 1, tip: 1, admin: 1 };
 
 /* ---------- router ---------- */
 function go(view, tab, opts) {
+  if (S.view === "home" && { my: 1, dsa: 1, tip: 1, admin: 1 }[view] && me()) entering(true);   // home -> dashboard: cover, never the empty home page
   S.view = view; S.tab = tab || null; renderedKey = view + "/" + (tab || "");
   navigate(pathFor(view, S.tab), "push");
   renderHeader(); render(); updateCompareBar();
@@ -176,16 +192,28 @@ const track = p => { busy++; document.documentElement.classList.add("is-loading"
 const REACT_VIEWS = { my: t => !t || ["bookings", "devices"].includes(t), dsa: t => !t || ["home", "careplan", "customers", "tickets"].includes(t), tip: t => !t || ["home", "careplan", "leads"].includes(t), admin: t => !t || ["overview", "careplan", "customers"].includes(t) };
 async function render() {
   const v = S.view;
-  if (v === "home") { if (!app.children.length) app.innerHTML = skeleton("home"); return track(renderHome()); }
+  if (v === "home") {
+    const u = me();
+    if (u && PARTNER_HOME[u.role]) {   // DSA / TIP / admin have no use for the plan search page: straight to their dashboard (no history entry)
+      entering(true); S.view = ROLE_HOME[u.role]; S.tab = null; renderedKey = S.view + "/"; navigate(pathFor(S.view, null), "replace"); renderHeader(); return render();
+    }
+    entering(false);
+    if (!app.children.length) app.innerHTML = skeleton("home"); return track(renderHome());
+  }
   if (v === "speed") { app.innerHTML = ""; return; }   // the speed test is a React page (components/speed/SpeedTest.jsx)
   if (v === "router") { app.innerHTML = skeleton("dash"); clearServerTables(); return track(renderRouter().then(() => fillServerTables()).catch(e => { app.innerHTML = `<div class="wrap dash"><div class="empty"><b>Could not load router status.</b><p class="muted">${esc(errMsg(e))}</p><button class="btn btn-primary" data-act="reload" type="button">Try again</button></div></div>`; })); }
   const need = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" }[v];
   const u = me();
   if (!u || u.role !== need) {
+    entering(false);
     app.innerHTML = `<div class="wrap"><div class="locked"><span class="eyebrow">${ROLE_NAME[need]} access</span><h1 style="font-size:28px">Log in as ${ROLE_NAME[need].toLowerCase()} to open this page</h1>
       <p class="muted">Each role sees only its own information. ${u ? `You are logged in as ${ROLE_NAME[u.role].toLowerCase()}.` : ""}</p>
       <button class="btn btn-primary" data-act="login" type="button">Log in</button></div></div>`;
     return;
+  }
+  if (v === "tip" && (S.tab === "bookings" || S.tab === "customers")) {   // QA 8: old Installs / Customers links open Leads, filtered
+    try { sessionStorage.setItem("cb-tip-filter", S.tab === "bookings" ? "booked" : "installed"); } catch (e) {}
+    window.dispatchEvent(new CustomEvent("cb:tip-filter")); S.tab = "leads"; renderedKey = "tip/leads"; navigate(pathFor("tip", "leads"), "replace");
   }
   if (REACT_VIEWS[v] && REACT_VIEWS[v](S.tab)) { app.innerHTML = ""; window.dispatchEvent(new CustomEvent("cb:render", { detail: { view: v, tab: S.tab } })); return; }
   app.innerHTML = skeleton("dash"); clearServerTables();
@@ -239,7 +267,7 @@ async function renderHome() {
     <div class="card">
       <span class="eyebrow">For DSAs &amp; TIPs</span>
       <h2 style="font-size:28px;margin:8px 0 6px">Grow with Connect Bhai</h2>
-      <p class="muted">Join as a Direct Selling Agent (DSA) or a BSNL TIP. Admin verifies every DSA and TIP before leads are assigned.</p>
+      <p class="muted">Join as a Direct Selling Agent (DSA) or a Telecom Infrastructure Partner (TIP). Admin verifies every DSA and TIP before leads are assigned.</p>
       <ul class="ticks">
         <li>Verified leads from your service PIN codes</li>
         <li>Follow-ups, installation status and commissions in one portal</li>
@@ -249,7 +277,7 @@ async function renderHome() {
     <form class="card stack" data-form="partner-apply" novalidate>
       <h3>DSA / TIP application</h3>
       <div class="grid2">
-        ${field("pa-type", "I am a", `<select id="pa-type" name="type"><option value="dsa">Direct Selling Agent (DSA)</option><option value="tip">BSNL TIP</option></select>`)}
+        ${field("pa-type", "I am a", `<select id="pa-type" name="type"><option value="dsa">Direct Selling Agent (DSA)</option><option value="tip">Telecom Infrastructure Partner (TIP)</option></select>`)}
         ${field("pa-name", "Full name", `<input id="pa-name" name="name" autocomplete="name">`)}
         ${field("pa-firm", "Firm / shop name", `<input id="pa-firm" name="firm" autocomplete="organization">`)}
         ${field("pa-phone", "Mobile number", `<input id="pa-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="tel-national">`)}
@@ -481,8 +509,8 @@ async function renderCustomer() {
   const tabs = [["bookings", "Bookings", leads.length], ["support", "Complaints & requests", openT], ["devices", "Care plan", bookings.filter(b => b.status === "installed").length], ["payments", "Payments", charges.filter(c => ["due", "failed"].includes(c.status)).length], ["chat", "Chat", chatUnread]];
   const u0 = me(), act = leads.find(l => l.status !== "lost") || leads[0];
   const pre = `<div class="contacts">${contactCard("You (customer)", { name: u0.full_name || "Customer", phone: u0.phone, email: u0.email }, { noBtns: true, extra: `<div class="cacts"><button class="cbtn" data-act="edit-profile" type="button">Edit name / email</button></div>` })}
-    ${contactCard("Your agent (DSA)", act && act.dsa, { thread: act && "lead:" + act.id, text: act ? "Namaste, about my Connect Bhai request " + act.ref_code : "", empty: act ? "Assigned shortly. You get a WhatsApp message." : "Request a connection first." })}
-    ${contactCard("TIP (installer)", act && act.tip, { thread: act && "lead:" + act.id, text: act ? "Namaste, about my connection " + act.ref_code : "", empty: act ? "Assigned shortly." : "Request a connection first." })}
+    ${act && act.dsa ? contactCard("Your agent (DSA)", act && act.dsa, { thread: act && "lead:" + act.id, text: act ? "Namaste, about my Connect Bhai request " + act.ref_code : "", empty: act ? "Assigned shortly. You get a WhatsApp message." : "Request a connection first." }) : ""}
+    ${contactCard("TIP (installer)", act && act.tip, { thread: act && "lead:" + act.id, text: act ? "Namaste, about my connection " + act.ref_code : "", empty: act ? "Finding an installer. Their name and number show here once assigned." : "Request a connection first." })}
     ${contactCard("Connect Bhai admin", SUPPORT, { thread: "sup:" + u0.id, text: "Namaste Connect Bhai, I need help." })}</div>
     ${leads.length > 1 && act ? `<p class="muted small" style="margin:-8px 0 14px">Agent and installer above are for request <b class="mono">${esc(act.ref_code)}</b>. Each booking has its own Chat button.</p>` : ""}`;
   let body = "";
@@ -518,7 +546,7 @@ async function renderCustomer() {
 function dashShell(title, eyebrow, tabs, active, body, actions, pre) {
   return `<div class="wrap dash"><div class="dhead"><div><span class="eyebrow">${eyebrow}</span><h1>${title}</h1></div><div class="row">${actions || ""}</div></div>
    ${pre || ""}<div class="tabs" role="tablist">${tabs.map(([k, l, c]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === active}">${l}${c !== undefined && c !== null ? `<span class="cnt">${c}</span>` : ""}</button>`).join("")}</div>
-   <div id="tabbody">${body}</div></div>`;
+   <div id="tabbody">${body == null ? `<div class="empty"><b>This page does not exist.</b><p class="muted">The link may be old or mistyped.</p><button class="btn btn-primary btn-sm" data-tab="${tabs[0][0]}" type="button">Go to ${esc(tabs[0][1])}</button></div>` : body}</div></div>`;   // unknown tab in the URL: never print "undefined"
 }
 
 /* =====================================================================
@@ -643,9 +671,9 @@ async function renderTIP() {
       <div class="row"><button class="btn btn-primary btn-sm" data-act="booking-status" data-id="${b.id}" type="button">Update installation</button>${mapLink(b.lead, true)}</div></div>`).join("")}</div>` })}
     <h3 style="margin:22px 0 10px;font-size:17px">Assigned leads to schedule</h3>
     ${serverTable("tip-toschedule", { role: "tip", kind: "leads", filters: () => ({ status: "tobook" }), label: "Search leads", empty: "Nothing to schedule.", html: rows => `<div class="list">${rows.map(l => leadRow(l, "tip")).join("")}</div>` })}`;
-  if (tab === "customers") body = `<div class="notice info" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span style="flex:1 1 320px">Enter the ONT serial when you mark an installation complete, and set the modem's ACS URL to your own GenieACS (or Connect Bhai's, as agreed with admin). Keep the ACS link on after installation so the customer stays on the Care plan. Use it only with the provider's written authorisation.</span><button class="btn btn-primary btn-sm" data-go="router" type="button">Manage modems</button></div>
+  if (tab === "customers") body = `<div class="notice info" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span style="flex:1 1 320px">Enter the ONT serial when you mark an installation complete, and set the modem's ACS URL to your own GenieACS (or Connect Bhai's, as agreed with admin). Keep the ACS link on after installation so the customer stays on the Care plan. Use it only with the provider's written authorisation.</span><button class="btn btn-primary btn-sm" data-go="tip" data-go-tab="careplan" type="button">Manage modems</button></div>
     ${serverTable("tip-customers", { role: "tip", kind: "bookings", filters: () => ({ status: "installed", devices: true }), label: "Search customers", empty: "No installed customers yet.", html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Customer</th><th>Connection ref</th><th>Plan</th><th>Installed</th><th>Authorised</th><th>Router status</th><th></th></tr></thead><tbody>
-    ${rows.map(b => `<tr><td><b>${esc(b.lead.name)}</b><br><span class="muted">${esc(fmtPh(b.lead.phone))}</span>${b.lead.email ? `<br><span class="muted small">${esc(b.lead.email)}</span>` : ""}${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}</td><td class="mono">${esc(b.connection_ref || "—")}<br><span class="muted">ONT ${esc(b.ont_serial || "not linked")}</span></td><td>${esc(b.plan ? b.plan.name : "")}<br><span class="muted">${b.plan ? b.plan.speed_mbps + " Mbps" : ""}</span></td><td>${fdate(b.installed_at)}</td><td>${b.authorized ? pill("Authorised", "p-ok") : pill("Pending", "p-warn")}</td><td>${deviceView(b.device)}${b.device && b.device.acs ? `<div style="margin-top:4px">${rxPill(b.device)}</div>` : ""}<div class="small" id="rt-${b.id}" style="margin-top:4px"></div></td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button">Refresh</button><button class="btn btn-soft btn-sm" data-act="router-test" data-id="${b.id}" type="button">Router test</button></div></td></tr>`).join("")}</tbody></table></div>` })}`;
+    ${rows.map(b => `<tr><td><b>${esc(b.lead.name)}</b><br><span class="muted">${esc(fmtPh(b.lead.phone))}</span>${b.lead.email ? `<br><span class="muted small">${esc(b.lead.email)}</span>` : ""}${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}</td><td class="mono">${esc(b.connection_ref || "—")}<br><span class="muted">ONT ${esc(b.ont_serial || "not linked")}</span></td><td>${esc(b.plan ? b.plan.name : "")}<br><span class="muted">${b.plan ? b.plan.speed_mbps + " Mbps" : ""}</span></td><td>${fdate(b.installed_at)}</td><td>${b.authorized ? pill("Authorised", "p-ok") : pill("Pending", "p-warn")}</td><td>${deviceView(b.device)}${b.device && b.device.acs ? `<div style="margin-top:4px">${rxPill(b.device)}</div>` : ""}<div class="small" id="rt-${b.id}" style="margin-top:4px"></div></td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button" ${b.device && b.device.acs ? "" : "disabled title=\"Not linked to GenieACS yet\""}>Refresh</button><button class="btn btn-soft btn-sm" data-act="router-test" data-id="${b.id}" type="button" ${b.device && b.device.acs && b.device.active !== false && b.device.state === "online" ? "" : "disabled title=\"Needs a linked modem that is online\""}>Router test</button></div></td></tr>`).join("")}</tbody></table></div>` })}`;
   if (tab === "tickets") body = serverTable("tip-tickets", { role: "tip", kind: "tickets", label: "Search tickets", empty: "No service tickets.", html: rows => `<div class="list">${rows.map(t => `<div class="item"><div class="ih"><h3>${esc(t.category)}</h3>${tickPill(t.status)}<span class="spacer"></span><span class="mono muted">${esc(t.ref_code)}</span></div>
     <p>${esc(t.description)}</p>${t.booking && t.booking.lead ? contactBtns({ phone: t.booking.lead.phone, email: t.booking.lead.email }, { thread: "lead:" + t.lead_id }) : ""}<div class="meta"><span>${esc(t.booking && t.booking.lead ? t.booking.lead.name : "")} · <b>${esc(t.booking && t.booking.lead ? fmtPh(t.booking.lead.phone) : "")}</b></span><span>Raised <b>${fdate(t.created_at)}</b></span>${t.resolution_note ? `<span>Note: <b>${esc(t.resolution_note)}</b></span>` : ""}</div>
     <div class="row"><button class="btn btn-soft btn-sm" data-act="ticket-status" data-id="${t.id}" data-s="${t.status}" type="button">Update ticket</button></div></div>`).join("")}</div>` });
@@ -660,7 +688,7 @@ async function openLead(id) {
   const next = LEAD_NEXT[l.status] || [];
   const sr = l.sim_request || {}, noInstall = ["sim", "ott"].includes(l.product), open = ["assigned", "contacted", "follow_up"].includes(l.status);
   openModal(`<h2>${esc(l.name)}</h2><p class="muted small" style="margin:2px 0 12px"><span class="mono">${esc(l.ref_code)}</span> · ${leadPill(l.status, l.product)} ${productChip(l)}</p>
-    <div class="facts" style="margin-bottom:14px"><div><span>Mobile</span><b>${esc(fmtPh(l.phone))}</b></div><div><span>Email</span><b>${l.email ? esc(l.email) : "—"}</b></div><div><span>Address</span><b style="text-align:right">${esc([l.address, l.area, l.pincode].filter(Boolean).join(", "))}<br>${mapLink(l)}</b></div><div><span>Plan</span><b style="text-align:right">${planLine(l.plan)}</b></div>${l.preferred_date ? `<div><span>Preferred date</span><b>${fdate(l.preferred_date)}</b></div>` : ""}<div><span>DSA / TIP</span><b>${esc((l.dsa && l.dsa.name) || "—")} / ${esc((l.tip && l.tip.name) || "—")}</b></div>
+    <div class="facts" style="margin-bottom:14px"><div><span>Mobile</span><b>${esc(fmtPh(l.phone))}</b></div><div><span>Email</span><b>${l.email ? esc(l.email) : "—"}</b></div><div><span>Address</span><b style="text-align:right">${esc([l.address, l.area, l.pincode].filter(Boolean).join(", "))}<br>${mapLink(l)}</b></div><div><span>Plan</span><b style="text-align:right">${planLine(l.plan)}</b></div>${l.preferred_date ? `<div><span>Preferred date</span><b>${fdate(l.preferred_date)}</b></div>` : ""}<div><span>DSA (agent)</span><b>${l.dsa ? esc(l.dsa.name) : `<span class="muted">Not assigned yet</span>`}</b></div><div><span>TIP (installer)</span><b>${l.tip ? esc(l.tip.firm || l.tip.name) : `<span class="muted">Not assigned yet</span>`}</b></div>
       ${l.product === "sim" ? `<div><span>SIM request</span><b style="text-align:right">${sr.connection === "port" ? `Port ${esc(sr.port_number || "")} from ${esc(sr.current_operator || "")}` : "New number" + (sr.number_preference ? " · ending " + esc(sr.number_preference) : "")}<br>${sr.type === "postpaid" ? "Postpaid" : "Prepaid"} · for ${esc({ self: "self", family: "family member", known: "someone they know" }[sr.for_whom] || "self")}</b></div>
       <div><span>Delivery & KYC</span><b style="text-align:right">${esc(sr.delivery_slot || "")} · ${sr.kyc === "self" ? "Self-KYC online" : "Doorstep e-KYC"}</b></div>` : ""}</div>
     ${(u.role === "dsa" || u.role === "admin") && open && noInstall ? `<button class="btn btn-primary btn-block" style="margin-bottom:10px" data-act="activate-sim" data-id="${l.id}" type="button">${l.product === "sim" ? "Mark SIM delivered & activated" : "Mark pack activated"}</button>` : ""}
@@ -747,7 +775,7 @@ async function renderAdmin() {
     <div class="chips" style="margin-bottom:12px">${[["dsa", "DSAs"], ["tip", "TIPs"]].map(([k, l]) => `<button type="button" class="chip" data-act="partner-type" data-v="${k}" aria-pressed="${pt === k}">${l}</button>`).join("")}</div>
     ${serverTable("adm-partners-" + pt, { role: "admin", kind: "partners", label: "Search DSAs and TIPs", empty: "No one here yet.", filters: () => ({ type: pt }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Type</th><th>Mobile</th><th>Service PINs</th><th class="r">Per install</th><th>KYC</th><th>Status</th><th></th></tr></thead><tbody>
     ${rows.map(p => `<tr><td><b>${esc(p.name)}</b><br><span class="muted">${esc(p.firm || "")}</span></td><td>${p.type.toUpperCase()}</td><td>${esc(fmtPh(p.phone))}${p.email ? `<br><span class="muted small">${esc(p.email)}</span>` : ""}${contactBtns(p)}</td><td>${esc(p.service_pincodes || "—")}</td><td class="r num">${inr(p.commission_per_install)}</td><td>${p.kyc_verified ? pill("Verified", "p-ok") : pill("Pending", "p-warn")}</td><td>${p.status === "pending" && p.approved_at ? pill("Approved · fee due", "p-blue") : p.status === "pending" && p.fee_paid_at ? pill("Fee paid · check KYC", "p-blue") : pill(p.status[0].toUpperCase() + p.status.slice(1), { active: "p-ok", pending: "p-warn", suspended: "p-bad" }[p.status])}</td>
-      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Edit</button>${p.status === "pending" && !p.approved_at ? `<button class="btn btn-soft btn-sm" data-act="approve-partner" data-id="${p.id}" type="button">Approve</button>` : p.status === "suspended" ? `<button class="btn btn-soft btn-sm" data-act="partner-status" data-id="${p.id}" data-s="active" type="button">Reactivate</button>` : p.status === "active" ? `<button class="btn btn-danger btn-sm" data-act="partner-status" data-id="${p.id}" data-s="suspended" type="button">Suspend</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>` })}`;
+      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Edit</button>${p.status === "pending" && !p.approved_at ? `<button class="btn btn-soft btn-sm" data-act="approve-partner" data-id="${p.id}" type="button">Approve</button><button class="btn btn-danger btn-sm" data-act="delete-partner" data-id="${p.id}" data-name="${esc(p.name)}" type="button">Delete</button>` : p.status === "suspended" ? `<button class="btn btn-soft btn-sm" data-act="partner-status" data-id="${p.id}" data-s="active" type="button">Reactivate</button>` : p.status === "active" ? `<button class="btn btn-danger btn-sm" data-act="partner-status" data-id="${p.id}" data-s="suspended" type="button">Suspend</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>` })}`;
   }
   if (tab === "providers") { const pv = await API.adminProviders(); body = `<div class="row" style="margin-bottom:12px"><span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-provider" data-id="" type="button">Add provider</button></div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Provider</th><th>Type</th><th>Website</th><th>Status</th><th></th></tr></thead><tbody>${pv.map(p => `<tr><td><div class="row" style="flex-wrap:nowrap">${plogo(p)}<b>${esc(p.name)}</b> ${demoBadge(p.is_demo)}</div></td><td>${KIND[p.kind]}</td><td>${p.website ? esc(p.website) : "—"}</td><td>${p.is_active ? pill("Active", "p-ok") : pill("Hidden", "p-grey")}</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-provider" data-id="${p.id}" type="button">Edit</button><button class="btn btn-ghost btn-sm" data-act="toggle-provider" data-id="${p.id}" type="button">${p.is_active ? "Hide" : "Show"}</button></div></td></tr>`).join("")}</tbody></table></div>`; }
@@ -848,8 +876,6 @@ async function openCoverage() {
 /* =====================================================================
    LOGIN
    ===================================================================== */
-const STAGING_PW = "Demo@Connect2026";   // staging only: must match SEED_DEMO_PASSWORD on the API
-const STAGING_LOGINS = (typeof location !== "undefined" && /staging/i.test(location.hostname)) ? [["Admin", "9999999999", STAGING_PW], ["TIP", "9100000001", STAGING_PW], ["DSA", "9000000001", STAGING_PW]] : null;
 function openLogin(tab) {
   const acc = LIVE ? [] : API.demoAccounts(), otp = tab === "otp";
   const desc = { customer: "Bookings, complaints, my modem (restart, Wi-Fi), speed tests", dsa: "Leads, follow-ups, installation status, commission", tip: "Bookings, installations, tickets, modem control", admin: "DSAs &amp; TIPs, plans, team logins, payments, reports" };
@@ -862,7 +888,6 @@ function openLogin(tab) {
       ${field("pl-pw", "Password", `<input id="pl-pw" name="password" type="password" autocomplete="current-password">`)}
       <button class="btn btn-primary" type="submit">Log in</button></form>
       <p class="small" style="margin-top:10px"><button class="linkbtn" data-act="forgot-pw" type="button">Forgot password?</button> <span class="muted">Reset it with an OTP on WhatsApp.</span></p>`}
-    ${LIVE && STAGING_LOGINS ? `<div class="notice info" style="margin-top:14px;display:block"><b>Staging test logins</b> (tap to fill)<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${STAGING_LOGINS.map(a => `<button class="chip" type="button" data-act="fill-login" data-phone="${a[1]}" data-pw="${a[2]}">${a[0]} · ${a[1]}</button>`).join("")}</div><p class="small muted" style="margin-top:8px">Password for all four: <b>${STAGING_PW}</b>.</p></div>` : ""}
     ${LIVE ? "" : `<div class="notice info" style="margin-top:14px;display:block">Demo: password <b>Demo@1234</b> for 9876500001 (customer), 9876500101 (DSA), 9876500201 (TIP), 9876500999 (admin). WhatsApp OTP is always <b>123456</b>.</div>
     <details style="margin-top:12px"><summary class="linkbtn" style="display:inline">Or switch to a demo role in one tap</summary><div class="accts" style="margin-top:10px">${acc.filter(a => ["u-cust", "u-dsa", "u-tip", "u-admin"].includes(a.id)).map(a => `<button class="acct" data-act="demo-login" data-id="${a.id}" type="button"><span class="avatar">${esc(initials(a.full_name))}</span><span><b>${esc(a.full_name)} <span class="rolechip">${ROLE_NAME[a.role]}</span></b><small>${desc[a.role]}${a.partner ? " · " + esc(a.partner) : ""}</small></span></button>`).join("")}</div></details>`}`);
 }
@@ -894,7 +919,7 @@ function afterLogin(u) {
   renderHeader();
   if (u.must_change) { openSetPassword("first"); return; }
   if (!u.full_name) { openModal(`<h2>Welcome to Connect Bhai</h2><p class="muted" style="margin:4px 0 14px">What should we call you?</p><form class="stack" data-form="set-name" novalidate>${field("nm-name", "Full name", `<input id="nm-name" name="name" autocomplete="name">`)}<button class="btn btn-primary" type="submit">Continue</button></form>`); return; }
-  closeModal(); toast("Welcome, " + (u.role === "customer" ? u.full_name.split(" ")[0] : u.full_name) + "."); go(ROLE_HOME[u.role]);
+  entering(true); closeModal(); toast("Welcome, " + (u.role === "customer" ? u.full_name.split(" ")[0] : u.full_name) + "."); go(ROLE_HOME[u.role]);
 }
 let otpTimer = null;
 function openOtpStep(phone, purpose) {
@@ -1344,16 +1369,16 @@ async function downloadTemplate() {
 const CARE_NOTE = `<div class="notice info" style="margin-bottom:14px">Status marked <b>Live · GenieACS</b> comes from the modem through GenieACS, the Care plan system: the installer's own GenieACS or Connect Bhai's. Restart and Wi-Fi change are sent as GenieACS tasks. Modems not linked yet, and everything in this demo, are marked <b>Simulated</b>.</div>`;
 const OUTAGE_MIN = 3;   // offline modems in one area that suggest a line / OLT fault (demo: 3; live site: 10)
 function routerCard(b, withCustomer) {
-  const d = b.device || {}, u = me(), linked = !!(b.ont_serial && d.acs), on = d.state === "online", off = d.state === "offline";
-  const canAct = linked && u && u.role !== "dsa", r = linked ? RX(d.rx_dbm) : null, weak = !!(r && r[0] !== "Good"), manyRb = linked && (d.reboots_7d || 0) >= 3;
+  const d = b.device || {}, u = me(), linked = !!d.acs, active = d.active !== false, on = d.state === "online", off = d.state === "offline";
+  const canAct = linked && u && u.role !== "dsa", canTest = linked && active && on, r = linked ? RX(d.rx_dbm) : null, weak = !!(r && r[0] !== "Good"), manyRb = linked && (d.reboots_7d || 0) >= 3;
   return `<div class="item"><div class="ih"><h3>${withCustomer && b.lead ? esc(b.lead.name) + " · " : ""}${planLine(b.plan)}</h3><span class="spacer"></span><span class="mono muted">${esc(b.connection_ref || b.ref_code)}</span></div>
-    <div class="row">${deviceView(b.device)}${rxPill(d)}<span class="spacer"></span><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button">Refresh status</button></div>
+    <div class="row">${deviceView(b.device)}${rxPill(d)}<span class="spacer"></span><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button" ${linked ? "" : "disabled"}>Refresh status</button></div>
     <div class="meta">${withCustomer && b.lead ? `<span><b>${esc(b.lead.phone)}</b> · ${esc(b.lead.area || "")} ${esc(b.lead.pincode || "")}</span>` : ""}<span>ONT serial <b class="mono">${esc(b.ont_serial || "not linked")}</b></span>${linked ? `<span>ACS <b>${esc(acsName(b))}</b></span>` : b.ont_serial ? `<span>ACS <b style="color:var(--warn)">not set for this TIP</b></span>` : ""}${d.model ? `<span>Modem <b>${esc(d.make + " " + d.model)}</b></span>` : ""}${d.firmware ? `<span>Firmware <b class="mono">${esc(d.firmware)}</b></span>` : ""}<span>Installed <b>${fdate(b.installed_at)}</b></span>${b.tip ? `<span>Installer <b>${esc(b.tip.name)}</b></span>` : ""}</div>
     ${linked ? `<div class="mstats"><div><span>Wi-Fi name</span><b>${esc(d.ssid || "—")}</b></div><div><span>Devices on Wi-Fi</span><b>${on ? (d.clients ?? "—") : 0}</b></div><div><span>Running for</span><b>${on ? upTxt(d.uptime_h) : "Offline"}</b></div><div><span>Restarts 7 / 30 days</span><b style="${manyRb ? "color:var(--bad)" : ""}">${d.reboots_7d || 0} / ${d.reboots_30d || 0}</b></div></div>` : ""}
     ${weak ? `<p class="notice">Fiber signal is ${r[0].toLowerCase()} (${Number(d.rx_dbm).toFixed(1)} dBm; good is −25 dBm or better). ${u && u.role === "customer" ? "Your installer can see this and will check the fiber." : "Check the fiber connector, patch cord and splitter before the customer complains."}</p>` : ""}
     ${manyRb && u && u.role !== "customer" ? `<p class="notice">Restarted ${d.reboots_7d} times in 7 days. Check the power adapter or the modem.</p>` : ""}
-    <div class="row">${canAct ? `<button class="btn btn-primary btn-sm" data-act="modem-reboot" data-id="${b.id}" type="button" ${on ? "" : "disabled"}>Restart modem</button><button class="btn btn-soft btn-sm" data-act="modem-wifi" data-id="${b.id}" data-ssid="${esc(d.ssid || "")}" type="button" ${on ? "" : "disabled"}>Change Wi-Fi name / password</button>` : ""}<button class="btn btn-ghost btn-sm" data-act="router-test" data-id="${b.id}" type="button">Line speed test</button>${withCustomer ? "" : `<button class="btn btn-ghost btn-sm" data-go="speed" type="button">Wi-Fi speed test</button>`}${u && u.role === "customer" && off ? `<button class="btn btn-danger btn-sm" data-act="offline-complaint" data-id="${b.id}" type="button">Raise complaint</button>` : ""}</div>
-    ${!linked ? `<p class="muted small">${b.ont_serial ? "The ACS is not set for this TIP yet. Admin sets it under Care plan → ACS servers." : "Not linked yet: the installer adds the ONT serial when marking the installation complete."}</p>` : !on ? `<p class="muted small">Restart and Wi-Fi change work only while the modem is online.</p>` : ""}
+    <div class="row">${canAct ? `<button class="btn btn-primary btn-sm" data-act="modem-reboot" data-id="${b.id}" type="button" ${on ? "" : "disabled"}>Restart modem</button><button class="btn btn-soft btn-sm" data-act="modem-wifi" data-id="${b.id}" data-ssid="${esc(d.ssid || "")}" type="button" ${on ? "" : "disabled"}>Change Wi-Fi name / password</button>` : ""}<button class="btn btn-ghost btn-sm" data-act="router-test" data-id="${b.id}" type="button" ${canTest ? "" : "disabled"}>Line speed test</button>${withCustomer ? "" : `<button class="btn btn-ghost btn-sm" data-go="speed" type="button">Wi-Fi speed test</button>`}${u && u.role === "customer" && off ? `<button class="btn btn-danger btn-sm" data-act="offline-complaint" data-id="${b.id}" type="button">Raise complaint</button>` : ""}</div>
+    ${!linked ? `<p class="muted small">${b.ont_serial ? "The ACS is not set for this TIP yet. Admin sets it under Care plan → ACS servers." : "Not linked yet: the installer adds the ONT serial when marking the installation complete."}</p>` : !active ? `<p class="muted small">Care plan is not active for this modem, so restart, Wi-Fi change and the line test are off.</p>` : !on ? `<p class="muted small">${off ? "The modem is offline." : "The modem has not reported yet."} Restart, Wi-Fi change and the line test need it online. Refresh status to check again.</p>` : ""}
     <p class="small" id="rt-${b.id}"></p>
     <div class="split" style="gap:12px;border-top:1px dashed var(--line);padding-top:8px"><div class="stack" style="gap:4px;min-width:0"><span class="muted small" style="font-weight:800">Recent speed tests</span><div class="stack" style="gap:4px" data-hist="${b.id}"><span class="muted small">Loading…</span></div></div>
       <div class="stack" style="gap:4px;min-width:0"><span class="muted small" style="font-weight:800">Recent modem actions</span><div class="stack" style="gap:4px" data-acts="${b.id}"><span class="muted small">Loading…</span></div></div></div></div>`;
@@ -1445,7 +1470,6 @@ const actions = {
   "close-modal": () => closeModal(),
   "chat": b => openChat(b.dataset.thread),
   "login-tab": b => openLogin(b.dataset.v),
-  "fill-login": b => { openLogin("pw"); const ph = document.getElementById("pl-phone"), pw = document.getElementById("pl-pw"); if (ph) ph.value = b.dataset.phone; if (pw) pw.value = b.dataset.pw; (b.dataset.pw ? pw : pw)?.focus(); },
   "login-otp": () => openLogin("otp"),
   "forgot-pw": () => openForgot(),
   "change-password": () => openSetPassword("change"),
@@ -1454,6 +1478,23 @@ const actions = {
   "team-filter": b => { S.teamFilter = b.dataset.v; resetServerTable("adm-team"); render(); },
   "reset-user": async b => { if (!confirm("Reset the password for " + b.dataset.name + "? A new one-time password will be sent on WhatsApp.")) return;
     const r = await guard(b, () => API.adminResetPassword(b.dataset.id)); openModal(`<h2>Password reset</h2><p class="muted" style="margin:4px 0 12px">Their old password no longer works.</p>${credBlock(r, esc(r.name || "") + " · " + ROLE_NAME[r.role])}`); render(); },
+  /* QA point 6: View any admin table row as a readable detail card (column name → value), for <table> and role="table" grids */
+  "row-view": b => {
+    const row = b.closest("tr, [role=row]"), tbl = row && row.closest("table, [role=table]"); if (!row || !tbl) return;
+    const heads = [...tbl.querySelectorAll("thead th, [role=columnheader]")].map(h => h.textContent.trim());
+    const cells = [...row.querySelectorAll(":scope > td, :scope > [role=cell]")];
+    // the cell as laid out on screen (line breaks kept), minus its buttons
+    const text = el => { let t = el.innerText; el.querySelectorAll("button, a.pt-more").forEach(x => { const bt = x.innerText.trim(); if (bt) t = t.replace(bt, ""); }); return t.replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim(); };
+    const pairs = cells.map((c, i) => [heads[i] || "", text(c)]).filter(([h, v]) => v && !/^actions?$/i.test(h));
+    const title = ((pairs.find(([, v]) => v !== "—") || [])[1] || "Details").split("\n")[0];
+    openModal(`<h2>${esc(title)}</h2><p class="muted small" style="margin:2px 0 12px">${esc(tbl.getAttribute("aria-label") || (b.closest(".card, section") || {}).querySelector?.("h2, h3")?.textContent || "Details")}</p>
+      <div class="facts">${pairs.map(([h, v]) => `<div><span>${esc(h || "—")}</span><b style="white-space:pre-line;text-align:right">${esc(v)}</b></div>`).join("")}</div>
+      <div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn btn-primary btn-sm" data-act="close-modal" type="button">Close</button></div>`);
+  },
+  "delete-partner": async b => {
+    if (!confirm(`Delete the application from ${b.dataset.name}? This cannot be undone. Only a pending application with no activity can be deleted.`)) return;
+    await guard(b, () => API.deletePartner(b.dataset.id)); toast("Application deleted."); render();
+  },
   "toggle-user": async b => { await guard(b, () => API.adminSetDisabled(b.dataset.id, b.dataset.v === "1")); toast(b.dataset.v === "1" ? "Login disabled." : "Login enabled."); render(); },
   "pick-thread": b => { S.thread = b.dataset.thread; render(); },
   "edit-profile": () => { const u = me(); openModal(`<h2>Your details</h2><p class="muted" style="margin:4px 0 12px">Your mobile number is your WhatsApp login (+91 ${esc(u.phone || "")}). Your name and email are shown to the people working on your connection.</p>
@@ -1505,6 +1546,7 @@ const actions = {
     b.disabled = true; b.textContent = "Router test running…"; if (out) out.textContent = "The router is downloading a test file. This can take 1–5 minutes.";
     try {
       const t = await API.routerTest(b.dataset.id, q => { if (q && out) out.textContent = "Waiting for the modem to check in with GenieACS (up to 5 minutes)…"; });
+      if (!out) toast(t.status === "done" ? `Router speed: ${Number(t.download_mbps).toFixed(1)} Mbps (line speed, without Wi-Fi).` : "Router test failed. Please try again later.", t.status !== "done");
       if (out) out.innerHTML = t.status === "done" ? `Router speed: <b>${Number(t.download_mbps).toFixed(1)} Mbps</b> (line speed, without Wi-Fi)${t.is_simulated ? ` <span class="badge sim">Simulated</span>` : ""}` : "Router test failed. Please try again later.";
       loadHist(b.dataset.id);
     } catch (e) { if (out) out.textContent = errMsg(e); else toast(errMsg(e), true); }
@@ -1513,7 +1555,7 @@ const actions = {
   "otp-resend": async b => { await guard(b, () => API.sendOtp(b.dataset.phone, ((document.querySelector('[data-form="otp-verify"]') || { dataset: {} }).dataset.purpose === "request") ? "customer" : undefined)); toast("OTP sent again on WhatsApp."); openOtpStep(b.dataset.phone, (document.querySelector('[data-form="otp-verify"]') || { dataset: {} }).dataset.purpose || "login"); },
   "reload": () => render(),
   "login": () => openLogin(),
-  "logout": async () => { await API.signOut(); try { localStorage.removeItem("cb-session"); } catch (e) {} toast("Logged out."); go("home"); },
+  "logout": async () => { await API.signOut(); try { localStorage.removeItem("cb-session"); localStorage.removeItem("cb-role"); } catch (e) {} toast("Logged out."); go("home"); },
   "demo-login": async b => { const u = await API.signInDemo(b.dataset.id); try { localStorage.setItem("cb-session", u.id); } catch (e) {} closeModal(); toast(`Logged in as ${u.full_name} (${ROLE_NAME[u.role]}).`); go(ROLE_HOME[u.role]); },
   "reset-demo": () => { resetDemoData(); S.cities = null; S.results = null; S.compare = []; toast("Demo data reset."); go(S.view === "home" ? "home" : S.view, S.tab); },
   "pick-pin": b => { $("#pin").value = b.dataset.pin; searchPin(b.dataset.pin); },
@@ -1528,7 +1570,7 @@ const actions = {
   "open-compare": () => openCompare(),
   "clear-compare": () => { S.compare = []; renderResults(); updateCompareBar(); },
   "request": b => openRequest(b.dataset.plan),
-  "refresh-device": async b => { await guard(b, () => API.refreshDevice(b.dataset.id)); toast("Status refreshed (simulated)."); render(); },
+  "refresh-device": async b => { const d = await guard(b, () => API.refreshDevice(b.dataset.id)); toast(stateMsg(d)); render(); },
   "dsa-filter": b => { S.dsaFilter = b.dataset.v; resetServerTable("dsa-leads"); render(); },
   "admin-lead-filter": b => { S.adminLeadFilter = b.dataset.v; resetServerTable("adm-leads"); render(); },
   "partner-type": b => { S.partnerType = b.dataset.v; render(); },
@@ -1607,7 +1649,7 @@ const actions = {
 };
 const onClick = e => {
   const g = e.target.closest("[data-go]");
-  if (g) { e.preventDefault(); closeModal(); go(g.dataset.go, null, { scroll: g.dataset.scroll }); return; }
+  if (g) { e.preventDefault(); closeModal(); go(g.dataset.go, g.dataset.goTab || null, { scroll: g.dataset.scroll }); return; }
   const t = e.target.closest("[data-tab]");
   if (t && !t.closest("form")) { S.tab = t.dataset.tab; renderedKey = S.view + "/" + S.tab; navigate(pathFor(S.view, S.tab), "replace"); render(); return; }
   const a = e.target.closest("[data-act]");
@@ -1659,7 +1701,7 @@ function pinAssist(el) {
   }, 350);
 }
 const onInput = e => {
-  pinAssist(e.target); pinListAssist(e.target);
+  pinAssist(e.target); pinListAssist(e.target); pinSuggest(e.target, API);
   const t = e.target;
   if (t && t.tagName === "INPUT" && /phone$/.test(t.name)) { const c = normPhone(t.value).slice(0, 12); if (t.value !== c) t.value = c; }   // strips + spaces - and the 91 / 0 prefix
   if (t && t.tagName === "INPUT" && t.name === "otp") { const c = t.value.replace(/\D/g, "").slice(0, 6); if (t.value !== c) t.value = c; }
@@ -1948,9 +1990,9 @@ const forms = {
     if (purpose === "reset") { openSetPassword("reset"); return; }
     if (purpose === "request" && pend) { S.pendingReq = null; const r = await guard(null, () => API.requestConnection(pend)); showRequestDone(r, pend); return; }
     if (!u.full_name) { openModal(`<h2>Welcome to Connect Bhai</h2><p class="muted" style="margin:4px 0 14px">What should we call you?</p><form class="stack" data-form="set-name" novalidate>${field("nm-name", "Full name", `<input id="nm-name" name="name" autocomplete="name">`)}<button class="btn btn-primary" type="submit">Continue</button></form>`); return; }
-    closeModal(); toast("Welcome, " + (u.role === "customer" ? u.full_name.split(" ")[0] : u.full_name) + "."); go(ROLE_HOME[u.role]);
+    entering(true); closeModal(); toast("Welcome, " + (u.role === "customer" ? u.full_name.split(" ")[0] : u.full_name) + "."); go(ROLE_HOME[u.role]);
   },
-  "set-name": async (f, btn) => { const n = val(f, "name"); if (!setErr(f, n.length >= 2 ? {} : { "nm-name": "Enter your name." })) return; const u = await guard(btn, () => API.setMyName(n)); closeModal(); toast("Welcome, " + n.split(" ")[0] + "."); go(ROLE_HOME[u.role]); }
+  "set-name": async (f, btn) => { const n = val(f, "name"); if (!setErr(f, n.length >= 2 ? {} : { "nm-name": "Enter your name." })) return; const u = await guard(btn, () => API.setMyName(n)); entering(true); closeModal(); toast("Welcome, " + n.split(" ")[0] + "."); go(ROLE_HOME[u.role]); }
 };
 const onSubmit = e => {
   const f = e.target.closest("form[data-form]"); if (!f) return; e.preventDefault();
@@ -1986,6 +2028,39 @@ async function bootData() {
   resolveReady();
 }
 
+/* QA point 6: every row of an older (string-built) admin table gets a "View" button. Rows that already open a detail
+   (leads "Open") are left alone. Runs after each render and each server-table fill (MutationObserver), idempotent. */
+const VIEW_BTN = `<button class="btn btn-ghost btn-sm" data-act="row-view" type="button">View</button>`;
+function addRowViews() {
+  if (S.view !== "admin") return;
+  app.querySelectorAll("table").forEach(t => {
+    const hr = t.querySelector("thead tr"); if (!hr || t.closest("[data-react]")) return;
+    let added = false;
+    t.querySelectorAll("tbody tr").forEach(tr => {
+      if (tr.cells.length < 2 || tr.querySelector("[data-act=row-view], [data-act=lead], .empty")) return;
+      const last = tr.cells[tr.cells.length - 1], box = last.querySelector(".row");
+      if (last.querySelector("button")) (box || last).insertAdjacentHTML("afterbegin", VIEW_BTN);
+      else { tr.insertAdjacentHTML("beforeend", `<td class="row-acts">${VIEW_BTN}</td>`); added = true; }
+    });
+    if (added && !hr.querySelector(".row-acts")) hr.insertAdjacentHTML("beforeend", `<th class="row-acts">Actions</th>`);
+  });
+}
+let rowViewObs = null;
+
+/* QA points 5, 7, 9: live data without refreshing the page. Every 30 s while the tab is visible, and at once when the user
+   comes back to it, a quiet "cb:poll" reloads the React pages, the sidebar badges and the paged tables (what is on screen
+   stays until the new data arrives). Older views reload their server tables only, and never while a modal is open or the
+   user is typing, so nothing they are entering is lost. */
+const POLL_MS = 30_000;
+let pollT = null, hiddenAt = 0;
+function poll() {
+  if (document.hidden || !me()) return;
+  window.dispatchEvent(new CustomEvent("cb:poll"));
+  const a = document.activeElement, typing = a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);
+  if ($("#modal").hidden && !typing) fillServerTables();
+}
+const onVisibility = () => { if (document.hidden) hiddenAt = Date.now(); else if (Date.now() - hiddenAt > 5000) poll(); };
+
 /* Wires the document-level delegation and boots the data layer. Returns a cleanup function (React StrictMode safe). */
 export function init({ navigate: nav }) {
   navigate = nav;
@@ -1994,6 +2069,10 @@ export function init({ navigate: nav }) {
   document.addEventListener("keydown", onKeydown);
   document.addEventListener("click", onClick);
   document.addEventListener("input", onInput);
+  document.addEventListener("focusout", pinSuggestBlur);
+  document.addEventListener("visibilitychange", onVisibility);
+  rowViewObs = new MutationObserver(() => addRowViews()); rowViewObs.observe(app, { childList: true, subtree: true });
+  clearInterval(pollT); pollT = setInterval(poll, POLL_MS);
   document.addEventListener("change", onChange);
   document.addEventListener("submit", onSubmit);
   initServerTables(API);
@@ -2002,6 +2081,8 @@ export function init({ navigate: nav }) {
     $("#modal")?.removeEventListener("click", onModalClick);
     document.removeEventListener("keydown", onKeydown);
     document.removeEventListener("click", onClick);
+    document.removeEventListener("focusout", pinSuggestBlur);
+    document.removeEventListener("visibilitychange", onVisibility); clearInterval(pollT); if (rowViewObs) rowViewObs.disconnect();
     document.removeEventListener("input", onInput);
     document.removeEventListener("change", onChange);
     document.removeEventListener("submit", onSubmit);

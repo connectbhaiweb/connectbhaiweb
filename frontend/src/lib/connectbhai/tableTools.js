@@ -3,8 +3,10 @@
    - Pages of 10 / 25 / 50 / 100 rows. Query, page and size are remembered per table while you stay on the page.
    - Rows are only hidden (class tt-hide), never removed, so the existing buttons keep working.
    Browser only. start() returns a cleanup function. */
-const SEL = "table.tbl, [role=table]";
-const MIN_ROWS = 6;                      // tables with fewer rows stay plain
+const SEL = "table.tbl, [role=table], .list";   // QA 14: card lists (.list > .item) get the same search + pager
+const MIN_ROWS = 1;                      // QA 14: every list with rows shows its pager (‹ 1 › when it fits on one page)
+/* home / overview pages show short previews with a "View all" link to the full, paged list: no pager there */
+const PREVIEW = /^\/(my|dsa|tip|admin)(\/(home|overview))?\/?$/;
 const SIZES = [10, 25, 50, 100];
 const state = new Map();                 // key -> { q, page, size }
 const REG = new Map();                   // key -> { top, foot, t }
@@ -13,13 +15,14 @@ const norm = s => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 const compact = s => s.replace(/[\s,+\-().]/g, "");
 
 function rowsOf(t) {
+  if (t.classList.contains("list")) return [...t.querySelectorAll(":scope > .item")];
   const rows = t.tagName === "TABLE"
     ? [...t.querySelectorAll(":scope > tbody > tr")]
     : [...t.querySelectorAll(":scope > [role=row]")].filter(r => !r.querySelector("[role=columnheader]"));
   return rows.filter(r => !(r.children.length === 1 && r.children[0].hasAttribute("colspan")));   // skip "nothing here" rows
 }
 const keyOf = (t, i) => {
-  const head = t.tagName === "TABLE" ? [...t.querySelectorAll("thead th")].map(x => x.textContent).join("|") : (t.getAttribute("aria-label") || "");
+  const head = t.tagName === "TABLE" ? [...t.querySelectorAll("thead th")].map(x => x.textContent).join("|") : t.classList.contains("list") ? "list" : (t.getAttribute("aria-label") || "");
   return location.pathname + "::" + head + "::" + i;
 };
 
@@ -56,7 +59,6 @@ function apply(t, bar, key) {
     ? `${from + 1}–${Math.min(to, hit.length)} of ${hit.length}${hit.length !== rows.length ? ` (filtered from ${rows.length})` : ""}`
     : `No rows match “${st.q}”`;
   const pg = foot.querySelector(".tt-pager");
-  if (pages <= 1) { pg.innerHTML = ""; return; }
   const nums = []; for (let p = 1; p <= pages; p++) if (p === 1 || p === pages || Math.abs(p - st.page) <= 1) nums.push(p);
   let html = `<button type="button" data-p="${st.page - 1}" ${st.page === 1 ? "disabled" : ""} aria-label="Previous page">‹</button>`, last = 0;
   for (const p of nums) { if (p - last > 1) html += `<span class="tt-gap">…</span>`; html += `<button type="button" data-p="${p}" class="${p === st.page ? "on" : ""}" ${p === st.page ? 'aria-current="page"' : ""}>${p}</button>`; last = p; }
@@ -68,6 +70,7 @@ function enhanceAll() {
   const seen = new Map();
   document.querySelectorAll(SEL).forEach(t => {
     if (t.closest("#modal, .tt-bar, .tt-foot, [data-server]")) return;   // data-server: the page is paged and searched by the API (components/portal/paged.jsx)
+    if (PREVIEW.test(location.pathname) || (t.classList.contains("list") && (t.closest(".list:not(:scope)") || !t.querySelector(":scope > .item")))) return;
     const rows = rowsOf(t);
     const base = keyOf(t, 0).replace(/::0$/, ""), n = seen.get(base) || 0; seen.set(base, n + 1);
     const key = base + "::" + n;

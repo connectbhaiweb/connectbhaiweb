@@ -26,9 +26,9 @@ export function useDashData(role, load, enabled = true) {   // enabled=false: th
     const again = () => bump();
     let hiddenAt = 0;
     const vis = () => { if (document.hidden) hiddenAt = Date.now(); else if (Date.now() - hiddenAt > 30_000) bump(); };   // a quick tab flick does not reload every list
-    window.addEventListener("cb:render", again);
+    window.addEventListener("cb:render", again); window.addEventListener("cb:poll", again);   // cb:poll = the 30 s live refresh (ui.js)
     document.addEventListener("visibilitychange", vis);
-    return () => { window.removeEventListener("cb:render", again); document.removeEventListener("visibilitychange", vis); };
+    return () => { window.removeEventListener("cb:render", again); window.removeEventListener("cb:poll", again); document.removeEventListener("visibilitychange", vis); };
   }, [active]);
 
   return { active, pending: !ready, user, data: st.data, error: st.error, loading: active && !st.data && !st.error, reload: bump };

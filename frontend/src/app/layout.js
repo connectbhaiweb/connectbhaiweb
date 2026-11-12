@@ -35,7 +35,7 @@ export default function RootLayout({ children }) {
     <html lang="en-IN" suppressHydrationWarning>
       <head>
         {/* signed-in on a dashboard URL: hide the site header/footer from the first paint (DashboardShell clears this once the session is known) */}
-        <script dangerouslySetInnerHTML={{ __html: `try{var p=location.pathname.split("/")[1];if(/^(my|dsa|tip|admin)$/.test(p)&&(localStorage.getItem("cb-session")||Object.keys(localStorage).some(function(k){return k.indexOf("sb-")===0})))document.documentElement.setAttribute("data-shell-pending",p)}catch(e){}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{var p=location.pathname.split("/")[1];if(/^(my|dsa|tip|admin)$/.test(p)&&(localStorage.getItem("cb-session")||Object.keys(localStorage).some(function(k){return k.indexOf("sb-")===0})))document.documentElement.setAttribute("data-shell-pending",p);if(p===""&&/^(dsa|tip|admin)$/.test(localStorage.getItem("cb-role")||"")&&localStorage.getItem("cb-session"))document.documentElement.setAttribute("data-entering","")}catch(e){}` }} />
       </head>
       <body>
         <DemoBar />
