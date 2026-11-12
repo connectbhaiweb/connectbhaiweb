@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Logo from "./Logo";
 
 export default function Footer() {
@@ -6,9 +7,9 @@ export default function Footer() {
       <div className="wrap">
         <div className="fgrid">
           <div>
-            <div className="brand" style={{ cursor: "default" }}>
+            <Link className="brand" href="/?site=1" aria-label="Connect Bhai home">
               <Logo height={40} />
-            </div>
+            </Link>
             <p style={{ marginTop: 8 }}>
               Compare. Choose. Connect. A broadband marketplace for Madhya Pradesh, live in Indore, connecting customers with BSNL TIPs, Direct Selling Agents and local internet providers.
             </p>

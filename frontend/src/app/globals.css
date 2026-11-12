@@ -729,3 +729,16 @@ html[data-entering]::after{content:"";position:fixed;z-index:201;left:50%;top:50
 .pin-chip button{width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:#1450E6;font-size:18px;line-height:1;cursor:pointer}
 .pin-chip button:hover,.pin-chip button:focus-visible{background:#D5E3FF}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pin-sug{background:#0F1B3D;border-color:#2A3A66}:root:not([data-theme="light"]) .pin-sug-item{color:#E8EEFF}:root:not([data-theme="light"]) .pin-sug-item span,:root:not([data-theme="light"]) .pin-sug-none{color:#A9B6D6}:root:not([data-theme="light"]) .pin-sug-item.is-on,:root:not([data-theme="light"]) .pin-sug-item:hover{background:#1C2B57}}
+
+/* OTP: six single-digit boxes */
+.otp-boxes{display:flex;gap:8px;justify-content:center}
+.otp-box{width:44px;height:52px;padding:0;text-align:center;font:600 22px var(--mono);border-radius:10px;border:1px solid var(--line,#cbd5e1);background:var(--surface,#fff);color:inherit}
+.otp-box:focus{outline:2px solid var(--brand,#2563eb);outline-offset:1px}
+@media (max-width:380px){.otp-boxes{gap:6px}.otp-box{width:38px;height:48px;font-size:20px}}
+
+/* CB-003: the app-download banner kept the full 56px section padding on phones (section.sec outranks .appsec) */
+@media (max-width:700px){section.appsec{padding-block:16px 8px}.appcard{padding:20px;gap:18px;border-radius:20px}.appcard h2{margin:12px 0 8px}}
+
+/* CB-001: the popular-PIN chips wrap inside the search card instead of running past its edge */
+.search .chips{flex-wrap:wrap;min-width:0}
+.search .chips .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

@@ -2,6 +2,7 @@ import * as Joi from 'joi';
 
 /** Validates process.env at boot. The app refuses to start with a bad/missing config. */
 export const envValidationSchema = Joi.object({
+  NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
   APP_ENV: Joi.string().valid('development', 'staging', 'production', 'test').default('development'),
   PORT: Joi.number().port().default(4000),
   API_PREFIX: Joi.string().default('api/v1'),
@@ -55,6 +56,11 @@ export const envValidationSchema = Joi.object({
   GENIEACS_PASSWORD: Joi.string().allow('').default(''),
   SPEEDTEST_FILE_URL: Joi.string().uri().allow('').default(''),   // plain-http test file the modem downloads (default http://speedtest.tele2.net/10MB.zip)
   SPEEDTEST_PING_HOST: Joi.string().allow('').default(''),
+  /** read by prisma/seed.ts only; listed so a typo shows at boot */
+  SEED_ADMIN_PHONE: Joi.string().pattern(/^\d{10}$/).allow('').default(''),
+  SEED_ADMIN_PASSWORD: Joi.string().allow('').default(''),
+  SEED_DEMO_PASSWORD: Joi.string().allow('').default(''),
+  SEED_SAMPLE_PARTNERS: Joi.boolean().default(true),
   CARE_PLAN_SYNC_MINUTES: Joi.number().min(0).default(10),   // how often every linked modem is read from GenieACS (0 = off)
 })
   .unknown(true)
@@ -62,6 +68,7 @@ export const envValidationSchema = Joi.object({
     if (v.APP_ENV === 'production') {
       if (/change-me/i.test(v.JWT_SECRET) || /change-me/i.test(v.JWT_REFRESH_SECRET)) return helpers.message({ custom: 'JWT secrets must be changed in production' } as any);
       if (/^0+$/.test(v.DATA_ENCRYPTION_KEY)) return helpers.message({ custom: 'DATA_ENCRYPTION_KEY must be set in production' } as any);
+      if (v.SEED_ADMIN_PASSWORD === 'Admin@12345') return helpers.message({ custom: 'SEED_ADMIN_PASSWORD must not be the default in production' } as any);
       if (v.OTP_DEV_CODE) return helpers.message({ custom: 'OTP_DEV_CODE must be empty in production' } as any);
       if (!v.CLOUDINARY_CLOUD_NAME || !v.CLOUDINARY_API_KEY || !v.CLOUDINARY_API_SECRET) return helpers.message({ custom: 'CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET are required in production (all uploads go to Cloudinary)' } as any);
     }

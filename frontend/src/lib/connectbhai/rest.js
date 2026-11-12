@@ -84,7 +84,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   const PSTATUS = { approved: "active", pending: "pending", rejected: "suspended", suspended: "suspended" };
   const mapPartner = u => u && ({ id: S(u.id), type: u.role, role: u.role, name: u.name, firm: u.business_name || "", phone: u.phone, email: u.email || "", partner_code: u.partner_code, city_id: S(u.city_id),
     service_pincodes: Array.isArray(u.service_pincodes) ? u.service_pincodes.join(", ") : (u.pincode || ""), status: PSTATUS[u.partner_status] || "pending", kyc_verified: !!u.approved_at, approved_at: u.approved_at,
-    fee_paid_at: u.approved_at, commission_per_install: u.role === "dsa" ? 300 : 0, created_at: u.created_at, is_internal: !!u.is_internal, acs_mode: "connectbhai", acs_key_set: true, acs_agreement: true, aadhaar_last4: u.aadhaar_last4, pan_last4: u.pan_last4 });
+    fee_paid_at: u.approved_at, commission_per_install: u.role === "dsa" ? 300 : 0, created_at: u.created_at, is_internal: !!u.is_internal, acs_mode: "connectbhai", acs_key_set: true, acs_agreement: true, aadhaar_last4: u.aadhaar_last4, pan_last4: u.pan_last4, bank_name: u.bank_name || "", bank_ifsc: u.bank_ifsc || "", bank_account_last4: u.bank_account_last4 || "", upi_id: u.upi_id || "" });
   const pc = u => u ? { id: S(u.id), name: u.name, firm: u.business_name || "", phone: u.phone || "", email: u.email || "", type: u.role || "partner", partner_code: u.partner_code } : null;
   /* official provider logos live in /public/logos (also stored as plan_categories.logo_url in MySQL) */
   const BRAND_LOGO = { bsnl: "/logos/bsnl.svg", jio: "/logos/jio.svg", airtel: "/logos/airtel.svg" };
