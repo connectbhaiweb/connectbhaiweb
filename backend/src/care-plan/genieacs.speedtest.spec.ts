@@ -70,6 +70,15 @@ describe('GenieAcsProvider.speedTest (TR-143)', () => {
     await expect(new GenieAcsProvider(cfg()).speedTest('X')).rejects.toThrow('Error_NoResponse');
   });
 
+  it('ignores an old Error left by an earlier run and waits for the modem to report this one', async () => {
+    let n = 0;
+    const old = { DiagnosticsState: { _value: 'Error_InitConnectionFailed', _timestamp: '2026-11-11T13:21:11.391Z' } };
+    const done = { DiagnosticsState: { _value: 'Completed', _timestamp: '2026-11-12T09:10:00.000Z' }, BOMTime: val('2026-11-12T09:09:58.000'), EOMTime: val('2026-11-12T09:10:00.000'), TestBytesReceived: val(2_500_000) };
+    fakeAcs({ DownloadDiagnostics: () => (++n <= 4 ? old : done), IPPingDiagnostics: () => ({ DiagnosticsState: val('Complete'), SuccessCount: val(4), AverageResponseTime: val(20) }) }, { fresh: false });
+    const r = await new GenieAcsProvider(cfg({ SPEEDTEST_MAX_MS: 2000 })).speedTest('X');
+    expect(r.download_mbps).toBeGreaterThan(0);
+  });
+
   it('times out when the modem never finishes', async () => {
     fakeAcs({ DownloadDiagnostics: () => ({ DiagnosticsState: val('Requested') }), IPPingDiagnostics: () => ({}) });
     await expect(new GenieAcsProvider(cfg({ SPEEDTEST_MAX_MS: 1 })).speedTest('X')).rejects.toThrow('did not finish');

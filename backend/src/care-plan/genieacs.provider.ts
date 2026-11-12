@@ -186,7 +186,10 @@ export class GenieAcsProvider {
     const queued: string[] = [];   // tasks GenieACS could only queue; withdrawn if the test does not finish
     let refreshQueued = false, polls = 0;
     try {
-      const before = (await this.readObject(deviceId, root).catch(() => ({})))?.BOMTime?._value;
+      const prior = await this.readObject(deviceId, root).catch(() => ({}));
+      const before = prior?.BOMTime?._value;
+      const stateAt = (o: any) => { const t = Date.parse(o?.DiagnosticsState?._timestamp ?? ''); return Number.isNaN(t) ? 0 : t; };
+      const priorAt = stateAt(prior);   // an Error left by an earlier run keeps this timestamp until the modem reports again: it is not the answer to THIS request
       const set = await this.task(deviceId, { name: 'setParameterValues', parameterValues: [...params.map(([k, v, t]) => [`${root}.${k}`, v, t]), [`${root}.DiagnosticsState`, 'Requested', 'xsd:string']] });
       if (set) queued.push(set);
       const gap = Number(this.cfg.get('SPEEDTEST_POLL_MS') ?? 3000), deadline = Date.now() + Number(this.cfg.get('SPEEDTEST_MAX_MS') ?? 60_000);
@@ -199,7 +202,7 @@ export class GenieAcsProvider {
         }
         const o = await this.readObject(deviceId, root);
         const state = o.DiagnosticsState?._value;
-        if (typeof state === 'string' && state.startsWith('Error')) throw new Error(`The modem reported ${state}`);
+        if (typeof state === 'string' && state.startsWith('Error') && (!priorAt || stateAt(o) > priorAt)) throw new Error(`The modem reported ${state}`);   // stale Error from a previous run: keep waiting for the modem's new report
         if (state === done && (name !== 'DownloadDiagnostics' || o.BOMTime?._value !== before || !before)) return o;
       } while (Date.now() < deadline);
       throw new Error('The modem did not finish the test in time');
