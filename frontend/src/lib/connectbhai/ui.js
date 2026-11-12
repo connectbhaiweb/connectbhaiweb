@@ -91,6 +91,37 @@ async function loadHist(id) {
   const el = document.querySelector(`[data-hist="${id}"]`); if (el) { try { const ts = await API.speedTests(id); el.innerHTML = ts.length ? ts.map(stLine).join("") : `<span class="muted small">No speed tests yet.</span>`; } catch (e) { el.textContent = ""; } }
   const ea = document.querySelector(`[data-acts="${id}"]`); if (ea) { try { const as = await API.deviceLog(id); ea.innerHTML = as.length ? as.map(actLine).join("") : `<span class="muted small">No restarts or Wi-Fi changes yet.</span>`; } catch (e) { ea.textContent = ""; } }
 }
+
+/* ---------- live progress for modem commands (restart / Wi-Fi change) ----------
+   Shows each step in the card and follows the saved command until it is done or failed. The click already returned; the server finishes the work. */
+const LIVE_STEPS = { reboot: ["Command sent", "Waiting for your modem to pick it up (about a minute)", "Modem is restarting (about 2 minutes)", "Modem is back online"], wifi: ["Command sent", "Waiting for your modem to pick it up (about a minute)", "Applying the new Wi-Fi settings", "Wi-Fi is updated"] };
+const liveBox = id => document.getElementById("cu-live-" + id) || document.getElementById("rt-" + id);
+function liveHtml(kind, st, sec, ssid, err) {
+  const step = st === "done" ? 4 : st === "sent" ? 2 : 1, bad = st === "failed" || st === "timeout", mm = Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+  const li = LIVE_STEPS[kind].map((t, i) => { const ok = i < step, cur = !bad && st !== "done" && i === step, x = bad && i === step;
+    return `<li class="lv ${ok ? "ok" : cur ? "cur" : x ? "bad" : ""}"><span class="lv-d">${ok ? "✓" : x ? "✕" : cur ? `<i class="lv-spin"></i>` : i + 1}</span><span>${esc(t)}</span></li>`; }).join("");
+  const head = st === "done" ? (kind === "reboot" ? "Restart finished" : "Wi-Fi changed") : st === "failed" ? "Could not finish" : st === "timeout" ? "Still waiting for the modem" : kind === "reboot" ? "Restarting your router" : "Changing your Wi-Fi";
+  const note = st === "done" ? (kind === "wifi" ? `Join <b>${esc(ssid || "your Wi-Fi")}</b> on your phone or laptop${ssid ? " with the new password" : ""}.` : "Your internet is back.")
+    : st === "failed" ? esc(err || "The modem did not accept it. Please try again.")
+    : st === "timeout" ? "The modem has not checked in. It will apply this when it is back online. Check that it is powered on." 
+    : kind === "wifi" ? "Phones and laptops on this Wi-Fi will disconnect. Reconnect after about a minute." : "Internet and Wi-Fi are off for about 2 minutes. You do not need to do anything.";
+  return `<div class="lv-box ${st === "done" ? "is-ok" : bad ? "is-bad" : ""}" role="status" aria-live="polite"><div class="lv-h"><b>${head}</b>${st === "done" || bad ? "" : `<span class="lv-t">${mm}</span>`}</div><ul class="lv-l">${li}</ul><p class="lv-n">${note}</p></div>`;
+}
+async function trackAction(id, kind, ssid) {
+  if (!liveBox(id)) return false;
+  if (!document.getElementById("lv-css")) { const c = document.createElement("style"); c.id = "lv-css"; c.textContent = `.lv-box{margin-top:14px;padding:14px 16px;border:1px solid #D6E0F5;background:#F4F7FF;border-radius:14px}.lv-box.is-ok{background:#F0FBF4;border-color:#BFE6CC}.lv-box.is-bad{background:#FFF4F2;border-color:#F3C6BE}.lv-h{display:flex;justify-content:space-between;gap:10px;font-size:15px}.lv-t{font-variant-numeric:tabular-nums;color:#5B6B8F;font-size:13px}.lv-l{list-style:none;margin:10px 0 6px;padding:0;display:grid;gap:8px}.lv{display:flex;gap:10px;align-items:center;font-size:14px;color:#6B7893}.lv.ok{color:#15803D}.lv.cur{color:#10234F;font-weight:700}.lv.bad{color:#B91C1C;font-weight:700}.lv-d{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:12px;font-weight:700}.lv.ok .lv-d{background:#16A34A;border-color:#16A34A;color:#fff}.lv.bad .lv-d{background:#DC2626;border-color:#DC2626;color:#fff}.lv-spin{width:12px;height:12px;border:2px solid #1458F0;border-top-color:transparent;border-radius:50%;animation:lvs .8s linear infinite}@keyframes lvs{to{transform:rotate(360deg)}}.lv-n{margin:6px 0 0;font-size:13px;color:#4A5876}@media(prefers-reduced-motion:reduce){.lv-spin{animation:none}}`; document.head.appendChild(c); }
+  const t0 = Date.now(); let st = "queued", err = "", n = 0;
+  const paint = () => { const el = liveBox(id); if (el) el.innerHTML = liveHtml(kind, st, Math.round((Date.now() - t0) / 1000), ssid, err); return !!el; };
+  paint();
+  while (st !== "done" && st !== "failed" && st !== "timeout") {
+    await new Promise(r => setTimeout(r, 1000)); if (!paint()) return true; n++;
+    if (Date.now() - t0 > 25 * 60 * 1000) { st = "timeout"; break; }
+    if (n % 4) continue;
+    try { const a = (await API.deviceLog(id)).find(x => x.action === kind); if (a) { st = a.status === "done" ? "done" : a.status === "failed" ? "failed" : a.status === "sent" ? "sent" : "queued"; err = a.error || ""; } } catch (e) { /* keep waiting; the next poll tries again */ }
+  }
+  paint(); loadHist(id); if (st === "done") toast(kind === "reboot" ? "Restart finished. Your router is back." : "Wi-Fi changed.");
+  return true;
+}
 /* ---------- modem (GenieACS) helpers ---------- */
 const RX = v => v == null ? null : v >= -25 ? ["Good", "p-ok"] : v >= -27 ? ["Weak", "p-warn"] : ["Bad", "p-bad"];   // ONT optical RX power
 const rxPill = d => { const r = d && d.acs ? RX(d.rx_dbm) : null; return r ? pill(`Fiber signal ${r[0]} · ${Number(d.rx_dbm).toFixed(1)} dBm`, r[1]) : ""; };
@@ -1538,7 +1569,9 @@ const actions = {
   "edit-acs": b => openAcs(b.dataset.id).catch(e => toast(errMsg(e), true)),
   "modem-reboot": b => openModal(`<h2>Restart modem?</h2><p class="muted" style="margin:6px 0 16px">Internet and Wi-Fi will be off for about 2 minutes while the modem restarts. Phones and laptops reconnect by themselves.</p>
     <div class="row"><button class="btn btn-primary" data-act="modem-reboot-go" data-id="${esc(b.dataset.id)}" type="button">Restart now</button><button class="btn btn-ghost" data-act="close-modal" type="button">Cancel</button></div>`),
-  "modem-reboot-go": async b => { const d = await guard(b, () => API.deviceAction(b.dataset.id, "reboot")); closeModal(); toast("Restart sent. The modem restarts when it next checks in (about a minute), then is back in about 2 minutes. The status shows under Restarts and Wi-Fi changes." + (d && d.is_simulated ? " (simulated)" : "")); render(); },
+  "modem-reboot-go": async b => { const d = await guard(b, () => API.deviceAction(b.dataset.id, "reboot")); closeModal();
+    if (await trackAction(b.dataset.id, "reboot")) { toast("Restart sent."); return; }
+    toast("Restart sent. The modem restarts when it next checks in (about a minute), then is back in about 2 minutes. The status shows under Restarts and Wi-Fi changes." + (d && d.is_simulated ? " (simulated)" : "")); render(); },
   "modem-wifi": b => openModal(`<h2>Change Wi-Fi name / password</h2><p class="notice" style="margin:8px 0 14px">Every phone and laptop on this Wi-Fi will disconnect. After about 1 minute, join the new Wi-Fi name with the new password.</p>
     <form class="stack" data-form="modem-wifi" data-id="${esc(b.dataset.id)}" data-old="${esc(b.dataset.ssid || "")}" novalidate>
       ${field("mw-ssid", "New Wi-Fi name", `<input id="mw-ssid" name="ssid" maxlength="32" autocomplete="off" placeholder="${esc(b.dataset.ssid || "")}">`, "Now: <b>" + esc(b.dataset.ssid || "—") + "</b>. Leave empty to keep it.")}
@@ -1922,7 +1955,9 @@ const forms = {
     if (pw && (pw.length < 8 || pw.length > 63)) e["mw-pw"] = "8 to 63 characters.";
     if (!setErr(f, e)) return;
     const d = await guard(btn, () => API.deviceAction(f.dataset.id, "wifi", { ssid, password: pw }));
-    closeModal(); toast("Wi-Fi change sent. It applies when the modem next checks in (about a minute). Then join " + (ssid || (d && d.ssid) || "your Wi-Fi") + (pw ? " with the new password." : ".")); render();
+    closeModal(); const nm = ssid || (d && d.ssid) || "";
+    if (await trackAction(f.dataset.id, "wifi", nm)) { toast("Wi-Fi change sent."); return; }
+    toast("Wi-Fi change sent. It applies when the modem next checks in (about a minute). Then join " + (nm || "your Wi-Fi") + (pw ? " with the new password." : ".")); render();
   },
   acs: async (f, btn) => {
     const d = { mode: val(f, "mode"), url: val(f, "url"), key: f.elements.key ? f.elements.key.value.trim() : "", agreement: val(f, "agreement") }, e = {};

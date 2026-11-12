@@ -202,6 +202,7 @@ function RouterCard({ booking, tests }) {
         <button type="button" className="cu-btn cu-btn-soft" data-act="modem-reboot" data-id={booking && booking.id} disabled={!canAct}><RefreshCw aria-hidden="true" />Restart router</button>
         <button type="button" className="cu-btn cu-btn-primary" data-act="modem-wifi" data-id={booking && booking.id} data-ssid={(d && d.ssid) || ""} disabled={!canAct}><Settings aria-hidden="true" />Change Wi-Fi</button>
       </div>
+      <div id={`cu-live-${booking && booking.id}`} />   {/* live progress of a restart / Wi-Fi change, filled in by the page script */}
       {why ? <p className="cu-muted cu-small">{why}</p> : null}
     </section>
   );
