@@ -27,7 +27,31 @@ function toast(msg, bad) { const t = $("#toast"); t.textContent = msg; t.classNa
 function openModal(html, wide) { const m = $("#modal"), b = $("#mbox"); b.className = "mbox" + (wide ? " wide" : ""); b.innerHTML = `<button class="mclose" data-act="close-modal" type="button" aria-label="Close">×</button>` + html; m.hidden = false; document.body.style.overflow = "hidden"; pinChipsIn(b); const f = b.querySelector("input:not([type=hidden]):not([type=checkbox]),select,textarea"); if (f) setTimeout(() => f.focus(), 40); }
 function closeModal() { $("#modal").hidden = true; document.body.style.overflow = ""; }
 const onModalClick = e => { if (e.target.id === "modal") closeModal(); };
+/* OTP boxes: digits only, auto-advance, Backspace steps back, paste fills all six; Verify enables at six digits. */
+function otpSync(box) {
+  const form = box.closest("form"), boxes = [...form.querySelectorAll(".otp-box")], v = boxes.map(b => b.value).join("");
+  form.querySelector('input[name="otp"]').value = v;
+  const btn = form.querySelector('button[type="submit"]'); if (btn) btn.disabled = v.length !== 6;
+}
+function otpFill(box, digits) {
+  const boxes = [...box.closest("form").querySelectorAll(".otp-box")]; let i = boxes.indexOf(box);
+  for (const d of digits.slice(0, boxes.length - i)) boxes[i++].value = d;
+  otpSync(box); (boxes[Math.min(i, boxes.length - 1)]).focus();
+}
+const onOtpKey = e => {
+  const t = e.target; if (!t || !t.classList || !t.classList.contains("otp-box")) return false;
+  const boxes = [...t.closest("form").querySelectorAll(".otp-box")], i = boxes.indexOf(t);
+  if (e.key === "Backspace") { e.preventDefault(); if (t.value) t.value = ""; else if (i > 0) { boxes[i - 1].value = ""; boxes[i - 1].focus(); } otpSync(t); }
+  else if (e.key === "ArrowLeft" && i > 0) { e.preventDefault(); boxes[i - 1].focus(); }
+  else if (e.key === "ArrowRight" && i < boxes.length - 1) { e.preventDefault(); boxes[i + 1].focus(); }
+  return true;
+};
+const onPaste = e => {
+  const t = e.target; if (!t || !t.classList || !t.classList.contains("otp-box")) return;
+  e.preventDefault(); otpFill(t, ((e.clipboardData || window.clipboardData).getData("text") || "").replace(/\D/g, ""));
+};
 const onKeydown = e => {
+  if (onOtpKey(e)) return;
   if (pinSuggestKey(e)) return;   // the PIN list is open: ↓ ↑ Enter Esc belong to it
   if (e.key === "Escape" && !$("#modal").hidden) closeModal();
   if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("dialcard")) { e.preventDefault(); e.target.click(); }
@@ -192,9 +216,12 @@ const track = p => { busy++; document.documentElement.classList.add("is-loading"
 const REACT_VIEWS = { my: t => !t || ["bookings", "devices"].includes(t), dsa: t => !t || ["home", "careplan", "customers", "tickets"].includes(t), tip: t => !t || ["home", "careplan", "leads"].includes(t), admin: t => !t || ["overview", "careplan", "customers"].includes(t) };
 async function render() {
   const v = S.view;
+  if (v !== "home") try { sessionStorage.removeItem("cb-site"); } catch (e) {}
   if (v === "home") {
     const u = me();
-    if (u && PARTNER_HOME[u.role]) {   // DSA / TIP / admin have no use for the plan search page: straight to their dashboard (no history entry)
+    let browse = false;   // "?site=1" (portal logo, footer logo, Go to website) opens the public homepage for this tab even when signed in as a partner
+    try { if (/[?&]site=1\b/.test(location.search)) sessionStorage.setItem("cb-site", "1"); browse = sessionStorage.getItem("cb-site") === "1"; } catch (e) {}
+    if (u && PARTNER_HOME[u.role] && !browse) {   // DSA / TIP / admin have no use for the plan search page: straight to their dashboard (no history entry)
       entering(true); S.view = ROLE_HOME[u.role]; S.tab = null; renderedKey = S.view + "/"; navigate(pathFor(S.view, null), "replace"); renderHeader(); return render();
     }
     entering(false);
@@ -748,7 +775,7 @@ async function renderAdmin() {
     body = `<div class="kpis"><div class="kpi"><span>Unassigned leads</span><b>${d.unassigned}</b><small>need assignment</small></div><div class="kpi"><span>Installs pending</span><b>${d.installs_pending}</b></div><div class="kpi"><span>Open tickets</span><b>${d.open_tickets}</b></div><div class="kpi"><span>Commission to approve</span><b>${inr(d.commission.pending)}</b></div></div>
     <div class="split"><div class="card"><div class="row"><h3>Leads waiting for assignment</h3><span class="spacer"></span><button class="linkbtn small" data-tab="leads" type="button">All leads</button></div>
       <div class="list" style="margin-top:10px">${newL.length ? newL.map(l => `<div class="item"><div class="ih"><h3>${esc(l.name)}</h3><span class="mono muted small">${esc(l.ref_code)}</span></div><div class="meta"><span>PIN <b>${esc(l.pincode)}</b></span><span>${planLine(l.plan)}</span></div><div class="row"><button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">Assign</button></div></div>`).join("") + (nl.total > newL.length ? `<p class="muted small">+ ${nl.total - newL.length} more in Leads</p>` : "") : `<p class="muted">All leads are assigned.</p>`}</div></div>
-      <div class="card"><div class="row"><h3>DSA & TIP applications</h3><span class="spacer"></span><button class="linkbtn small" data-tab="partners" type="button">All DSAs & TIPs</button></div>
+      <div class="card"><div class="row"><h3>DSA & TIP applications</h3>${pendingCount ? `<button class="chip" type="button" data-act="partners-pending">${pendingCount} pending</button>` : ""}<span class="spacer"></span><button class="linkbtn small" data-tab="partners" type="button">All DSAs & TIPs</button></div>
       <div class="list" style="margin-top:10px">${pendingP.length ? pendingP.map(p => `<div class="item"><div class="ih"><h3>${esc(p.name)}</h3>${pill(p.type.toUpperCase(), "p-blue")}</div><div class="meta"><span>${esc(p.firm || "")}</span><span><b>${esc(fmtPh(p.phone))}</b></span>${p.email ? `<span>${esc(p.email)}</span>` : ""}<span>PINs ${esc(p.service_pincodes || "—")}</span>${p.fee_paid_at ? pill("Fee paid", "p-ok") : pill("Fee not paid", "p-warn")}</div><div class="row"><button class="btn btn-soft btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Review</button></div></div>`).join("") : `<p class="muted">No pending applications.</p>`}</div></div></div>`;
   }
   if (tab === "leads") {
@@ -771,10 +798,10 @@ async function renderAdmin() {
   }
   if (tab === "partners") {
     const pt = S.partnerType || "dsa";
-    body = `<div class="row" style="margin-bottom:12px"><span class="muted">${pendingCount} pending</span><span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-partner" data-id="" type="button">Add DSA / TIP</button></div>
+    body = `<div class="row" style="margin-bottom:12px">${pendingCount ? `<button class="chip" type="button" data-act="partners-pending" aria-pressed="${S.partnerStatus === "pending"}">${pendingCount} pending${S.partnerStatus === "pending" ? " · showing only these" : ""}</button>` : `<span class="muted">0 pending</span>`}${S.partnerStatus === "pending" ? `<button class="linkbtn small" data-act="partners-pending" data-all="1" type="button">Show all</button>` : ""}<span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-partner" data-id="" type="button">Add DSA / TIP</button></div>
     <div class="chips" style="margin-bottom:12px">${[["dsa", "DSAs"], ["tip", "TIPs"]].map(([k, l]) => `<button type="button" class="chip" data-act="partner-type" data-v="${k}" aria-pressed="${pt === k}">${l}</button>`).join("")}</div>
-    ${serverTable("adm-partners-" + pt, { role: "admin", kind: "partners", label: "Search DSAs and TIPs", empty: "No one here yet.", filters: () => ({ type: pt }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Type</th><th>Mobile</th><th>Service PINs</th><th class="r">Per install</th><th>KYC</th><th>Status</th><th></th></tr></thead><tbody>
-    ${rows.map(p => `<tr><td><b>${esc(p.name)}</b><br><span class="muted">${esc(p.firm || "")}</span></td><td>${p.type.toUpperCase()}</td><td>${esc(fmtPh(p.phone))}${p.email ? `<br><span class="muted small">${esc(p.email)}</span>` : ""}${contactBtns(p)}</td><td>${esc(p.service_pincodes || "—")}</td><td class="r num">${inr(p.commission_per_install)}</td><td>${p.kyc_verified ? pill("Verified", "p-ok") : pill("Pending", "p-warn")}</td><td>${p.status === "pending" && p.approved_at ? pill("Approved · fee due", "p-blue") : p.status === "pending" && p.fee_paid_at ? pill("Fee paid · check KYC", "p-blue") : pill(p.status[0].toUpperCase() + p.status.slice(1), { active: "p-ok", pending: "p-warn", suspended: "p-bad" }[p.status])}</td>
+    ${serverTable("adm-partners-" + pt, { role: "admin", kind: "partners", label: "Search DSAs and TIPs", empty: S.partnerStatus === "pending" ? "No pending applications." : "No one here yet.", filters: () => ({ type: pt, status: S.partnerStatus === "pending" ? "pending" : undefined }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Type</th><th>Mobile</th><th>Service PINs</th><th class="r">Per install</th><th>KYC</th><th>Status</th><th></th></tr></thead><tbody>
+    ${rows.map(p => `<tr><td><b>${esc(p.name)}</b><br><span class="muted">${esc(p.firm || "")}</span></td><td>${p.type.toUpperCase()}</td><td>${esc(fmtPh(p.phone))}${p.email ? `<br><span class="muted small">${esc(p.email)}</span>` : ""}${contactBtns(p)}</td><td>${esc(p.service_pincodes || "—")}</td><td class="r num">${inr(p.commission_per_install)}</td><td>${p.kyc_verified ? pill("Verified", "p-ok") : pill("Pending", "p-warn")}</td><td>${p.status === "pending" && p.approved_at ? pill("Approved · fee due", "p-blue") + `<br><span class="muted small">Waiting for the registration fee</span>` : p.status === "pending" && p.fee_paid_at ? pill("Fee paid · check KYC", "p-blue") + `<br><span class="muted small">Check KYC, then approve</span>` : p.status === "pending" ? pill("Pending", "p-warn") + `<br><span class="muted small">${p.kyc_verified ? "Awaiting your approval" : "KYC not verified · awaiting your approval"}</span>` : pill(p.status[0].toUpperCase() + p.status.slice(1), { active: "p-ok", pending: "p-warn", suspended: "p-bad" }[p.status])}</td>
       <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Edit</button>${p.status === "pending" && !p.approved_at ? `<button class="btn btn-soft btn-sm" data-act="approve-partner" data-id="${p.id}" type="button">Approve</button><button class="btn btn-danger btn-sm" data-act="delete-partner" data-id="${p.id}" data-name="${esc(p.name)}" type="button">Delete</button>` : p.status === "suspended" ? `<button class="btn btn-soft btn-sm" data-act="partner-status" data-id="${p.id}" data-s="active" type="button">Reactivate</button>` : p.status === "active" ? `<button class="btn btn-danger btn-sm" data-act="partner-status" data-id="${p.id}" data-s="suspended" type="button">Suspend</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>` })}`;
   }
   if (tab === "providers") { const pv = await API.adminProviders(); body = `<div class="row" style="margin-bottom:12px"><span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-provider" data-id="" type="button">Add provider</button></div>
@@ -849,6 +876,7 @@ async function openPartner(id) {
     ${field("pt-comm", "Per-install amount (₹)", `<input id="pt-comm" name="commission_per_install" type="number" min="0" step="50" value="${esc(p.commission_per_install || 0)}">`, "DSA: payout Connect Bhai pays. TIP: platform fee the TIP pays (+GST).")}
     ${field("pt-target", "Leads promised per month", `<input id="pt-target" name="lead_target" type="number" min="0" step="1" value="${esc(p.lead_target || "")}" placeholder="Default">`, "Shown on the DSA's dashboard as Connect Bhai's monthly lead promise. Empty = default from Billing & fees.")}</div>
     ${field("pt-pins", "Service PIN codes", `<input id="pt-pins" name="service_pincodes" value="${esc(p.service_pincodes || "")}">`)}
+    ${id && (p.aadhaar_last4 || p.pan_last4 || p.bank_name || p.upi_id) ? `<div class="facts" style="margin:4px 0"><div><span>Aadhaar</span><b>${p.aadhaar_last4 ? "•••• " + esc(p.aadhaar_last4) : "—"}</b></div><div><span>PAN</span><b>${p.pan_last4 ? "••••• " + esc(p.pan_last4) : "—"}</b></div><div><span>Bank</span><b>${esc(p.bank_name || "—")}</b></div><div><span>Account</span><b>${p.bank_account_last4 ? "•••• " + esc(p.bank_account_last4) : "—"}</b></div><div><span>IFSC</span><b class="mono">${esc(p.bank_ifsc || "—")}</b></div><div><span>UPI</span><b>${esc(p.upi_id || "—")}</b></div></div>` : ""}
     <label class="check"><input type="checkbox" name="kyc_verified" ${p.kyc_verified ? "checked" : ""}> KYC and agreement verified</label>
     ${REST && id ? `<div class="stack" id="pt-docs"><h3 style="margin:6px 0 0">KYC documents</h3><span class="muted small">Loading…</span></div>` : ""}
     <button class="btn btn-primary" type="submit">Save</button></form>`);
@@ -876,8 +904,6 @@ async function openCoverage() {
 /* =====================================================================
    LOGIN
    ===================================================================== */
-const STAGING_PW = "Demo@Connect2026";   // staging only: must match SEED_DEMO_PASSWORD on the API
-const STAGING_LOGINS = (typeof location !== "undefined" && /staging/i.test(location.hostname)) ? [["Admin", "9999999999", STAGING_PW]] : null;
 function openLogin(tab) {
   const acc = LIVE ? [] : API.demoAccounts(), otp = tab === "otp";
   const desc = { customer: "Bookings, complaints, my modem (restart, Wi-Fi), speed tests", dsa: "Leads, follow-ups, installation status, commission", tip: "Bookings, installations, tickets, modem control", admin: "DSAs &amp; TIPs, plans, team logins, payments, reports" };
@@ -890,9 +916,7 @@ function openLogin(tab) {
       ${field("pl-pw", "Password", `<input id="pl-pw" name="password" type="password" autocomplete="current-password">`)}
       <button class="btn btn-primary" type="submit">Log in</button></form>
       <p class="small" style="margin-top:10px"><button class="linkbtn" data-act="forgot-pw" type="button">Forgot password?</button> <span class="muted">Reset it with an OTP on WhatsApp.</span></p>`}
-    ${LIVE && STAGING_LOGINS ? `<div class="notice info" style="margin-top:14px;display:block"><b>Staging test logins</b> (tap to fill)<div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${STAGING_LOGINS.map(a => `<button class="chip" type="button" data-act="fill-login" data-phone="${a[1]}" data-pw="${a[2]}">${a[0]} · ${a[1]}</button>`).join("")}</div><p class="small muted" style="margin-top:8px">Password: <b>${STAGING_PW}</b>.</p></div>` : ""}
-    ${LIVE ? "" : `<div class="notice info" style="margin-top:14px;display:block">Demo: password <b>Demo@1234</b> for 9876500001 (customer), 9876500101 (DSA), 9876500201 (TIP), 9876500999 (admin). WhatsApp OTP is always <b>123456</b>.</div>
-    <details style="margin-top:12px"><summary class="linkbtn" style="display:inline">Or switch to a demo role in one tap</summary><div class="accts" style="margin-top:10px">${acc.filter(a => ["u-cust", "u-dsa", "u-tip", "u-admin"].includes(a.id)).map(a => `<button class="acct" data-act="demo-login" data-id="${a.id}" type="button"><span class="avatar">${esc(initials(a.full_name))}</span><span><b>${esc(a.full_name)} <span class="rolechip">${ROLE_NAME[a.role]}</span></b><small>${desc[a.role]}${a.partner ? " · " + esc(a.partner) : ""}</small></span></button>`).join("")}</div></details>`}`);
+    ${otp ? "" : `<div class="row" style="margin-top:14px;gap:6px"><button class="chip" type="button" data-act="fill-admin">Admin</button><span class="small muted">Fills the admin username. Enter the password and tap Log in.</span></div>`}`);
 }
 function openForgot() {
   openModal(`<h2>Reset your password</h2><p class="muted" style="margin:4px 0 14px">Enter your registered mobile number. We'll send an OTP on WhatsApp, then you set a new password.</p>
@@ -927,11 +951,11 @@ function afterLogin(u) {
 let otpTimer = null;
 function openOtpStep(phone, purpose) {
   openModal(`<h2>Enter WhatsApp OTP</h2><p class="muted" style="margin:4px 0 14px">Sent to WhatsApp <b>+91 ${esc(phone.slice(0, 5))} ${esc(phone.slice(5))}</b>${purpose === "request" ? ". This confirms your number before we create the request." : ""}</p>
-    ${LIVE ? "" : `<p class="notice info" style="margin-bottom:12px">Demo OTP: <b>&nbsp;123456</b></p>`}
     <form class="stack" data-form="otp-verify" data-phone="${phone}" data-purpose="${purpose}" novalidate>
-      ${field("lg-otp", "6-digit OTP", `<input id="lg-otp" name="otp" inputmode="numeric" maxlength="9" autocomplete="one-time-code" style="font-family:var(--mono);font-size:24px;letter-spacing:.4em;text-align:center">`)}
-      <button class="btn btn-primary" type="submit">Verify${purpose === "request" ? " and submit request" : ""}</button></form>
+      ${field("lg-otp", "6-digit OTP", `<div class="otp-boxes" role="group" aria-label="6-digit OTP">${[0, 1, 2, 3, 4, 5].map(i => `<input class="otp-box" data-otp-i="${i}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="${i ? "off" : "one-time-code"}" aria-label="Digit ${i + 1}">`).join("")}</div><input type="hidden" id="lg-otp" name="otp" value="">`)}
+      <button class="btn btn-primary" type="submit" disabled>Verify${purpose === "request" ? " and submit request" : ""}</button></form>
     <p class="muted small" style="margin-top:12px;text-align:center">Didn't get it? <button class="linkbtn" id="otp-resend" data-act="otp-resend" data-phone="${phone}" type="button" disabled>Resend in 30s</button> · <button class="linkbtn" data-act="${purpose === "reset" ? "forgot-pw" : "login-otp"}" type="button">Change number</button></p>`);
+  const first = document.querySelector(".otp-box"); if (first) first.focus();
   let t = 30; clearInterval(otpTimer);
   otpTimer = setInterval(() => { const r = document.getElementById("otp-resend"); if (!r) return clearInterval(otpTimer); t--; if (t <= 0) { clearInterval(otpTimer); r.disabled = false; r.textContent = "Resend OTP"; } else r.textContent = "Resend in " + t + "s"; }, 1000);
 }
@@ -1473,7 +1497,6 @@ const actions = {
   "close-modal": () => closeModal(),
   "chat": b => openChat(b.dataset.thread),
   "login-tab": b => openLogin(b.dataset.v),
-  "fill-login": b => { openLogin("pw"); const ph = document.getElementById("pl-phone"), pw = document.getElementById("pl-pw"); if (ph) ph.value = b.dataset.phone; if (pw) pw.value = b.dataset.pw; (b.dataset.pw ? pw : pw)?.focus(); },
   "login-otp": () => openLogin("otp"),
   "forgot-pw": () => openForgot(),
   "change-password": () => openSetPassword("change"),
@@ -1560,6 +1583,12 @@ const actions = {
   "reload": () => render(),
   "login": () => openLogin(),
   "logout": async () => { await API.signOut(); try { localStorage.removeItem("cb-session"); localStorage.removeItem("cb-role"); } catch (e) {} toast("Logged out."); go("home"); },
+  "fill-admin": () => {   // fills the admin username only; the person types the password and logs in themselves
+    const ph = document.getElementById("pl-phone"), pw = document.getElementById("pl-pw");
+    if (ph) ph.value = LIVE ? "9999999999" : "9876500999";
+    if (!LIVE && pw) pw.value = "Demo@1234";   // demo mode only: fake local data, no real account
+    (pw || ph) && (pw || ph).focus();
+  },
   "demo-login": async b => { const u = await API.signInDemo(b.dataset.id); try { localStorage.setItem("cb-session", u.id); } catch (e) {} closeModal(); toast(`Logged in as ${u.full_name} (${ROLE_NAME[u.role]}).`); go(ROLE_HOME[u.role]); },
   "reset-demo": () => { resetDemoData(); S.cities = null; S.results = null; S.compare = []; toast("Demo data reset."); go(S.view === "home" ? "home" : S.view, S.tab); },
   "pick-pin": b => { $("#pin").value = b.dataset.pin; searchPin(b.dataset.pin); },
@@ -1577,6 +1606,7 @@ const actions = {
   "refresh-device": async b => { const d = await guard(b, () => API.refreshDevice(b.dataset.id)); toast(stateMsg(d)); render(); },
   "dsa-filter": b => { S.dsaFilter = b.dataset.v; resetServerTable("dsa-leads"); render(); },
   "admin-lead-filter": b => { S.adminLeadFilter = b.dataset.v; resetServerTable("adm-leads"); render(); },
+  "partners-pending": b => { if (S.view !== "admin" || S.tab !== "partners") { S.partnerStatus = "pending"; go("admin", "partners"); return; } S.partnerStatus = b.dataset.all || S.partnerStatus === "pending" ? "all" : "pending"; render(); },
   "partner-type": b => { S.partnerType = b.dataset.v; render(); },
   "perf-type": b => { S.perfType = b.dataset.v; render(); },
   "zone-filter": b => { S.zoneFilter = b.dataset.v; resetServerTable("adm-leads"); render(); setTimeout(() => { const t = document.querySelector("#tabbody .tbl-wrap"); if (t && b.dataset.v !== "all") t.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80); },
@@ -1708,6 +1738,7 @@ const onInput = e => {
   pinAssist(e.target); pinListAssist(e.target); pinSuggest(e.target, API);
   const t = e.target;
   if (t && t.tagName === "INPUT" && /phone$/.test(t.name)) { const c = normPhone(t.value).slice(0, 12); if (t.value !== c) t.value = c; }   // strips + spaces - and the 91 / 0 prefix
+  if (t && t.classList && t.classList.contains("otp-box")) { const d = t.value.replace(/\D/g, ""); t.value = ""; if (d) otpFill(t, d); else otpSync(t); return; }
   if (t && t.tagName === "INPUT" && t.name === "otp") { const c = t.value.replace(/\D/g, "").slice(0, 6); if (t.value !== c) t.value = c; }
   const el = e.target; if (!el.dataset || !el.dataset.filter) return;
   const k = el.dataset.filter;
@@ -2073,6 +2104,7 @@ export function init({ navigate: nav }) {
   document.addEventListener("keydown", onKeydown);
   document.addEventListener("click", onClick);
   document.addEventListener("input", onInput);
+  document.addEventListener("paste", onPaste);
   document.addEventListener("focusout", pinSuggestBlur);
   document.addEventListener("visibilitychange", onVisibility);
   rowViewObs = new MutationObserver(() => addRowViews()); rowViewObs.observe(app, { childList: true, subtree: true });
@@ -2087,7 +2119,7 @@ export function init({ navigate: nav }) {
     document.removeEventListener("click", onClick);
     document.removeEventListener("focusout", pinSuggestBlur);
     document.removeEventListener("visibilitychange", onVisibility); clearInterval(pollT); if (rowViewObs) rowViewObs.disconnect();
-    document.removeEventListener("input", onInput);
+    document.removeEventListener("input", onInput); document.removeEventListener("paste", onPaste);
     document.removeEventListener("change", onChange);
     document.removeEventListener("submit", onSubmit);
   };

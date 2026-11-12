@@ -43,7 +43,7 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
   return (
     <header className="dsh-top">
       <button type="button" className="dsh-burger" aria-label="Open menu" aria-expanded={navOpen} onClick={onBurger}><Menu aria-hidden="true" /></button>
-      <Link href="/" className="dsh-logo" aria-label="Connect Bhai home"><Logo height={38} /></Link>
+      <Link href="/?site=1" className="dsh-logo" aria-label="Connect Bhai home"><Logo height={38} /></Link>
       <form className={`dsh-search${mOpen ? " is-open" : ""}`} id="dsh-search" role="search" onSubmit={submit} ref={box}>
         <Search aria-hidden="true" />
         <input name="q" type="search" placeholder={PLACEHOLDER[role]} aria-label="Search" autoComplete="off" value={q}
@@ -72,7 +72,7 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
           </button>
           <div className="dsh-menu" role="menu" hidden={!acctOpen} onClick={onClose}>
             {FEES[role] && <Link prefetch={false} href={hrefOf(role, FEES[role][0])} role="menuitem">{FEES[role][1]}</Link>}
-            <Link href="/" role="menuitem">Go to website</Link>
+            <Link href="/?site=1" role="menuitem">Go to website</Link>
             {!LIVE && <button type="button" role="menuitem" data-act="reset-demo">Reset demo data</button>}
             <button type="button" role="menuitem" data-act="logout">Log out</button>
           </div>
