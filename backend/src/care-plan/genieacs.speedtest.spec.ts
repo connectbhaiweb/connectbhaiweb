@@ -79,6 +79,27 @@ describe('GenieAcsProvider.speedTest (TR-143)', () => {
     expect(r.download_mbps).toBeGreaterThan(0);
   });
 
+  it('asks the modem for its result again once an earlier refresh was collected too early', async () => {
+    const tasks: string[] = []; let reads = 0, pending: string | null = null, n = 0;
+    global.fetch = jest.fn(async (url: string, init: any = {}) => {
+      const u = String(url);
+      if (u.includes('/tasks?query')) return { ok: true, status: 200, json: async () => (pending ? [{ _id: pending }] : []) };
+      if (u.includes('/tasks?connection_request')) {
+        const b = JSON.parse(init.body); tasks.push(b.name);
+        if (b.name === 'refreshObject') { pending = 'r' + ++n; return { ok: true, status: 202, json: async () => ({ _id: pending }) }; }
+        return { ok: true, status: 200, json: async () => ({}) };
+      }
+      if (init.method === 'DELETE') return { ok: true, status: 200, json: async () => ({}) };
+      reads++; pending = null;   // the modem collects the queued refresh between looks
+      const done = reads > 14;
+      const dl = done ? { DiagnosticsState: val('Completed'), BOMTime: val('2026-11-12T09:09:03'), EOMTime: val('2026-11-12T09:09:13'), TestBytesReceived: val(10_485_760) } : { DiagnosticsState: val('Requested') };
+      return { ok: true, status: 200, json: async () => [{ _id: 'X', InternetGatewayDevice: { DownloadDiagnostics: dl, IPPingDiagnostics: { DiagnosticsState: val('Complete'), SuccessCount: val(4), AverageResponseTime: val(20) } } }] };
+    }) as any;
+    const r = await new GenieAcsProvider(cfg({ SPEEDTEST_MAX_MS: 5000 })).speedTest('X');
+    expect(r.download_mbps).toBeGreaterThan(0);
+    expect(tasks.filter((t) => t === 'refreshObject').length).toBeGreaterThan(1);
+  });
+
   it('times out when the modem never finishes', async () => {
     fakeAcs({ DownloadDiagnostics: () => ({ DiagnosticsState: val('Requested') }), IPPingDiagnostics: () => ({}) });
     await expect(new GenieAcsProvider(cfg({ SPEEDTEST_MAX_MS: 1 })).speedTest('X')).rejects.toThrow('did not finish');

@@ -176,6 +176,10 @@ export class GenieAcsProvider {
   private async withdraw(ids: string[]) {   // best effort: never leave a queued download or refresh behind to run later on the customer's modem
     await Promise.all(ids.map((id) => this.nbi(`/tasks/${encodeURIComponent(id)}`, { method: 'DELETE', ms: 10_000 }).catch(() => undefined)));
   }
+  /** True while GenieACS still holds the task (the modem has not collected it). A failed look counts as still queued, so we never pile up refreshes. */
+  private async isQueued(id: string): Promise<boolean> {
+    try { const r = await this.nbi(`/tasks?query=${encodeURIComponent(JSON.stringify({ _id: id }))}&projection=_id`, { ms: 8_000 }); return ((await r.json()) as any[]).length > 0; } catch { return true; }
+  }
   private async readObject(deviceId: string, path: string): Promise<any> {
     const r = await this.nbi(`/devices?query=${encodeURIComponent(JSON.stringify({ _id: deviceId }))}&projection=${encodeURIComponent(path)}`, { ms: 10_000 });
     return path.split('.').reduce((o: any, k) => o?.[k], (await r.json())[0]) ?? {};
@@ -184,7 +188,7 @@ export class GenieAcsProvider {
   private async runDiagnostic(deviceId: string, name: 'DownloadDiagnostics' | 'IPPingDiagnostics', params: [string, string | number, string][], done: string): Promise<any> {
     const root = `InternetGatewayDevice.${name}`;
     const queued: string[] = [];   // tasks GenieACS could only queue; withdrawn if the test does not finish
-    let refreshQueued = false, polls = 0;
+    let refreshId: string | null = null, polls = 0;   // refreshId = a refresh GenieACS has queued but the modem has not collected yet
     try {
       const prior = await this.readObject(deviceId, root).catch(() => ({}));
       const before = prior?.BOMTime?._value;
@@ -192,13 +196,14 @@ export class GenieAcsProvider {
       const priorAt = stateAt(prior);   // an Error left by an earlier run keeps this timestamp until the modem reports again: it is not the answer to THIS request
       const set = await this.task(deviceId, { name: 'setParameterValues', parameterValues: [...params.map(([k, v, t]) => [`${root}.${k}`, v, t]), [`${root}.DiagnosticsState`, 'Requested', 'xsd:string']] });
       if (set) queued.push(set);
-      const gap = Number(this.cfg.get('SPEEDTEST_POLL_MS') ?? 3000), deadline = Date.now() + Number(this.cfg.get('SPEEDTEST_MAX_MS') ?? 60_000);
+      const gap = Number(this.cfg.get('SPEEDTEST_POLL_MS') ?? 3000), deadline = Date.now() + Number(this.cfg.get('SPEEDTEST_MAX_MS') ?? 120_000);   // the modem only checks in about once a minute: task, download and a later refresh each wait for one
       do {
         await new Promise((r) => setTimeout(r, gap));
-        // the modem reports the result in its own "diagnostics complete" inform, so mostly we just read; a refresh is asked for at most once at a time, every 5th look
-        if (!refreshQueued && polls++ % 5 === 4) {
+        // this modem does not push its result: it has to be asked for it. A refresh queued before the download ends reads zeros, so once the modem has collected one (the task leaves the queue) another is asked for, every 5th look
+        if (refreshId && !(await this.isQueued(refreshId))) refreshId = null;
+        if (!refreshId && polls++ % 5 === 4) {
           const id = await this.task(deviceId, { name: 'refreshObject', objectName: root }, 12_000).catch(() => null);
-          if (id) { queued.push(id); refreshQueued = true; }
+          if (id) { queued.push(id); refreshId = id; }
         }
         const o = await this.readObject(deviceId, root);
         const state = o.DiagnosticsState?._value;
