@@ -15,7 +15,7 @@ import { ROLE_HOME, ROLE_NAME, initials, pathFor } from "./shared";
    ===================================================================== */
 const $ = s => document.querySelector(s);
 let app = null;                       // <main id="app">, resolved in init()
-let navigate = () => {};              // set in init(): (path, "push" | "replace") => void
+let navigate = () => { };              // set in init(): (path, "push" | "replace") => void
 let renderedKey = null;               // "view/tab" currently painted into #app
 const S = { view: "home", tab: null, pin: "", areas: [], results: null, f: { speed: 0, price: 2000, ott: false, tv: false, providers: [], sort: "price" }, compare: [] };
 const PROVIDER_COLORS = ["#1450E6", "#0B7A75", "#6A3FD1", "#B4541A", "#0E6BA8", "#8A2D6B"];
@@ -105,7 +105,7 @@ const stateMsg = d => !d ? "Status refreshed." : d.state === "online" ? "Router 
 function deviceView(d) {
   const live = d && !d.is_simulated;
   const tag = live ? `<span class="badge live" title="Reported by the modem through GenieACS (Care plan)">Live · GenieACS</span>`
-                   : `<span class="badge sim" title="Not a live reading. Shows Live once the modem reports through GenieACS.">Simulated</span>`;
+    : `<span class="badge sim" title="Not a live reading. Shows Live once the modem reports through GenieACS.">Simulated</span>`;
   if (!d || d.state === "unknown") return `${pill(live ? "Not reporting to GenieACS" : "Not reporting yet", "p-grey")} ${tag}`;
   const m = d.last_seen ? Math.max(0, Math.round((Date.now() - new Date(d.last_seen)) / 60000)) : null;
   return `${d.state === "online" ? pill("Online", "p-ok") : pill("Offline", "p-bad")} ${tag}${m !== null ? ` <span class="muted small">last seen ${m < 1 ? "just now" : m < 120 ? m + " min ago" : fdt(d.last_seen)}</span>` : ""}`;
@@ -122,13 +122,15 @@ const LIVE_STEPS = { reboot: ["Command sent", "Waiting for your modem to pick it
 const liveBox = id => document.getElementById("cu-live-" + id) || document.getElementById("rt-" + id);
 function liveHtml(kind, st, sec, ssid, err) {
   const step = st === "done" ? 4 : st === "sent" ? 2 : 1, bad = st === "failed" || st === "timeout", mm = Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
-  const li = LIVE_STEPS[kind].map((t, i) => { const ok = i < step, cur = !bad && st !== "done" && i === step, x = bad && i === step;
-    return `<li class="lv ${ok ? "ok" : cur ? "cur" : x ? "bad" : ""}"><span class="lv-d">${ok ? "✓" : x ? "✕" : cur ? `<i class="lv-spin"></i>` : i + 1}</span><span>${esc(t)}</span></li>`; }).join("");
+  const li = LIVE_STEPS[kind].map((t, i) => {
+    const ok = i < step, cur = !bad && st !== "done" && i === step, x = bad && i === step;
+    return `<li class="lv ${ok ? "ok" : cur ? "cur" : x ? "bad" : ""}"><span class="lv-d">${ok ? "✓" : x ? "✕" : cur ? `<i class="lv-spin"></i>` : i + 1}</span><span>${esc(t)}</span></li>`;
+  }).join("");
   const head = st === "done" ? (kind === "reboot" ? "Restart finished" : "Wi-Fi changed") : st === "failed" ? "Could not finish" : st === "timeout" ? "Still waiting for the modem" : kind === "reboot" ? "Restarting your router" : "Changing your Wi-Fi";
   const note = st === "done" ? (kind === "wifi" ? `Join <b>${esc(ssid || "your Wi-Fi")}</b> on your phone or laptop${ssid ? " with the new password" : ""}.` : "Your internet is back.")
     : st === "failed" ? esc(err || "The modem did not accept it. Please try again.")
-    : st === "timeout" ? "The modem has not checked in. It will apply this when it is back online. Check that it is powered on." 
-    : kind === "wifi" ? "Phones and laptops on this Wi-Fi will disconnect. Reconnect after about a minute." : "Internet and Wi-Fi are off for about 2 minutes. You do not need to do anything.";
+      : st === "timeout" ? "The modem has not checked in. It will apply this when it is back online. Check that it is powered on."
+        : kind === "wifi" ? "Phones and laptops on this Wi-Fi will disconnect. Reconnect after about a minute." : "Internet and Wi-Fi are off for about 2 minutes. You do not need to do anything.";
   return `<div class="lv-box ${st === "done" ? "is-ok" : bad ? "is-bad" : ""}" role="status" aria-live="polite"><div class="lv-h"><b>${head}</b>${st === "done" || bad ? "" : `<span class="lv-t">${mm}</span>`}</div><ul class="lv-l">${li}</ul><p class="lv-n">${note}</p></div>`;
 }
 async function trackAction(id, kind, ssid) {
@@ -175,8 +177,10 @@ function contactCard(label, c, opt) {
 }
 const contactLine = (label, c, opt) => c ? `<div class="row small" style="gap:4px 10px"><span class="muted">${label}</span><b>${esc(c.name || "")}</b><span>${esc(fmtPh(c.phone))}</span>${c.email ? `<span class="muted">${esc(c.email)}</span>` : ""}${contactBtns(c, opt)}</div>` : "";
 const WA_NOTE = `<p class="muted small" style="margin:-6px 0 16px">WhatsApp opens the chat in WhatsApp Desktop, WhatsApp Web or the phone app. Tap the call icon in that chat for a WhatsApp voice or video call. <b>Chat</b> works here any time and keeps one record for the customer, agent, installer and admin.</p>`;
-const msgsHtml = ms => ms.length ? ms.map(m => { const mine = m.sender_id === me().id;
-  return `<div class="msg${mine ? " mine" : ""}">${mine ? "" : `<span class="mwho">${esc(m.sender_name)} · ${ROLE_SHORT[m.sender_role] || ""}</span>`}${esc(m.body)}<time>${fdt(m.created_at)}</time></div>`; }).join("")
+const msgsHtml = ms => ms.length ? ms.map(m => {
+  const mine = m.sender_id === me().id;
+  return `<div class="msg${mine ? " mine" : ""}">${mine ? "" : `<span class="mwho">${esc(m.sender_name)} · ${ROLE_SHORT[m.sender_role] || ""}</span>`}${esc(m.body)}<time>${fdt(m.created_at)}</time></div>`;
+}).join("")
   : `<p class="muted small" style="margin:auto;text-align:center">No messages yet. Write the first one below.</p>`;
 function convoHtml(r) {
   const u = me(), t = r.thread;
@@ -197,14 +201,14 @@ async function openChat(thread) { const r = await guard(null, () => API.threadMe
 function scrollChat() { document.querySelectorAll(".msgs").forEach(el => { el.scrollTop = el.scrollHeight; }); }
 setInterval(async () => {   // keep an open chat fresh (new messages from the other side)
   const c = document.querySelector("[data-convo]"); if (!c || document.hidden || !me()) return;
-  try { const r = await API.threadMessages(c.dataset.convo); const box = c.querySelector(".msgs"); if (box && Number(box.dataset.n) !== r.messages.length) { box.innerHTML = msgsHtml(r.messages); box.dataset.n = r.messages.length; box.scrollTop = box.scrollHeight; } } catch (e) {}
+  try { const r = await API.threadMessages(c.dataset.convo); const box = c.querySelector(".msgs"); if (box && Number(box.dataset.n) !== r.messages.length) { box.innerHTML = msgsHtml(r.messages); box.dataset.n = r.messages.length; box.scrollTop = box.scrollHeight; } } catch (e) { }
 }, 10000);
 
 /* ---------- header ---------- */
 /* The header is a React component (components/Header.jsx). Legacy code calls this whenever the session changes. */
 function renderHeader() {
   const u = me(); publish({ user: u ? { role: u.role, full_name: u.full_name } : null });
-  try { if (u) localStorage.setItem("cb-role", u.role); else localStorage.removeItem("cb-role"); } catch (e) {}   // lets the pre-paint script in layout.js cover "/" for partners
+  try { if (u) localStorage.setItem("cb-role", u.role); else localStorage.removeItem("cb-role"); } catch (e) { }   // lets the pre-paint script in layout.js cover "/" for partners
 }
 /* QA: a full-screen "opening your dashboard" cover (CSS: html[data-entering]) from login, or from "/" for a signed-in partner,
    until the dashboard shell is on screen (DashboardShell removes it); a 10 s fallback never leaves it stuck. */
@@ -247,11 +251,11 @@ const track = p => { busy++; document.documentElement.classList.add("is-loading"
 const REACT_VIEWS = { my: t => !t || ["bookings", "devices"].includes(t), dsa: t => !t || ["home", "careplan", "customers", "tickets"].includes(t), tip: t => !t || ["home", "careplan", "leads"].includes(t), admin: t => !t || ["overview", "careplan", "customers"].includes(t) };
 async function render() {
   const v = S.view;
-  if (v !== "home") try { sessionStorage.removeItem("cb-site"); } catch (e) {}
+  if (v !== "home") try { sessionStorage.removeItem("cb-site"); } catch (e) { }
   if (v === "home") {
     const u = me();
     let browse = false;   // "?site=1" (portal logo, footer logo, Go to website) opens the public homepage for this tab even when signed in as a partner
-    try { if (/[?&]site=1\b/.test(location.search)) sessionStorage.setItem("cb-site", "1"); browse = sessionStorage.getItem("cb-site") === "1"; } catch (e) {}
+    try { if (/[?&]site=1\b/.test(location.search)) sessionStorage.setItem("cb-site", "1"); browse = sessionStorage.getItem("cb-site") === "1"; } catch (e) { }
     if (u && PARTNER_HOME[u.role] && !browse) {   // DSA / TIP / admin have no use for the plan search page: straight to their dashboard (no history entry)
       entering(true); S.view = ROLE_HOME[u.role]; S.tab = null; renderedKey = S.view + "/"; navigate(pathFor(S.view, null), "replace"); renderHeader(); return render();
     }
@@ -270,7 +274,7 @@ async function render() {
     return;
   }
   if (v === "tip" && (S.tab === "bookings" || S.tab === "customers")) {   // QA 8: old Installs / Customers links open Leads, filtered
-    try { sessionStorage.setItem("cb-tip-filter", S.tab === "bookings" ? "booked" : "installed"); } catch (e) {}
+    try { sessionStorage.setItem("cb-tip-filter", S.tab === "bookings" ? "booked" : "installed"); } catch (e) { }
     window.dispatchEvent(new CustomEvent("cb:tip-filter")); S.tab = "leads"; renderedKey = "tip/leads"; navigate(pathFor("tip", "leads"), "replace");
   }
   if (REACT_VIEWS[v] && REACT_VIEWS[v](S.tab)) { app.innerHTML = ""; window.dispatchEvent(new CustomEvent("cb:render", { detail: { view: v, tab: S.tab } })); return; }
@@ -283,7 +287,7 @@ async function render() {
    1. CUSTOMER WEBSITE
    ===================================================================== */
 async function renderHome() {
-  let pins = []; try { pins = await API.popularPins(); } catch (e) {} S.pins = pins; S.product = S.product || "broadband"; await loadCities();
+  let pins = []; try { pins = await API.popularPins(); } catch (e) { } S.pins = pins; S.product = S.product || "broadband"; await loadCities();
   app.innerHTML = `
   <section class="hero"><div class="wrap">
     <div class="hero-copy">
@@ -361,7 +365,7 @@ async function renderHome() {
     </form>
   </div></section>`;
   if (S.results) renderResults();
-  API.getSettings().then(st => { const el = document.getElementById("pa-fee"); if (el && st) el.innerHTML = `TIP registration fee, paid online when you submit: <b>${inr(st.registration_fee_tip)}</b> plus ${st.gst_percent || 18}% GST (UPI, card, net banking or wallet). <b>DSA registration is free</b>: a DSA earns a commission on every installed lead.`; }).catch(() => {});
+  API.getSettings().then(st => { const el = document.getElementById("pa-fee"); if (el && st) el.innerHTML = `TIP registration fee, paid online when you submit: <b>${inr(st.registration_fee_tip)}</b> plus ${st.gst_percent || 18}% GST (UPI, card, net banking or wallet). <b>DSA registration is free</b>: a DSA earns a commission on every installed lead.`; }).catch(() => { });
 }
 
 /* ---------- products on the customer site ---------- */
@@ -482,9 +486,9 @@ function openCompare() {
   if (ps.length < 2) { toast("Select at least 2 plans to compare."); return; }
   const speedy = ps.some(p => isSpeedCat(p.category)), sim = ps.some(p => p.category.startsWith("sim"));
   const rows = [["Provider", p => esc(p.provider.name)], ...(speedy ? [["Speed", p => `<b>${p.speed_mbps || "—"} Mbps</b>`]] : []), ["Price", p => `<b>${inr(p.price_monthly)}</b>${priceUnit(p)}`],
-    ...(speedy ? [["₹ per Mbps", p => p.speed_mbps ? "₹" + (p.price_monthly / p.speed_mbps).toFixed(1) : "—"]] : []),
-    ...(sim ? [["Data", p => p.data_per_day_gb ? p.data_per_day_gb + " GB/day" : dataTxt(p)], ["Validity", p => p.validity_days + " days"], ["Calls", p => esc(p.voice || "—")], ["SMS", p => p.sms_per_day ? p.sms_per_day + "/day" : "—"]] : [["Data", dataTxt], ["Installation", p => Number(p.install_charge) ? inr(p.install_charge) : "Free"]]),
-    ["OTT apps", p => p.ott_apps.length ? esc(p.ott_apps.join(", ")) : "—"], ...(sim ? [] : [["TV channels", p => p.tv_channels ? p.tv_channels + "+" : "—"]])];
+  ...(speedy ? [["₹ per Mbps", p => p.speed_mbps ? "₹" + (p.price_monthly / p.speed_mbps).toFixed(1) : "—"]] : []),
+  ...(sim ? [["Data", p => p.data_per_day_gb ? p.data_per_day_gb + " GB/day" : dataTxt(p)], ["Validity", p => p.validity_days + " days"], ["Calls", p => esc(p.voice || "—")], ["SMS", p => p.sms_per_day ? p.sms_per_day + "/day" : "—"]] : [["Data", dataTxt], ["Installation", p => Number(p.install_charge) ? inr(p.install_charge) : "Free"]]),
+  ["OTT apps", p => p.ott_apps.length ? esc(p.ott_apps.join(", ")) : "—"], ...(sim ? [] : [["TV channels", p => p.tv_channels ? p.tv_channels + "+" : "—"]])];
   openModal(`<h2>Compare plans</h2><p class="muted small" style="margin:4px 0 14px">${S.pin ? "PIN " + esc(S.pin) + " · " : ""}demo data</p>
     <div class="tbl-wrap"><table class="tbl" style="min-width:${180 + ps.length * 170}px"><thead><tr><th></th>${ps.map(p => `<th>${esc(p.name)}</th>`).join("")}</tr></thead>
     <tbody>${rows.map(([l, fn]) => `<tr><td class="muted" style="font-weight:700">${l}</td>${ps.map(p => `<td>${fn(p)}</td>`).join("")}</tr>`).join("")}
@@ -626,7 +630,7 @@ function commissionList(cs) {
   return `<div class="kpis"><div class="kpi"><span>Pending approval</span><b>${inr(sum("pending"))}</b></div><div class="kpi"><span>Approved</span><b>${inr(sum("approved"))}</b><small>awaiting payment</small></div><div class="kpi"><span>Paid</span><b>${inr(sum("paid"))}</b></div><div class="kpi"><span>Installs</span><b>${cs.length}</b></div></div>
   ${cs.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Booking</th><th>Customer</th><th>Plan</th><th>Installed</th><th class="r">Amount</th><th>Status</th></tr></thead><tbody>
   ${cs.map(c => `<tr><td class="mono">${esc(c.booking.ref_code)}</td><td>${esc(c.booking.lead ? c.booking.lead.name : "")}</td><td>${esc(c.booking.plan ? c.booking.plan.name : "")}</td><td>${fdate(c.booking.installed_at)}</td><td class="r num">${inr(c.amount)}</td><td>${commPill(c.status)}</td></tr>`).join("")}</tbody></table></div>`
-  : `<div class="empty"><b>No commissions yet.</b><p class="muted">Commissions are created when an installation is completed.</p></div>`}`;
+      : `<div class="empty"><b>No commissions yet.</b><p class="muted">Commissions are created when an installation is completed.</p></div>`}`;
 }
 /* ---------- earnings & lead-promise dashboards (computed from the same records every portal uses) ---------- */
 const monthKeys = n => { const d = new Date(), a = []; for (let i = n - 1; i >= 0; i--) { const x = new Date(d.getFullYear(), d.getMonth() - i, 1); a.push(x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0")); } return a; };
@@ -650,14 +654,18 @@ function pStats(p, leads, bookings, comms, charges, st) {
   const price = b => b.plan ? b.plan.price_monthly : 0, share = Number(st.tip_share_percent) || 0;
   const billing = sumBy(inst, price), closed = mine.filter(l => ["installed", "lost"].includes(l.status)).length, won = mine.filter(l => l.status === "installed").length;
   const end = k => { const [y, m] = k.split("-").map(Number); return new Date(y, m, 1).toISOString(); };
-  const by = keys.map(k => ({ k, leads: given.filter(l => mKey(l.assigned_at || l.created_at) === k).length, installs: inst.filter(b => mKey(b.installed_at) === k).length,
-    comm: sumBy(cm.filter(c => mKey(c.created_at) === k), c => c.amount), billing: sumBy(inst.filter(b => (b.installed_at || "") < end(k)), price) }));
+  const by = keys.map(k => ({
+    k, leads: given.filter(l => mKey(l.assigned_at || l.created_at) === k).length, installs: inst.filter(b => mKey(b.installed_at) === k).length,
+    comm: sumBy(cm.filter(c => mKey(c.created_at) === k), c => c.amount), billing: sumBy(inst.filter(b => (b.installed_at || "") < end(k)), price)
+  }));
   const target = Number(p.lead_target) || Number(st.lead_target_default) || 20;
   const dNow = new Date(), daysLeft = new Date(dNow.getFullYear(), dNow.getMonth() + 1, 0).getDate() - dNow.getDate();
-  return { p, isT, keys, by, given, own, inst, won, target, daysLeft, share, billing, thisMonth: by[5].leads, installsMonth: by[5].installs,
+  return {
+    p, isT, keys, by, given, own, inst, won, target, daysLeft, share, billing, thisMonth: by[5].leads, installsMonth: by[5].installs,
     conv: closed ? Math.round(won / closed * 100) : 0, open: mine.filter(l => !["installed", "lost"].includes(l.status)).length,
     comm: { pending: sumBy(cm.filter(c => c.status === "pending"), c => c.amount), approved: sumBy(cm.filter(c => c.status === "approved"), c => c.amount), paid: sumBy(cm.filter(c => c.status === "paid"), c => c.amount) },
-    fee: { paid: sumBy(fees.filter(c => c.status === "paid"), c => c.amount), due: sumBy(fees.filter(c => ["due", "failed"].includes(c.status)), c => c.amount) } };
+    fee: { paid: sumBy(fees.filter(c => c.status === "paid"), c => c.amount), due: sumBy(fees.filter(c => ["due", "failed"].includes(c.status)), c => c.amount) }
+  };
 }
 function promiseCard(s, admin) {
   const pct = s.target ? Math.min(100, Math.round(s.thisMonth / s.target * 100)) : 100, met = s.thisMonth >= s.target;
@@ -704,8 +712,10 @@ async function renderDSA() {
   let body;
   if (tab === "leads") body = `<div class="kpis"><div class="kpi"><span>Open leads</span><b>${open}</b></div><div class="kpi"><span>Follow-ups due</span><b>${st.followups_due}</b><small>today or earlier</small></div><div class="kpi"><span>Booked</span><b>${L.booked}</b></div><div class="kpi"><span>Installed</span><b>${L.installed}</b></div></div>
     <div class="chips" style="margin-bottom:14px">${[["open", "Open"], ["due", "Follow-up due"], ["assigned", "New to call"], ["contacted", "Contacted"], ["booked", "Booked"], ["installed", "Installed"], ["lost", "Lost"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="dsa-filter" data-v="${k}" aria-pressed="${filt === k}">${l}</button>`).join("")}</div>
-    ${serverTable("dsa-leads", { role: "dsa", kind: "leads", filters: () => ({ status: S.dsaFilter || "open" }), label: "Search leads", html: rows => `<div class="list">${rows.map(l => leadRow(l, "dsa")).join("")}</div>`,
-      empty: `No leads here yet. Website requests from your PIN codes (${partner.service_pincodes || "none set"}) are assigned to you automatically. You can also add customers you meet in the field.` })}`;
+    ${serverTable("dsa-leads", {
+    role: "dsa", kind: "leads", filters: () => ({ status: S.dsaFilter || "open" }), label: "Search leads", html: rows => `<div class="list">${rows.map(l => leadRow(l, "dsa")).join("")}</div>`,
+    empty: `No leads here yet. Website requests from your PIN codes (${partner.service_pincodes || "none set"}) are assigned to you automatically. You can also add customers you meet in the field.`
+  })}`;
   if (tab === "installs") body = serverTable("dsa-installs", { role: "dsa", kind: "bookings", label: "Search installations", empty: "No installations yet.", html: rows => `<div class="list">${rows.map(b => `<div class="item"><div class="ih"><h3>${esc(b.lead.name)}</h3>${bookPill(b.status)}<span class="spacer"></span><span class="mono muted">${esc(b.ref_code)}</span></div><div class="meta"><span><b>${esc(fmtPh(b.lead.phone))}</b></span><span>${planLine(b.plan)}</span><span>Scheduled <b>${fdate(b.scheduled_date)}</b></span>${b.tip ? `<span>TIP <b>${esc(b.tip.name)}</b></span>` : ""}</div>${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}${contactLine("Installer", b.tip)}</div>`).join("")}</div>` });
   if (tab === "commission") body = `<div class="kpis"><div class="kpi"><span>Pending approval</span><b>${inr(C.pending)}</b></div><div class="kpi"><span>Approved</span><b>${inr(C.approved)}</b><small>awaiting payment</small></div><div class="kpi"><span>Paid</span><b>${inr(C.paid)}</b></div><div class="kpi"><span>Installs</span><b>${st.commission_count}</b></div></div>
     ${serverTable("dsa-comm", { role: "dsa", kind: "commissions", label: "Search earnings", empty: "No commissions yet. Commissions are created when an installation is completed.", html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Booking</th><th>Customer</th><th>Plan</th><th>Installed</th><th class="r">Amount</th><th>Status</th></tr></thead><tbody>${rows.map(c => `<tr><td class="mono">${esc(c.booking.ref_code)}</td><td>${esc(c.booking.lead ? c.booking.lead.name : "")}</td><td>${esc(c.booking.plan ? c.booking.plan.name : "")}</td><td>${fdate(c.booking.installed_at || c.created_at)}</td><td class="r num">${inr(c.amount)}</td><td>${commPill(c.status)}</td></tr>`).join("")}</tbody></table></div>` })}`;
@@ -723,18 +733,24 @@ async function renderTIP() {
   let body;
   if (tab === "bookings") body = `<div class="kpis"><div class="kpi"><span>To schedule</span><b>${toBook}</b></div><div class="kpi"><span>Installs pending</span><b>${activeN}</b></div><div class="kpi"><span>Active customers</span><b>${customersN}</b></div><div class="kpi"><span>Open tickets</span><b>${openT}</b></div></div>
     <h3 style="margin:6px 0 10px;font-size:17px">Installations</h3>
-    ${serverTable("tip-active", { role: "tip", kind: "bookings", filters: () => ({ status: "scheduled" }), label: "Search installations", empty: "No installations pending.", html: rows => `<div class="list">${rows.map(b => `<div class="item"><div class="ih"><h3>${esc(b.lead.name)}</h3>${bookPill(b.status)}<span class="spacer"></span><span class="mono muted">${esc(b.ref_code)}</span></div>
+    ${serverTable("tip-active", {
+    role: "tip", kind: "bookings", filters: () => ({ status: "scheduled" }), label: "Search installations", empty: "No installations pending.", html: rows => `<div class="list">${rows.map(b => `<div class="item"><div class="ih"><h3>${esc(b.lead.name)}</h3>${bookPill(b.status)}<span class="spacer"></span><span class="mono muted">${esc(b.ref_code)}</span></div>
       <div class="meta"><span><b>${esc(fmtPh(b.lead.phone))}</b></span>${b.lead.email ? `<span>${esc(b.lead.email)}</span>` : ""}<span>${esc(b.lead.address || b.lead.area || "")} · ${esc(b.lead.pincode)}</span><span>${planLine(b.plan)}</span><span>Scheduled <b>${fdate(b.scheduled_date)}</b></span></div>
       ${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id, text: "Namaste " + b.lead.name + ", Connect Bhai installer here about your connection " + b.ref_code })}${contactLine("Agent", b.dsa)}
-      <div class="row"><button class="btn btn-primary btn-sm" data-act="booking-status" data-id="${b.id}" type="button">Update installation</button>${mapLink(b.lead, true)}</div></div>`).join("")}</div>` })}
+      <div class="row"><button class="btn btn-primary btn-sm" data-act="booking-status" data-id="${b.id}" type="button">Update installation</button>${mapLink(b.lead, true)}</div></div>`).join("")}</div>`
+  })}
     <h3 style="margin:22px 0 10px;font-size:17px">Assigned leads to schedule</h3>
     ${serverTable("tip-toschedule", { role: "tip", kind: "leads", filters: () => ({ status: "tobook" }), label: "Search leads", empty: "Nothing to schedule.", html: rows => `<div class="list">${rows.map(l => leadRow(l, "tip")).join("")}</div>` })}`;
   if (tab === "customers") body = `<div class="notice info" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span style="flex:1 1 320px">Enter the ONT serial when you mark an installation complete, and set the modem's ACS URL to your own GenieACS (or Connect Bhai's, as agreed with admin). Keep the ACS link on after installation so the customer stays on the Care plan. Use it only with the provider's written authorisation.</span><button class="btn btn-primary btn-sm" data-go="tip" data-go-tab="careplan" type="button">Manage modems</button></div>
-    ${serverTable("tip-customers", { role: "tip", kind: "bookings", filters: () => ({ status: "installed", devices: true }), label: "Search customers", empty: "No installed customers yet.", html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Customer</th><th>Connection ref</th><th>Plan</th><th>Installed</th><th>Authorised</th><th>Router status</th><th></th></tr></thead><tbody>
-    ${rows.map(b => `<tr><td><b>${esc(b.lead.name)}</b><br><span class="muted">${esc(fmtPh(b.lead.phone))}</span>${b.lead.email ? `<br><span class="muted small">${esc(b.lead.email)}</span>` : ""}${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}</td><td class="mono">${esc(b.connection_ref || "—")}<br><span class="muted">ONT ${esc(b.ont_serial || "not linked")}</span></td><td>${esc(b.plan ? b.plan.name : "")}<br><span class="muted">${b.plan ? b.plan.speed_mbps + " Mbps" : ""}</span></td><td>${fdate(b.installed_at)}</td><td>${b.authorized ? pill("Authorised", "p-ok") : pill("Pending", "p-warn")}</td><td>${deviceView(b.device)}${b.device && b.device.acs ? `<div style="margin-top:4px">${rxPill(b.device)}</div>` : ""}<div class="small" id="rt-${b.id}" style="margin-top:4px"></div></td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button" ${b.device && b.device.acs ? "" : "disabled title=\"Not linked to GenieACS yet\""}>Refresh</button><button class="btn btn-soft btn-sm" data-act="router-test" data-id="${b.id}" type="button" ${b.device && b.device.acs && b.device.active !== false && b.device.state === "online" ? "" : "disabled title=\"Needs a linked modem that is online\""}>Router test</button></div></td></tr>`).join("")}</tbody></table></div>` })}`;
-  if (tab === "tickets") body = serverTable("tip-tickets", { role: "tip", kind: "tickets", label: "Search tickets", empty: "No service tickets.", html: rows => `<div class="list">${rows.map(t => `<div class="item"><div class="ih"><h3>${esc(t.category)}</h3>${tickPill(t.status)}<span class="spacer"></span><span class="mono muted">${esc(t.ref_code)}</span></div>
+    ${serverTable("tip-customers", {
+    role: "tip", kind: "bookings", filters: () => ({ status: "installed", devices: true }), label: "Search customers", empty: "No installed customers yet.", html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Customer</th><th>Connection ref</th><th>Plan</th><th>Installed</th><th>Authorised</th><th>Router status</th><th></th></tr></thead><tbody>
+    ${rows.map(b => `<tr><td><b>${esc(b.lead.name)}</b><br><span class="muted">${esc(fmtPh(b.lead.phone))}</span>${b.lead.email ? `<br><span class="muted small">${esc(b.lead.email)}</span>` : ""}${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}</td><td class="mono">${esc(b.connection_ref || "—")}<br><span class="muted">ONT ${esc(b.ont_serial || "not linked")}</span></td><td>${esc(b.plan ? b.plan.name : "")}<br><span class="muted">${b.plan ? b.plan.speed_mbps + " Mbps" : ""}</span></td><td>${fdate(b.installed_at)}</td><td>${b.authorized ? pill("Authorised", "p-ok") : pill("Pending", "p-warn")}</td><td>${deviceView(b.device)}${b.device && b.device.acs ? `<div style="margin-top:4px">${rxPill(b.device)}</div>` : ""}<div class="small" id="rt-${b.id}" style="margin-top:4px"></div></td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button" ${b.device && b.device.acs ? "" : "disabled title=\"Not linked to GenieACS yet\""}>Refresh</button><button class="btn btn-soft btn-sm" data-act="router-test" data-id="${b.id}" type="button" ${b.device && b.device.acs && b.device.active !== false && b.device.state === "online" ? "" : "disabled title=\"Needs a linked modem that is online\""}>Router test</button></div></td></tr>`).join("")}</tbody></table></div>`
+  })}`;
+  if (tab === "tickets") body = serverTable("tip-tickets", {
+    role: "tip", kind: "tickets", label: "Search tickets", empty: "No service tickets.", html: rows => `<div class="list">${rows.map(t => `<div class="item"><div class="ih"><h3>${esc(t.category)}</h3>${tickPill(t.status)}<span class="spacer"></span><span class="mono muted">${esc(t.ref_code)}</span></div>
     <p>${esc(t.description)}</p>${t.booking && t.booking.lead ? contactBtns({ phone: t.booking.lead.phone, email: t.booking.lead.email }, { thread: "lead:" + t.lead_id }) : ""}<div class="meta"><span>${esc(t.booking && t.booking.lead ? t.booking.lead.name : "")} · <b>${esc(t.booking && t.booking.lead ? fmtPh(t.booking.lead.phone) : "")}</b></span><span>Raised <b>${fdate(t.created_at)}</b></span>${t.resolution_note ? `<span>Note: <b>${esc(t.resolution_note)}</b></span>` : ""}</div>
-    <div class="row"><button class="btn btn-soft btn-sm" data-act="ticket-status" data-id="${t.id}" data-s="${t.status}" type="button">Update ticket</button></div></div>`).join("")}</div>` });
+    <div class="row"><button class="btn btn-soft btn-sm" data-act="ticket-status" data-id="${t.id}" data-s="${t.status}" type="button">Update ticket</button></div></div>`).join("")}</div>`
+  });
   if (tab === "plans") body = await tipPlansBody();
   if (tab === "payments") body = `<p class="muted" style="margin-bottom:12px">Registration fee and the platform fee of ${inr(partner.commission_per_install)} per installation (plus GST), payable to Connect Bhai.</p>` + `<div class="kpis"><div class="kpi"><span>Due now</span><b>${inr((st.charges.pending || 0) + (st.charges.due || 0) + (st.charges.failed || 0))}</b><small>${dueN} payment${dueN === 1 ? "" : "s"}</small></div><div class="kpi"><span>Paid</span><b>${inr(st.charges.paid || 0)}</b></div></div>` + serverTable("tip-charges", { role: "tip", kind: "charges", label: "Search payments", empty: "Nothing due to Connect Bhai.", html: rows => chargeRows(rows) });
   if (partner.status !== "active" && !["payments", "chat", "plans"].includes(tab)) body = activationCard(partner, charges);
@@ -757,7 +773,7 @@ async function openLead(id) {
       ${field("ls-next", "Next follow-up", `<input id="ls-next" name="next" type="date" min="${todayISO()}" value="${l.next_follow_up && l.next_follow_up >= todayISO() ? l.next_follow_up : ""}">`, "Required for Follow-up")}</div>
       ${field("ls-note", "Note", `<textarea id="ls-note" name="note" placeholder="What did the customer say?"></textarea>`)}
       <button class="btn btn-primary" type="submit">Save update</button></form>`
-    : `<p class="notice info">${l.status === "booked" ? "Booked. Installation progress is updated by the TIP." : l.status === "installed" ? "Installed. No further lead updates needed." : "Waiting for admin assignment."}</p>`}
+      : `<p class="notice info">${l.status === "booked" ? "Booked. Installation progress is updated by the TIP." : l.status === "installed" ? "Installed. No further lead updates needed." : "Waiting for admin assignment."}</p>`}
     ${u.role === "tip" && open && !noInstall ? `<button class="btn btn-soft btn-block" style="margin-top:10px" data-act="book" data-id="${l.id}" type="button">Schedule installation</button>` : ""}
     <h3 style="font-size:16px;margin:18px 0 10px">History</h3>
     <div class="timeline">${l.events.slice().reverse().map(e => `<div><b>${e.to_status ? LEAD[e.to_status] : "Update"}</b>${e.note ? " · " + esc(e.note) : ""}<small>${fdt(e.created_at)}</small></div>`).join("")}</div>`);
@@ -823,30 +839,40 @@ async function renderAdmin() {
     body = `<div class="card row" style="margin-bottom:14px;padding:14px 16px"><div style="min-width:0;flex:1 1 260px"><b>Auto-assign new leads by PIN code is ${auto ? "ON" : "OFF"}</b><p class="muted small">${auto ? "Each new request goes to the active DSA serving that PIN code (fewest open leads first) and to the TIP covering it. You can still reassign any lead." : "Every new request waits here for you to assign it."}</p></div><button class="btn ${auto ? "btn-ghost" : "btn-primary"} btn-sm" data-act="auto-assign" data-v="${auto ? 0 : 1}" type="button">Turn ${auto ? "off" : "on"}</button></div>
     ${zoneHtml}<div class="row small" style="margin-bottom:10px;gap:8px"><b>Area</b><select class="sel" id="zone-pick" aria-label="Filter leads by area"><option value="all">All areas (${d.leads_total})</option>${pins.map(r => `<option value="${esc(r.pincode)}" ${zf === r.pincode ? "selected" : ""}>${esc(r.pincode)}${pinName(r.pincode) ? " · " + esc(pinName(r.pincode)) : ""} · ${r.leads}</option>`).join("")}</select>${zf !== "all" ? `<span class="muted">Showing leads in ${esc(zf)}${pinName(zf) ? " · " + esc(pinName(zf)) : ""}</span>` : ""}</div>
     <div class="chips" style="margin-bottom:14px">${["all", ...Object.keys(LEAD).filter(k => !(REST && k === "assigned"))].map(k => `<button type="button" class="chip" data-act="admin-lead-filter" data-v="${k}" aria-pressed="${f === k}">${k === "all" ? "All" : LEAD[k]}${zf === "all" ? ` (${k === "all" ? d.leads_total : L[k] || 0})` : ""}</button>`).join("")}</div>
-    ${serverTable("adm-leads", { role: "admin", kind: "leads", label: "Search leads", empty: "No leads here.", filters: () => ({ status: S.adminLeadFilter || "all", pincode: (S.zoneFilter || "all") === "all" ? undefined : S.zoneFilter }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Customer</th><th>PIN · area</th><th>Plan</th><th>Status</th><th>DSA</th><th>TIP</th><th></th></tr></thead><tbody>
+    ${serverTable("adm-leads", {
+      role: "admin", kind: "leads", label: "Search leads", empty: "No leads here.", filters: () => ({ status: S.adminLeadFilter || "all", pincode: (S.zoneFilter || "all") === "all" ? undefined : S.zoneFilter }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Customer</th><th>PIN · area</th><th>Plan</th><th>Status</th><th>DSA</th><th>TIP</th><th></th></tr></thead><tbody>
     ${rows.map(l => `<tr><td class="mono" style="white-space:nowrap">${esc(l.ref_code)}<br><span class="muted">${fdate(l.created_at)}</span></td><td><b>${esc(l.name)}</b><br><span class="muted">${esc(fmtPh(l.phone))}</span>${l.email ? `<br><span class="muted small">${esc(l.email)}</span>` : ""}${contactBtns({ phone: l.phone, email: l.email }, { thread: "lead:" + l.id })}</td><td><b class="mono">${esc(l.pincode)}</b><br><span class="muted">${esc(l.area || pinName(l.pincode))}</span></td><td>${l.plan ? esc(l.plan.provider.name) + "<br><span class='muted'>" + esc(l.plan.name) + "</span>" : "<span class='muted'>Callback</span>"}</td><td>${leadPill(l.status, l.product)}<br>${productChip(l)}</td><td>${esc((l.dsa && l.dsa.name) || "—")}</td><td>${esc((l.tip && l.tip.name) || "—")}</td>
-      <td><div class="row" style="flex-wrap:nowrap">${!["installed", "lost"].includes(l.status) ? `<button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">${l.dsa || l.tip ? "Reassign" : "Assign"}</button>` : ""}<button class="btn btn-ghost btn-sm" data-act="lead" data-id="${l.id}" type="button">Open</button>${l.tip && ["assigned", "contacted", "follow_up"].includes(l.status) ? `<button class="btn btn-ghost btn-sm" data-act="book" data-id="${l.id}" type="button">Book</button>` : ""}${l.booking && ["scheduled", "in_progress"].includes(l.booking.status) ? `<button class="btn btn-ghost btn-sm" data-act="booking-status" data-id="${l.booking.id}" type="button">Install</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>` })}`;
+      <td><div class="row" style="flex-wrap:nowrap">${!["installed", "lost"].includes(l.status) ? `<button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">${l.dsa || l.tip ? "Reassign" : "Assign"}</button>` : ""}<button class="btn btn-ghost btn-sm" data-act="lead" data-id="${l.id}" type="button">Open</button>${l.tip && ["assigned", "contacted", "follow_up"].includes(l.status) ? `<button class="btn btn-ghost btn-sm" data-act="book" data-id="${l.id}" type="button">Book</button>` : ""}${l.booking && ["scheduled", "in_progress"].includes(l.booking.status) ? `<button class="btn btn-ghost btn-sm" data-act="booking-status" data-id="${l.booking.id}" type="button">Install</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`
+    })}`;
   }
   if (tab === "partners") {
     const pt = S.partnerType || "dsa";
     body = `<div class="row" style="margin-bottom:12px">${pendingCount ? `<button class="chip" type="button" data-act="partners-pending" aria-pressed="${S.partnerStatus === "pending"}">${pendingCount} pending${S.partnerStatus === "pending" ? " · showing only these" : ""}</button>` : `<span class="muted">0 pending</span>`}${S.partnerStatus === "pending" ? `<button class="linkbtn small" data-act="partners-pending" data-all="1" type="button">Show all</button>` : ""}<span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-partner" data-id="" type="button">Add DSA / TIP</button></div>
     <div class="chips" style="margin-bottom:12px">${[["dsa", "DSAs"], ["tip", "TIPs"]].map(([k, l]) => `<button type="button" class="chip" data-act="partner-type" data-v="${k}" aria-pressed="${pt === k}">${l}</button>`).join("")}</div>
-    ${serverTable("adm-partners-" + pt, { role: "admin", kind: "partners", label: "Search DSAs and TIPs", empty: S.partnerStatus === "pending" ? "No pending applications." : "No one here yet.", filters: () => ({ type: pt, status: S.partnerStatus === "pending" ? "pending" : undefined }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Type</th><th>Mobile</th><th>Service PINs</th><th class="r">Per install</th><th>KYC</th><th>Status</th><th></th></tr></thead><tbody>
+    ${serverTable("adm-partners-" + pt, {
+      role: "admin", kind: "partners", label: "Search DSAs and TIPs", empty: S.partnerStatus === "pending" ? "No pending applications." : "No one here yet.", filters: () => ({ type: pt, status: S.partnerStatus === "pending" ? "pending" : undefined }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Type</th><th>Mobile</th><th>Service PINs</th><th class="r">Per install</th><th>KYC</th><th>Status</th><th></th></tr></thead><tbody>
     ${rows.map(p => `<tr><td><b>${esc(p.name)}</b><br><span class="muted">${esc(p.firm || "")}</span></td><td>${p.type.toUpperCase()}</td><td>${esc(fmtPh(p.phone))}${p.email ? `<br><span class="muted small">${esc(p.email)}</span>` : ""}${contactBtns(p)}</td><td>${esc(p.service_pincodes || "—")}</td><td class="r num">${inr(p.commission_per_install)}</td><td>${p.kyc_verified ? pill("Verified", "p-ok") : pill("Pending", "p-warn")}</td><td>${p.status === "pending" && p.approved_at ? pill("Approved · fee due", "p-blue") + `<br><span class="muted small">Waiting for the registration fee</span>` : p.status === "pending" && p.fee_paid_at ? pill("Fee paid · check KYC", "p-blue") + `<br><span class="muted small">Check KYC, then approve</span>` : p.status === "pending" ? pill("Pending", "p-warn") + `<br><span class="muted small">${p.kyc_verified ? "Awaiting your approval" : "KYC not verified · awaiting your approval"}</span>` : pill(p.status[0].toUpperCase() + p.status.slice(1), { active: "p-ok", pending: "p-warn", suspended: "p-bad" }[p.status])}</td>
-      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Edit</button>${p.status === "pending" && !p.approved_at ? `<button class="btn btn-soft btn-sm" data-act="approve-partner" data-id="${p.id}" type="button">Approve</button><button class="btn btn-danger btn-sm" data-act="delete-partner" data-id="${p.id}" data-name="${esc(p.name)}" type="button">Delete</button>` : p.status === "suspended" ? `<button class="btn btn-soft btn-sm" data-act="partner-status" data-id="${p.id}" data-s="active" type="button">Reactivate</button>` : p.status === "active" ? `<button class="btn btn-danger btn-sm" data-act="partner-status" data-id="${p.id}" data-s="suspended" type="button">Suspend</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>` })}`;
+      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Edit</button>${p.status === "pending" && !p.approved_at ? `<button class="btn btn-soft btn-sm" data-act="approve-partner" data-id="${p.id}" type="button">Approve</button><button class="btn btn-danger btn-sm" data-act="delete-partner" data-id="${p.id}" data-name="${esc(p.name)}" type="button">Delete</button>` : p.status === "suspended" ? `<button class="btn btn-soft btn-sm" data-act="partner-status" data-id="${p.id}" data-s="active" type="button">Reactivate</button>` : p.status === "active" ? `<button class="btn btn-danger btn-sm" data-act="partner-status" data-id="${p.id}" data-s="suspended" type="button">Suspend</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`
+    })}`;
   }
-  if (tab === "providers") { const pv = await API.adminProviders(); body = `<div class="row" style="margin-bottom:12px"><span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-provider" data-id="" type="button">Add provider</button></div>
-    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Provider</th><th>Type</th><th>Website</th><th>Status</th><th></th></tr></thead><tbody>${pv.map(p => `<tr><td><div class="row" style="flex-wrap:nowrap">${plogo(p)}<b>${esc(p.name)}</b> ${demoBadge(p.is_demo)}</div></td><td>${KIND[p.kind]}</td><td>${p.website ? esc(p.website) : "—"}</td><td>${p.is_active ? pill("Active", "p-ok") : pill("Hidden", "p-grey")}</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-provider" data-id="${p.id}" type="button">Edit</button><button class="btn btn-ghost btn-sm" data-act="toggle-provider" data-id="${p.id}" type="button">${p.is_active ? "Hide" : "Show"}</button></div></td></tr>`).join("")}</tbody></table></div>`; }
+  if (tab === "providers") {
+    const pv = await API.adminProviders(); body = `<div class="row" style="margin-bottom:12px"><span class="spacer"></span><button class="btn btn-primary btn-sm" data-act="edit-provider" data-id="" type="button">Add provider</button></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Provider</th><th>Type</th><th>Website</th><th>Status</th><th></th></tr></thead><tbody>${pv.map(p => `<tr><td><div class="row" style="flex-wrap:nowrap">${plogo(p)}<b>${esc(p.name)}</b> ${demoBadge(p.is_demo)}</div></td><td>${KIND[p.kind]}</td><td>${p.website ? esc(p.website) : "—"}</td><td>${p.is_active ? pill("Active", "p-ok") : pill("Hidden", "p-grey")}</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="edit-provider" data-id="${p.id}" type="button">Edit</button><button class="btn btn-ghost btn-sm" data-act="toggle-provider" data-id="${p.id}" type="button">${p.is_active ? "Hide" : "Show"}</button></div></td></tr>`).join("")}</tbody></table></div>`;
+  }
   if (tab === "plans") body = await adminPlansBody();
   if (tab === "cities") body = await adminCitiesBody();
-  if (tab === "locations") { const locs = await API.adminLocations(); body = `<div class="row" style="margin-bottom:12px"><span class="muted">Coverage decides which plans a PIN code shows, and which TIP installs there.</span><span class="spacer"></span><button class="btn btn-ghost btn-sm" data-act="add-location" type="button">Add PIN / area</button><button class="btn btn-primary btn-sm" data-act="add-coverage" type="button">Add coverage</button></div>
+  if (tab === "locations") {
+    const locs = await API.adminLocations(); body = `<div class="row" style="margin-bottom:12px"><span class="muted">Coverage decides which plans a PIN code shows, and which TIP installs there.</span><span class="spacer"></span><button class="btn btn-ghost btn-sm" data-act="add-location" type="button">Add PIN / area</button><button class="btn btn-primary btn-sm" data-act="add-coverage" type="button">Add coverage</button></div>
     <div class="list">${locs.map(l => `<div class="item"><div class="ih"><h3><span class="mono">${esc(l.pincode)}</span> · ${esc(l.area)}</h3><span class="muted small">${esc(l.city || "")}</span><span class="spacer"></span><span class="muted small">${l.coverage.length} provider${l.coverage.length === 1 ? "" : "s"}</span></div>
-      ${l.coverage.length ? `<div class="row">${l.coverage.map(c => `<span class="pill p-grey" style="padding:5px 10px;white-space:normal">${esc(c.provider ? c.provider.name : "")} · ${esc((c.technology || "").toUpperCase())}${c.tip ? " · TIP " + esc(c.tip.name) : ""} <button class="linkbtn" data-act="remove-coverage" data-id="${c.id}" type="button" aria-label="Remove" style="text-decoration:none;margin-left:4px">×</button></span>`).join("")}</div>` : `<p class="muted small">No provider coverage yet. Customers here can request a callback.</p>`}</div>`).join("")}</div>`; }
+      ${l.coverage.length ? `<div class="row">${l.coverage.map(c => `<span class="pill p-grey" style="padding:5px 10px;white-space:normal">${esc(c.provider ? c.provider.name : "")} · ${esc((c.technology || "").toUpperCase())}${c.tip ? " · TIP " + esc(c.tip.name) : ""} <button class="linkbtn" data-act="remove-coverage" data-id="${c.id}" type="button" aria-label="Remove" style="text-decoration:none;margin-left:4px">×</button></span>`).join("")}</div>` : `<p class="muted small">No provider coverage yet. Customers here can request a callback.</p>`}</div>`).join("")}</div>`;
+  }
   if (tab === "commissions") {
     const pay = await payables(API);
     body = `${pay.length ? `<div class="card" style="margin-bottom:16px"><h3>Ready to pay</h3><div class="list" style="margin-top:10px">${pay.map(x => `<div class="row"><b>${esc(x.partner.name)}</b><span class="muted">${x.count} approved</span><span class="spacer"></span><b class="num">${inr(x.total)}</b><button class="btn btn-primary btn-sm" data-act="payout" data-id="${x.partner_id}" data-ids="${x.ids.join(",")}" data-total="${x.total}" type="button">Record payout</button></div>`).join("")}</div></div>` : ""}
-    ${serverTable("adm-comm", { role: "admin", kind: "commissions", label: "Search payouts", empty: "No commissions yet.", html: cs => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Booking</th><th>Created</th><th class="r">Amount</th><th>Status</th><th></th></tr></thead><tbody>
-    ${cs.map(c => `<tr><td><b>${esc(c.partner.name)}</b><br><span class="muted">${c.partner.type.toUpperCase()}</span></td><td class="mono">${esc(c.booking ? c.booking.ref_code : "")}</td><td>${fdate(c.created_at)}</td><td class="r num">${inr(c.amount)}</td><td>${commPill(c.status)}</td><td>${c.status === "pending" ? `<div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="commission" data-id="${c.id}" data-s="approved" type="button">Approve</button><button class="btn btn-danger btn-sm" data-act="commission" data-id="${c.id}" data-s="rejected" type="button">Reject</button></div>` : ""}</td></tr>`).join("")}</tbody></table></div>` })}`;
+    ${serverTable("adm-comm", {
+      role: "admin", kind: "commissions", label: "Search payouts", empty: "No commissions yet.", html: cs => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>DSA / TIP</th><th>Booking</th><th>Created</th><th class="r">Amount</th><th>Status</th><th></th></tr></thead><tbody>
+    ${cs.map(c => `<tr><td><b>${esc(c.partner.name)}</b><br><span class="muted">${c.partner.type.toUpperCase()}</span></td><td class="mono">${esc(c.booking ? c.booking.ref_code : "")}</td><td>${fdate(c.created_at)}</td><td class="r num">${inr(c.amount)}</td><td>${commPill(c.status)}</td><td>${c.status === "pending" ? `<div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="commission" data-id="${c.id}" data-s="approved" type="button">Approve</button><button class="btn btn-danger btn-sm" data-act="commission" data-id="${c.id}" data-s="rejected" type="button">Reject</button></div>` : ""}</td></tr>`).join("")}</tbody></table></div>`
+    })}`;
   }
   if (tab === "billing") body = await adminBilling();
   if (tab === "team") body = await adminTeam();
@@ -873,11 +899,15 @@ async function adminReports() {
     <h3 style="margin:22px 0 6px;font-size:18px">DSA & TIP performance & lead promise · ${mLabel(cur)}</h3>
     <p class="muted small" style="margin-bottom:10px">Targets are set per DSA/TIP (DSA & TIP list → Edit) or by default in Billing & fees.</p>
     <div class="chips" style="margin-bottom:12px">${[["tip", "TIPs"], ["dsa", "DSAs"]].map(([k, l]) => `<button type="button" class="chip" data-act="perf-type" data-v="${k}" aria-pressed="${pt === k}">${l}</button>`).join("")}</div>
-    ${serverTable("adm-perf-" + pt, { role: "admin", kind: "partners", label: "Search DSAs and TIPs", empty: "No active DSAs or TIPs yet.", filters: () => ({ type: pt, status: "active" }), html: rows => `<div class="tbl-wrap"><table class="tbl" style="min-width:980px"><thead><tr><th>DSA / TIP</th><th>Leads this month</th><th class="r">Total leads</th><th class="r">Installed</th><th class="r">Conversion</th><th class="r">${pt === "tip" ? "Fees paid" : "Commission paid"}</th><th>Contact</th></tr></thead><tbody>
-    ${rows.map(p => { const t = (totals[pt] || {})[p.id] || { leads: 0, leads_month: 0, installs: 0, paid_amount: 0, comm_paid: 0 }, tg = target(p), ok = t.leads_month >= tg, pct = Math.min(100, Math.round(t.leads_month / (tg || 1) * 100));
+    ${serverTable("adm-perf-" + pt, {
+    role: "admin", kind: "partners", label: "Search DSAs and TIPs", empty: "No active DSAs or TIPs yet.", filters: () => ({ type: pt, status: "active" }), html: rows => `<div class="tbl-wrap"><table class="tbl" style="min-width:980px"><thead><tr><th>DSA / TIP</th><th>Leads this month</th><th class="r">Total leads</th><th class="r">Installed</th><th class="r">Conversion</th><th class="r">${pt === "tip" ? "Fees paid" : "Commission paid"}</th><th>Contact</th></tr></thead><tbody>
+    ${rows.map(p => {
+      const t = (totals[pt] || {})[p.id] || { leads: 0, leads_month: 0, installs: 0, paid_amount: 0, comm_paid: 0 }, tg = target(p), ok = t.leads_month >= tg, pct = Math.min(100, Math.round(t.leads_month / (tg || 1) * 100));
       return `<tr><td><b>${esc(p.name)}</b><br><span class="muted small">${p.type.toUpperCase()} · PINs ${esc(p.service_pincodes || "—")}</span></td>
         <td style="min-width:150px"><b>${t.leads_month}</b> / ${tg} ${ok ? pill("Met", "p-ok") : pill("Below", "p-warn")}<div class="prog ${ok ? "ok" : ""}" style="height:8px;margin-top:6px"><i style="width:${pct}%"></i></div></td>
-        <td class="r num">${t.leads}</td><td class="r num">${t.installs}</td><td class="r num">${t.leads ? Math.round(t.installs / t.leads * 100) : 0}%</td><td class="r num">${inr(pt === "tip" ? t.paid_amount : t.comm_paid)}</td><td>${contactBtns(p)}</td></tr>`; }).join("")}</tbody></table></div>` })}`;
+        <td class="r num">${t.leads}</td><td class="r num">${t.installs}</td><td class="r num">${t.leads ? Math.round(t.installs / t.leads * 100) : 0}%</td><td class="r num">${inr(pt === "tip" ? t.paid_amount : t.comm_paid)}</td><td>${contactBtns(p)}</td></tr>`;
+    }).join("")}</tbody></table></div>`
+  })}`;
   return `${money}<h3 style="margin:22px 0 10px;font-size:18px">Lead funnel</h3><div class="kpis"><div class="kpi"><span>Total leads</span><b>${d.leads_total}</b></div><div class="kpi"><span>Installed</span><b>${inst}</b></div><div class="kpi"><span>Win rate</span><b>${closed ? Math.round(inst / closed * 100) : 0}%</b><small>installed ÷ closed leads</small></div><div class="kpi"><span>Commission paid</span><b>${inr(payPaid)}</b><small>${inr(d.commission.approved)} approved · ${inr(d.commission.pending)} pending</small></div></div>
     <div class="split"><div class="card"><h3>Leads by status</h3><div class="bars" style="margin-top:12px">${counts.map(([l, n]) => `<div class="bar"><span>${l}</span><span class="t"><i style="width:${n / max * 100}%"></i></span><b>${n}</b></div>`).join("")}</div></div>
     <div class="card"><h3>Leads by PIN code</h3><div class="bars" style="margin-top:12px">${d.top_pins.map(r => `<div class="bar"><span class="mono">${esc(r.pincode)}</span><span class="t"><i style="width:${r.leads / pmax * 100}%"></i></span><b>${r.leads}</b></div>`).join("")}</div></div></div>
@@ -911,8 +941,10 @@ async function openPartner(id) {
     <label class="check"><input type="checkbox" name="kyc_verified" ${p.kyc_verified ? "checked" : ""}> KYC and agreement verified</label>
     ${REST && id ? `<div class="stack" id="pt-docs"><h3 style="margin:6px 0 0">KYC documents</h3><span class="muted small">Loading…</span></div>` : ""}
     <button class="btn btn-primary" type="submit">Save</button></form>`);
-  if (REST && id) API.partnerDocs(id).then(r => { const box = document.getElementById("pt-docs"); if (!box) return;
-    box.innerHTML = `<h3 style="margin:6px 0 0">KYC documents</h3>` + (!r.configured ? `<span class="muted small">File uploads are not configured on the server yet (Cloudinary keys).</span>` : r.documents.length ? r.documents.map(d => `<a class="btn btn-ghost btn-sm" href="${esc(d.url)}" target="_blank" rel="noopener">Open ${esc(d.label)}${d.format ? " (" + esc(String(d.format).toUpperCase()) + ")" : ""}</a>`).join("") + `<span class="muted small">Links work for 10 minutes. Files are private in Cloudinary.</span>` : `<span class="muted small">No documents uploaded.</span>`); }).catch(() => {});
+  if (REST && id) API.partnerDocs(id).then(r => {
+    const box = document.getElementById("pt-docs"); if (!box) return;
+    box.innerHTML = `<h3 style="margin:6px 0 0">KYC documents</h3>` + (!r.configured ? `<span class="muted small">File uploads are not configured on the server yet (Cloudinary keys).</span>` : r.documents.length ? r.documents.map(d => `<a class="btn btn-ghost btn-sm" href="${esc(d.url)}" target="_blank" rel="noopener">Open ${esc(d.label)}${d.format ? " (" + esc(String(d.format).toUpperCase()) + ")" : ""}</a>`).join("") + `<span class="muted small">Links work for 10 minutes. Files are private in Cloudinary.</span>` : `<span class="muted small">No documents uploaded.</span>`);
+  }).catch(() => { });
 }
 async function openProvider(id) {
   const p = id ? (await API.adminProviders()).find(x => x.id === id) : { kind: "local_isp" };
@@ -943,7 +975,7 @@ function openLogin(tab) {
     ${otp ? `<p class="muted" style="margin-bottom:12px">We'll send a 6-digit OTP to your WhatsApp. New here? The same step creates your customer account.</p>
       <form class="stack" data-form="otp-send" data-purpose="login" novalidate>${field("lg-phone", "WhatsApp number", `<input id="lg-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="tel-national" placeholder="10-digit mobile">`)}
       <button class="btn btn-primary" type="submit">Send OTP on WhatsApp</button></form>`
-    : `<form class="stack" data-form="pw-login" novalidate>${field("pl-phone", "Username (your mobile number)", `<input id="pl-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="username" placeholder="10-digit mobile">`)}
+      : `<form class="stack" data-form="pw-login" novalidate>${field("pl-phone", "Username (your mobile number)", `<input id="pl-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="username" placeholder="10-digit mobile">`)}
       ${field("pl-pw", "Password", `<input id="pl-pw" name="password" type="password" autocomplete="current-password">`)}
       <button class="btn btn-primary" type="submit">Log in</button></form>
       <p class="small" style="margin-top:10px"><button class="linkbtn" data-act="forgot-pw" type="button">Forgot password?</button> <span class="muted">Reset it with an OTP on WhatsApp.</span></p>`}
@@ -973,7 +1005,7 @@ function credBlock(l, who) {
     <div class="row"><button class="btn btn-ghost btn-sm" data-act="copy-cred" data-v="${esc("Username: " + l.username + "  One-time password: " + l.temp_password)}" type="button">Copy</button></div></div>`;
 }
 function afterLogin(u) {
-  try { localStorage.setItem("cb-session", u.id); } catch (e) {}
+  try { localStorage.setItem("cb-session", u.id); } catch (e) { }
   renderHeader();
   if (u.must_change) { openSetPassword("first"); return; }
   if (!u.full_name) { openModal(`<h2>Welcome to Connect Bhai</h2><p class="muted" style="margin:4px 0 14px">What should we call you?</p><form class="stack" data-form="set-name" novalidate>${field("nm-name", "Full name", `<input id="nm-name" name="name" autocomplete="name">`)}<button class="btn btn-primary" type="submit">Continue</button></form>`); return; }
@@ -1009,7 +1041,7 @@ function chargeList(cs, emptyMsg) {
   const due = cs.filter(c => ["due", "failed"].includes(c.status)), sum = a => a.reduce((t, c) => t + Number(c.amount), 0);
   return `<div class="kpis"><div class="kpi"><span>Due now</span><b>${inr(sum(due))}</b><small>${due.length} payment${due.length === 1 ? "" : "s"}</small></div><div class="kpi"><span>Paid</span><b>${inr(sum(cs.filter(c => c.status === "paid")))}</b></div></div>
   ${cs.length ? chargeRows(cs)
-    : `<div class="empty"><b>${emptyMsg}</b></div>`}`;
+      : `<div class="empty"><b>${emptyMsg}</b></div>`}`;
 }
 const chargeRows = cs => `<div class="list">${cs.map(c => `<div class="item"><div class="ih"><h3>${esc(c.description)}</h3>${chPill(c.status)}<span class="spacer"></span><span class="mono muted">${esc(c.ref_code)}</span></div>
     <div class="meta"><span>${KIND_NAME[c.kind] || c.kind}</span><span>${inr(c.base_amount)} + GST ${inr(c.gst_amount)} = <b>${inr(c.amount)}</b></span><span>${c.status === "paid" ? "Paid " + fdate(c.paid_at) + (c.gateway_payment_id ? ` · <span class="mono">${esc(c.gateway_payment_id)}</span>` : "") : "Raised " + fdate(c.created_at)}</span></div>
@@ -1067,9 +1099,11 @@ async function adminTeam() {
   const pwTxt = p => !p.has_password ? pill("No password · OTP only", "p-grey") : p.must_change ? pill("One-time password issued", "p-warn") : pill("Own password set", "p-ok");
   return `<div class="card row" style="margin-bottom:14px;padding:14px 16px"><div style="min-width:0;flex:1 1 300px"><b>Create logins for your team</b><p class="muted small">Username is the person's mobile number. A one-time password is sent on WhatsApp; they set their own password at first login. TIPs and DSAs also get their login automatically when they register and pay the fee.</p></div><button class="btn btn-primary btn-sm" data-act="create-user" type="button">Create login</button></div>
     <div class="chips" style="margin-bottom:12px">${[["admin", "Admins"], ["tip", "TIPs"], ["dsa", "DSAs"], ["customer", "Customers"]].map(([k, l]) => `<button type="button" class="chip" data-act="team-filter" data-v="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
-    ${serverTable("adm-team", { role: "admin", kind: "team", label: "Search logins", empty: "No users here.", filters: () => ({ role: S.teamFilter || "admin" }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Role</th><th>Username (mobile)</th><th>Email</th><th>Password</th><th>Status</th><th></th></tr></thead><tbody>
+    ${serverTable("adm-team", {
+    role: "admin", kind: "team", label: "Search logins", empty: "No users here.", filters: () => ({ role: S.teamFilter || "admin" }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Name</th><th>Role</th><th>Username (mobile)</th><th>Email</th><th>Password</th><th>Status</th><th></th></tr></thead><tbody>
     ${rows.map(p => `<tr><td><b>${esc(p.full_name || "—")}</b>${p.partner && p.partner.name !== p.full_name ? `<br><span class="muted small">${esc(p.partner.name)}</span>` : ""}</td><td>${pill(ROLE_NAME[p.role], { admin: "p-bad", tip: "p-blue", dsa: "p-blue", customer: "p-grey" }[p.role])}</td><td class="mono">${esc(p.phone || "")}</td><td>${p.email ? esc(p.email) : "—"}</td><td>${pwTxt(p)}${p.pw_set_at ? `<br><span class="muted small">${fdt(p.pw_set_at)}</span>` : ""}</td><td>${p.disabled ? pill("Disabled", "p-bad") : pill("Active", "p-ok")}</td>
-      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="reset-user" data-id="${p.id}" data-name="${esc(p.full_name || p.phone)}" type="button">Reset password</button>${p.id === me().id ? "" : `<button class="btn ${p.disabled ? "btn-ghost" : "btn-danger"} btn-sm" data-act="toggle-user" data-id="${p.id}" data-v="${p.disabled ? 0 : 1}" type="button">${p.disabled ? "Enable" : "Disable"}</button>`}</div></td></tr>`).join("")}</tbody></table></div>` })}`;
+      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="reset-user" data-id="${p.id}" data-name="${esc(p.full_name || p.phone)}" type="button">Reset password</button>${p.id === me().id ? "" : `<button class="btn ${p.disabled ? "btn-ghost" : "btn-danger"} btn-sm" data-act="toggle-user" data-id="${p.id}" data-v="${p.disabled ? 0 : 1}" type="button">${p.disabled ? "Enable" : "Disable"}</button>`}</div></td></tr>`).join("")}</tbody></table></div>`
+  })}`;
 }
 function openCreateUser() {
   openModal(`<h2>Create login</h2><p class="muted" style="margin:4px 0 12px">The username is the mobile number. A one-time password is created and sent on WhatsApp.</p>
@@ -1118,16 +1152,22 @@ async function adminBilling() {
   <div class="split" style="margin-bottom:16px"><div class="card stack"><h3>Fees &amp; GST</h3><p class="muted">Registration, install and Care Plan fees, DSA payout and GST are changed in Settings. Changes apply to new charges only.</p><button class="btn btn-soft" data-tab="settings" type="button">Open Settings</button></div>
     <div class="card stack"><h3>Collect money</h3><p class="muted">Create a charge for a TIP or customer. They get a WhatsApp message and can pay online with UPI, card or net banking through Razorpay.</p><button class="btn btn-primary" data-act="new-charge" type="button">Create charge</button></div></div>
   <div class="chips" style="margin-bottom:12px">${[["due", "Due"], ["paid", "Paid"], ["failed", "Failed"], ["waived", "Waived"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="billing-filter" data-v="${k}" aria-pressed="${f === k}">${l} (${n[k]})</button>`).join("")}</div>
-  ${serverTable("adm-bills", { role: "admin", kind: "charges", label: "Search charges", empty: "No charges here.", filters: () => ({ status: S.billFilter || "due" }), html: shown => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Payer</th><th>Type</th><th>Description</th><th class="r">Total</th><th>Status</th><th></th></tr></thead><tbody>
+  ${serverTable("adm-bills", {
+    role: "admin", kind: "charges", label: "Search charges", empty: "No charges here.", filters: () => ({ status: S.billFilter || "due" }), html: shown => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Payer</th><th>Type</th><th>Description</th><th class="r">Total</th><th>Status</th><th></th></tr></thead><tbody>
   ${shown.map(c => `<tr><td class="mono">${esc(c.ref_code)}<br><span class="muted">${fdate(c.created_at)}</span></td><td><b>${esc(c.partner ? c.partner.name : c.customer ? c.customer.full_name || "Customer" : "")}</b><br><span class="muted">${c.partner ? c.partner.type.toUpperCase() : "Customer"} · ${esc(c.partner ? c.partner.phone : c.customer ? c.customer.phone : "")}</span></td><td>${KIND_NAME[c.kind]}</td><td>${esc(c.description)}</td><td class="r num">${inr(c.amount)}<br><span class="muted">incl. GST ${inr(c.gst_amount)}</span></td><td>${chPill(c.status)}${c.paid_via ? `<br><span class="muted small">${esc(c.paid_via)}</span>` : ""}</td>
-    <td>${["due", "failed"].includes(c.status) ? `<div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="charge-action" data-id="${c.id}" data-a="paid_offline" type="button">Mark paid</button>${c.status === "due" ? `<button class="btn btn-ghost btn-sm" data-act="charge-action" data-id="${c.id}" data-a="waived" type="button">Waive</button>` : ""}</div>` : ""}</td></tr>`).join("")}</tbody></table></div>` })}`;
+    <td>${["due", "failed"].includes(c.status) ? `<div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="charge-action" data-id="${c.id}" data-a="paid_offline" type="button">Mark paid</button>${c.status === "due" ? `<button class="btn btn-ghost btn-sm" data-act="charge-action" data-id="${c.id}" data-a="waived" type="button">Waive</button>` : ""}</div>` : ""}</td></tr>`).join("")}</tbody></table></div>`
+  })}`;
 }
-const WA_NAME = { cb_request_received: "Request received", cb_new_lead: "New lead (DSA / TIP)", cb_install_scheduled: "Installation scheduled", cb_installed: "Installed", cb_new_ticket: "New ticket (TIP)", cb_ticket_update: "Ticket update",
-  cb_payment_due: "Payment due", cb_payment_received: "Payment receipt", cb_partner_approved: "DSA / TIP approved", cb_router_offline: "Router offline", cb_router_offline_tip: "Router offline (TIP)", cb_wifi_changed: "Wi-Fi changed", cb_modem_restarted: "Modem restarted", cb_new_message: "New chat message", cb_partner_registered: "Registration confirmed (DSA / TIP)", cb_partner_credentials: "Login details (DSA / TIP)", cb_login_created: "Login created (team)", cb_password_reset: "Password reset by admin", cb_password_changed: "Password changed", cb_waitlist_joined: "Joined city waiting list", cb_city_launched: "City launched (waiting list)" };
+const WA_NAME = {
+  cb_request_received: "Request received", cb_new_lead: "New lead (DSA / TIP)", cb_install_scheduled: "Installation scheduled", cb_installed: "Installed", cb_new_ticket: "New ticket (TIP)", cb_ticket_update: "Ticket update",
+  cb_payment_due: "Payment due", cb_payment_received: "Payment receipt", cb_partner_approved: "DSA / TIP approved", cb_router_offline: "Router offline", cb_router_offline_tip: "Router offline (TIP)", cb_wifi_changed: "Wi-Fi changed", cb_modem_restarted: "Modem restarted", cb_new_message: "New chat message", cb_partner_registered: "Registration confirmed (DSA / TIP)", cb_partner_credentials: "Login details (DSA / TIP)", cb_login_created: "Login created (team)", cb_password_reset: "Password reset by admin", cb_password_changed: "Password changed", cb_waitlist_joined: "Joined city waiting list", cb_city_launched: "City launched (waiting list)"
+};
 async function adminMessages() {
   return `<p class="muted" style="margin-bottom:12px">Every WhatsApp message the system sends, using approved Meta templates.${LIVE ? "" : " In this prototype messages are simulated, not sent."}</p>
-  ${serverTable("adm-msgs", { role: "admin", kind: "messages", label: "Search messages", empty: "No messages yet.", html: ns => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Time</th><th>To</th><th>Message</th><th>Details</th><th>Status</th></tr></thead><tbody>
-  ${ns.map(n => `<tr><td>${fdt(n.created_at)}</td><td class="mono">${esc(n.to_phone)}</td><td><b>${esc(WA_NAME[n.template] || n.template)}</b><br><span class="muted mono small">${esc(n.template)}</span></td><td class="small">${esc((n.params || []).join(" · "))}</td><td>${pill(n.status, n.status === "sent" ? "p-ok" : n.status === "failed" ? "p-bad" : "p-warn")}${n.simulated ? ` <span class="badge sim">Simulated</span>` : ""}${n.error ? `<br><span class="small" style="color:var(--bad)">${esc(n.error.slice(0, 80))}</span>` : ""}</td></tr>`).join("")}</tbody></table></div>` })}`;
+  ${serverTable("adm-msgs", {
+    role: "admin", kind: "messages", label: "Search messages", empty: "No messages yet.", html: ns => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Time</th><th>To</th><th>Message</th><th>Details</th><th>Status</th></tr></thead><tbody>
+  ${ns.map(n => `<tr><td>${fdt(n.created_at)}</td><td class="mono">${esc(n.to_phone)}</td><td><b>${esc(WA_NAME[n.template] || n.template)}</b><br><span class="muted mono small">${esc(n.template)}</span></td><td class="small">${esc((n.params || []).join(" · "))}</td><td>${pill(n.status, n.status === "sent" ? "p-ok" : n.status === "failed" ? "p-bad" : "p-warn")}${n.simulated ? ` <span class="badge sim">Simulated</span>` : ""}${n.error ? `<br><span class="small" style="color:var(--bad)">${esc(n.error.slice(0, 80))}</span>` : ""}</td></tr>`).join("")}</tbody></table></div>`
+  })}`;
 }
 async function openNewCharge() {
   const pt = [...await allPages("partners", { type: "dsa" }), ...await allPages("partners", { type: "tip" })];
@@ -1143,10 +1183,10 @@ async function openNewCharge() {
   /* customers are searched, 20 at a time, instead of listing every customer in a dropdown */
   const find = document.getElementById("nc-find"), pick = document.getElementById("nc-customer"); let t = 0;
   const run = async () => { const r = await fetchPage(API, "admin", "customers", { q: find.value.trim(), limit: 20 }); pick.innerHTML = `<option value="">Choose (${r.total} match${r.total === 1 ? "" : "es"}${r.total > 20 ? ", showing 20 — type more" : ""})</option>` + r.items.map(c => `<option value="${c.id}">${esc(c.full_name || "Customer")} · ${esc(c.phone || "")}</option>`).join(""); };
-  find.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => run().catch(() => {}), 250); }); run().catch(() => {});
+  find.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => run().catch(() => { }), 250); }); run().catch(() => { });
 }
 function openChargeAction(id, a) {
-  if (a === "waived") { guard(null, () => API.adminSetCharge(id, "waived")).then(() => { toast("Charge waived."); render(); }).catch(() => {}); return; }
+  if (a === "waived") { guard(null, () => API.adminSetCharge(id, "waived")).then(() => { toast("Charge waived."); render(); }).catch(() => { }); return; }
   openModal(`<h2>Mark as paid (offline)</h2><p class="muted" style="margin:4px 0 12px">Use this for cash, cheque or a bank transfer received outside Razorpay.</p>
     <form class="stack" data-form="charge-offline" data-id="${id}" novalidate>${field("co-ref", "Reference (receipt / UTR / cheque no.)", `<input id="co-ref" name="reference">`)}<button class="btn btn-primary" type="submit">Mark paid</button></form>`);
 }
@@ -1175,19 +1215,21 @@ const cityLive = id => (cityById(id) || {}).status === "live";
 const citySort = (a, b) => (a.status === "live" ? 0 : 1) - (b.status === "live" ? 0 : 1) || a.tier - b.tier || a.name.localeCompare(b.name);
 async function loadCities() {
   if (!S.cities) { try { S.cities = await API.cities(); } catch (e) { S.cities = []; } }
-  if (!S.city) { let c = null; try { c = localStorage.getItem(CITY_KEY); } catch (e) {} S.city = c && cityById(c) ? c : ((cityList().find(x => x.status === "live") || {}).id || "indore"); }
+  if (!S.city) { let c = null; try { c = localStorage.getItem(CITY_KEY); } catch (e) { } S.city = c && cityById(c) ? c : ((cityList().find(x => x.status === "live") || {}).id || "indore"); }
 }
 function setCity(id) {
-  if (!cityById(id)) return; S.city = id; try { localStorage.setItem(CITY_KEY, id); } catch (e) {}
+  if (!cityById(id)) return; S.city = id; try { localStorage.setItem(CITY_KEY, id); } catch (e) { }
   S.results = null; S.compare = []; S.wlDone = null; const r = $("#results"); if (r) r.hidden = true;
   const sel = document.getElementById("city-pick"); if (sel) sel.value = id;
   const eb = document.getElementById("hero-city"); if (eb) eb.textContent = cityLive(id) ? cityName(id) : "Madhya Pradesh";
   document.querySelectorAll('[data-act="pick-city"]').forEach(b => b.setAttribute("aria-pressed", b.dataset.v === id));
   renderSearchCard(); updateCompareBar();
 }
-const cityOptions = (cur, all) => { const cs = cityList().slice().sort(citySort), live = cs.filter(c => c.status === "live"), soon = cs.filter(c => c.status !== "live");
+const cityOptions = (cur, all) => {
+  const cs = cityList().slice().sort(citySort), live = cs.filter(c => c.status === "live"), soon = cs.filter(c => c.status !== "live");
   return `<optgroup label="Live now">${live.map(c => `<option value="${c.id}" ${cur === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</optgroup>
-    <optgroup label="${all ? "Coming soon" : "Launching soon"}">${soon.map(c => `<option value="${c.id}" ${cur === c.id ? "selected" : ""}>${esc(c.name)}${all ? "" : " · soon"}</option>`).join("")}</optgroup>`; };
+    <optgroup label="${all ? "Coming soon" : "Launching soon"}">${soon.map(c => `<option value="${c.id}" ${cur === c.id ? "selected" : ""}>${esc(c.name)}${all ? "" : " · soon"}</option>`).join("")}</optgroup>`;
+};
 function soonBody() {
   const name = cityName(S.city), u = me();
   if (S.wlDone && S.wlDone.city_id === S.city) {
@@ -1295,8 +1337,10 @@ async function openPlan(id) {
 }
 function planFormData(f) {
   const g = n => val(f, n);
-  return { id: f.dataset.id, category: g("category"), provider_id: g("provider_id"), plan_code: g("plan_code"), name: g("name"), speed_mbps: g("speed_mbps"), price_monthly: g("price_monthly"), data_limit_gb: g("data_limit_gb"),
-    data_per_day_gb: g("data_per_day_gb"), voice: g("voice"), sms_per_day: g("sms_per_day"), validity_days: g("validity_days"), tv_channels: g("tv_channels"), install_charge: g("install_charge"), ott: g("ott"), source_url: g("source_url"), verified: g("verified") };
+  return {
+    id: f.dataset.id, category: g("category"), provider_id: g("provider_id"), plan_code: g("plan_code"), name: g("name"), speed_mbps: g("speed_mbps"), price_monthly: g("price_monthly"), data_limit_gb: g("data_limit_gb"),
+    data_per_day_gb: g("data_per_day_gb"), voice: g("voice"), sms_per_day: g("sms_per_day"), validity_days: g("validity_days"), tv_channels: g("tv_channels"), install_charge: g("install_charge"), ott: g("ott"), source_url: g("source_url"), verified: g("verified")
+  };
 }
 function planFormErrors(d) {
   const e = {};
@@ -1325,8 +1369,10 @@ async function openTipPlan(id) {
     <form class="stack" data-form="tip-plan" novalidate>${planFormFields(p, provs, "tip")}<button class="btn btn-primary" type="submit">Send for review</button></form>`, true);
   syncPlanForm(document.querySelector('[data-form="tip-plan"]'));
 }
-const planToRow = (d, providers) => ({ plan_code: d.plan_code, category: d.category, provider: (providers.find(p => p.id === d.provider_id) || {}).name, plan_name: d.name, speed_mbps: d.speed_mbps, price: d.price_monthly,
-  validity_days: d.validity_days, data_limit_gb: d.data_limit_gb, data_per_day_gb: d.data_per_day_gb, voice: d.voice, sms_per_day: d.sms_per_day, ott_apps: d.ott, tv_channels: d.tv_channels, install_charge: d.install_charge, source_url: d.source_url });
+const planToRow = (d, providers) => ({
+  plan_code: d.plan_code, category: d.category, provider: (providers.find(p => p.id === d.provider_id) || {}).name, plan_name: d.name, speed_mbps: d.speed_mbps, price: d.price_monthly,
+  validity_days: d.validity_days, data_limit_gb: d.data_limit_gb, data_per_day_gb: d.data_per_day_gb, voice: d.voice, sms_per_day: d.sms_per_day, ott_apps: d.ott, tv_channels: d.tv_channels, install_charge: d.install_charge, source_url: d.source_url
+});
 /* --- sheet reading: .xlsx (no library) and .csv --- */
 const colIdx = letters => [...letters].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
 async function readXlsx(buf) {
@@ -1338,9 +1384,11 @@ async function readXlsx(buf) {
     const method = dv.getUint16(off + 10, true), csize = dv.getUint32(off + 20, true), nl = dv.getUint16(off + 28, true), el = dv.getUint16(off + 30, true), cl = dv.getUint16(off + 32, true), local = dv.getUint32(off + 42, true);
     files[td.decode(new Uint8Array(buf, off + 46, nl))] = { method, csize, local }; off += 46 + nl + el + cl;
   }
-  const get = async name => { const f = files[name]; if (!f) return null; const lnl = dv.getUint16(f.local + 26, true), lel = dv.getUint16(f.local + 28, true), data = new Uint8Array(buf, f.local + 30 + lnl + lel, f.csize);
+  const get = async name => {
+    const f = files[name]; if (!f) return null; const lnl = dv.getUint16(f.local + 26, true), lel = dv.getUint16(f.local + 28, true), data = new Uint8Array(buf, f.local + 30 + lnl + lel, f.csize);
     if (f.method === 0) return td.decode(data);
-    return td.decode(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()); };
+    return td.decode(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+  };
   const X = t => new DOMParser().parseFromString(t, "application/xml");
   const wbx = X(await get("xl/workbook.xml")), rels = X(await get("xl/_rels/workbook.xml.rels"));
   const sheets = [...wbx.getElementsByTagName("sheet")], sh = sheets.find(x => (x.getAttribute("name") || "").toLowerCase() === "plans") || sheets[0];
@@ -1350,18 +1398,22 @@ async function readXlsx(buf) {
   const rows = [];
   for (const r of X(await get(target)).getElementsByTagName("row")) {
     const row = [];
-    for (const c of r.getElementsByTagName("c")) { const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0]; let val = v ? v.textContent : "";
+    for (const c of r.getElementsByTagName("c")) {
+      const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0]; let val = v ? v.textContent : "";
       if (t === "s") val = ss[+val] ?? ""; else if (t === "inlineStr") { const it = c.getElementsByTagName("t")[0]; val = it ? it.textContent : ""; }
-      row[colIdx((c.getAttribute("r") || "").replace(/\d+/g, ""))] = val; }
+      row[colIdx((c.getAttribute("r") || "").replace(/\d+/g, ""))] = val;
+    }
     rows.push(row);
   }
   return rows;
 }
 function readCsv(text) {
   const rows = []; let row = [], cur = "", q = false;
-  for (let i = 0; i < text.length; i++) { const ch = text[i];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     if (q) { if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
-    else if (ch === '"') q = true; else if (ch === ",") { row.push(cur); cur = ""; } else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; } else cur += ch; }
+    else if (ch === '"') q = true; else if (ch === ",") { row.push(cur); cur = ""; } else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; } else cur += ch;
+  }
   if (cur || row.length) { row.push(cur); rows.push(row); }
   return rows;
 }
@@ -1384,11 +1436,15 @@ async function previewImport(input) {
     const buf = await file.arrayBuffer();
     const rows = rowsToObjects(/\.csv$/i.test(file.name) ? readCsv(new TextDecoder().decode(buf)) : await readXlsx(buf));
     const provs = mode === "tip" ? await API.tipProviders() : await API.adminProviders();
-    const checked = rows.map(r => { let err = "";
-      try { const pv = provs.find(p => p.name.toLowerCase() === String(r.provider || "").toLowerCase()); if (!pv) throw new AppError(mode === "tip" ? `You don't install for "${r.provider}"` : `Unknown provider "${r.provider}"`);
+    const checked = rows.map(r => {
+      let err = "";
+      try {
+        const pv = provs.find(p => p.name.toLowerCase() === String(r.provider || "").toLowerCase()); if (!pv) throw new AppError(mode === "tip" ? `You don't install for "${r.provider}"` : `Unknown provider "${r.provider}"`);
         planFromRow(r, pv.id); if (mode === "admin" && !r.plan_code) throw new AppError("plan_code missing");
-        if (["Y", "YES"].includes(String(r.verified || "").toUpperCase()) && !r.source_url) throw new AppError("Verified needs a source link"); }
-      catch (e) { err = errMsg(e); } return Object.assign(r, { _err: err }); });
+        if (["Y", "YES"].includes(String(r.verified || "").toUpperCase()) && !r.source_url) throw new AppError("Verified needs a source link");
+      }
+      catch (e) { err = errMsg(e); } return Object.assign(r, { _err: err });
+    });
     const ok = checked.filter(r => !r._err); S.importRows = ok; S.importMode = mode;
     out.innerHTML = `<div class="row" style="margin-bottom:10px"><b>${rows.length} rows</b>${pill(ok.length + " ready", "p-ok")}${checked.length - ok.length ? pill((checked.length - ok.length) + " with errors (skipped)", "p-bad") : ""}</div>
       <div class="tbl-wrap" style="max-height:340px;overflow:auto;max-width:100%"><table class="tbl" style="min-width:640px"><thead><tr><th>Row</th><th>Code</th><th>Type</th><th>Provider</th><th>Plan</th><th class="r">Price</th><th>Check</th></tr></thead><tbody>
@@ -1494,7 +1550,7 @@ async function renderRouter() {
   }
   const sm = await carePlanSummary(API, u.role);
   let zoneHtml = "", acsHtml = "", locs = [];
-  if (u.role === "admin") { try { locs = await API.adminLocations(); } catch (e) {} try { acsHtml = acsCard(await API.adminAcs()); } catch (e) {} }
+  if (u.role === "admin") { try { locs = await API.adminLocations(); } catch (e) { } try { acsHtml = acsCard(await API.adminAcs()); } catch (e) { } }
   zoneHtml = routerZones(sm.zones, areaIndex(locs));
   const chips = [["all", "All"], ["offline", "Offline"], ["weak", "Weak signal"], ["reboots", "3+ restarts in 7 days"], ["unlinked", "Not linked"]];
   app.innerHTML = `<div class="wrap dash">${head(title, sub)}
@@ -1534,8 +1590,10 @@ const actions = {
   "copy-cred": async b => { try { await navigator.clipboard.writeText(b.dataset.v); toast("Copied."); } catch (e) { toast("Select and copy the details by hand.", true); } },
   "create-user": () => openCreateUser(),
   "team-filter": b => { S.teamFilter = b.dataset.v; resetServerTable("adm-team"); render(); },
-  "reset-user": async b => { if (!confirm("Reset the password for " + b.dataset.name + "? A new one-time password will be sent on WhatsApp.")) return;
-    const r = await guard(b, () => API.adminResetPassword(b.dataset.id)); openModal(`<h2>Password reset</h2><p class="muted" style="margin:4px 0 12px">Their old password no longer works.</p>${credBlock(r, esc(r.name || "") + " · " + ROLE_NAME[r.role])}`); render(); },
+  "reset-user": async b => {
+    if (!confirm("Reset the password for " + b.dataset.name + "? A new one-time password will be sent on WhatsApp.")) return;
+    const r = await guard(b, () => API.adminResetPassword(b.dataset.id)); openModal(`<h2>Password reset</h2><p class="muted" style="margin:4px 0 12px">Their old password no longer works.</p>${credBlock(r, esc(r.name || "") + " · " + ROLE_NAME[r.role])}`); render();
+  },
   /* QA point 6: View any admin table row as a readable detail card (column name → value), for <table> and role="table" grids */
   "row-view": b => {
     const row = b.closest("tr, [role=row]"), tbl = row && row.closest("table, [role=table]"); if (!row || !tbl) return;
@@ -1555,9 +1613,11 @@ const actions = {
   },
   "toggle-user": async b => { await guard(b, () => API.adminSetDisabled(b.dataset.id, b.dataset.v === "1")); toast(b.dataset.v === "1" ? "Login disabled." : "Login enabled."); render(); },
   "pick-thread": b => { S.thread = b.dataset.thread; render(); },
-  "edit-profile": () => { const u = me(); openModal(`<h2>Your details</h2><p class="muted" style="margin:4px 0 12px">Your mobile number is your WhatsApp login (+91 ${esc(u.phone || "")}). Your name and email are shown to the people working on your connection.</p>
+  "edit-profile": () => {
+    const u = me(); openModal(`<h2>Your details</h2><p class="muted" style="margin:4px 0 12px">Your mobile number is your WhatsApp login (+91 ${esc(u.phone || "")}). Your name and email are shown to the people working on your connection.</p>
     <form class="stack" data-form="set-profile" novalidate>${field("pf-name", "Full name", `<input id="pf-name" name="name" autocomplete="name" value="${esc(u.full_name || "")}">`)}${field("pf-email", "Email", `<input id="pf-email" name="email" type="email" autocomplete="email" value="${esc(u.email || "")}">`)}<button class="btn btn-primary" type="submit">Save</button></form>
-    <div class="row" style="margin-top:14px;border-top:1px dashed var(--line);padding-top:12px"><b class="small">Password</b><span class="muted small">${u.pw || u.has_password ? "Log in with mobile + password" : "Not set yet. You log in with WhatsApp OTP."}</span><span class="spacer"></span><button class="btn btn-soft btn-sm" data-act="change-password" type="button">${u.pw || u.has_password ? "Change password" : "Create password"}</button></div>`); },
+    <div class="row" style="margin-top:14px;border-top:1px dashed var(--line);padding-top:12px"><b class="small">Password</b><span class="muted small">${u.pw || u.has_password ? "Log in with mobile + password" : "Not set yet. You log in with WhatsApp OTP."}</span><span class="spacer"></span><button class="btn btn-soft btn-sm" data-act="change-password" type="button">${u.pw || u.has_password ? "Change password" : "Create password"}</button></div>`);
+  },
   "pick-city": b => { setCity(b.dataset.v); const s = document.getElementById("search"); if (s) s.scrollIntoView({ behavior: "smooth", block: "center" }); },
   "all-cities": () => { S.allCities = true; const sec = document.getElementById("cities"); if (sec) sec.outerHTML = citiesSection(); },
   "focus-city": () => { const s = document.getElementById("city-pick"); if (s) { s.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => s.focus(), 300); } },
@@ -1576,25 +1636,31 @@ const actions = {
   "plan-import": b => openImport(b.dataset.mode),
   "plan-template": () => downloadTemplate(),
   "pin-template": () => downloadSheet("connectbhai-pincode-template.csv", ["pincode", "note"], [["452010", "This is sample data - delete this row and add your own PIN codes"]]),
-  "import-confirm": async b => { const rows = S.importRows || [];
+  "import-confirm": async b => {
+    const rows = S.importRows || [];
     if (S.importMode === "tip") { const n = await guard(b, () => API.tipSubmitPlans(rows)); closeModal(); toast(n + " plan" + (n === 1 ? "" : "s") + " sent for review."); }
     else { const r = await guard(b, () => API.adminImportPlans(rows)); closeModal(); toast(`Imported: ${r.inserted} new, ${r.updated} updated.`); }
-    render(); },
-  "review-plan": async b => { if (b.dataset.v === "1") { await guard(b, () => API.adminReviewPlan(b.dataset.id, true, "")); toast("Approved and published."); render(); }
-    else openModal(`<h2>Reject submission</h2><form class="stack" data-form="review-reject" data-id="${b.dataset.id}" novalidate style="margin-top:12px">${field("rv-note", "Reason (shown to the TIP)", `<textarea id="rv-note" name="note" placeholder="e.g. Price doesn't match the circular"></textarea>`)}<button class="btn btn-danger" type="submit">Reject</button></form>`); },
+    render();
+  },
+  "review-plan": async b => {
+    if (b.dataset.v === "1") { await guard(b, () => API.adminReviewPlan(b.dataset.id, true, "")); toast("Approved and published."); render(); }
+    else openModal(`<h2>Reject submission</h2><form class="stack" data-form="review-reject" data-id="${b.dataset.id}" novalidate style="margin-top:12px">${field("rv-note", "Reason (shown to the TIP)", `<textarea id="rv-note" name="note" placeholder="e.g. Price doesn't match the circular"></textarea>`)}<button class="btn btn-danger" type="submit">Reject</button></form>`);
+  },
   "tip-plan": b => openTipPlan(b.dataset.id),
   "activate-sim": b => openModal(`<h2>Mark as activated</h2><p class="muted" style="margin:4px 0 12px">Confirm the SIM was delivered, KYC was completed and the connection is active.</p>
     <form class="stack" data-form="activate-sim" data-id="${b.dataset.id}" novalidate>${field("as-ref", "Activation reference", `<input id="as-ref" name="reference" placeholder="e.g. last 4 digits of new number / order ID">`)}
     <div class="field" data-f="as-kyc"><label class="check"><input type="checkbox" name="kyc"> KYC completed and SIM activated</label><span class="ferr" id="as-kyc-err"></span></div><button class="btn btn-primary" type="submit">Confirm activation</button></form>`),
   "story-toggle": b => { const st = document.getElementById("story"); const p = st.classList.toggle("paused"); b.textContent = p ? "▶" : "❚❚"; b.setAttribute("aria-label", p ? "Play animation" : "Pause animation"); },
   "story-replay": () => { const st = document.getElementById("story"); st.getAnimations({ subtree: true }).forEach(a => { a.currentTime = 0; }); },
-  "router-filter": b => { S.routerFilter = b.dataset.v; ["admin", "tip"].forEach(r => resetServerTable("router-" + r)); render(); },
+  "router-filter": b => { S.routerFilter = b.dataset.v;["admin", "tip"].forEach(r => resetServerTable("router-" + r)); render(); },
   "edit-acs": b => openAcs(b.dataset.id).catch(e => toast(errMsg(e), true)),
   "modem-reboot": b => openModal(`<h2>Restart modem?</h2><p class="muted" style="margin:6px 0 16px">Internet and Wi-Fi will be off for about 2 minutes while the modem restarts. Phones and laptops reconnect by themselves.</p>
     <div class="row"><button class="btn btn-primary" data-act="modem-reboot-go" data-id="${esc(b.dataset.id)}" type="button">Restart now</button><button class="btn btn-ghost" data-act="close-modal" type="button">Cancel</button></div>`),
-  "modem-reboot-go": async b => { const d = await guard(b, () => API.deviceAction(b.dataset.id, "reboot")); closeModal();
+  "modem-reboot-go": async b => {
+    const d = await guard(b, () => API.deviceAction(b.dataset.id, "reboot")); closeModal();
     if (await trackAction(b.dataset.id, "reboot")) { toast("Restart sent."); return; }
-    toast("Restart sent. The modem restarts when it next checks in (about a minute), then is back in about 2 minutes. The status shows under Restarts and Wi-Fi changes." + (d && d.is_simulated ? " (simulated)" : "")); render(); },
+    toast("Restart sent. The modem restarts when it next checks in (about a minute), then is back in about 2 minutes. The status shows under Restarts and Wi-Fi changes." + (d && d.is_simulated ? " (simulated)" : "")); render();
+  },
   "modem-wifi": b => openModal(`<h2>Change Wi-Fi name / password</h2><p class="notice" style="margin:8px 0 14px">Every phone and laptop on this Wi-Fi will disconnect. After about 1 minute, join the new Wi-Fi name with the new password.</p>
     <form class="stack" data-form="modem-wifi" data-id="${esc(b.dataset.id)}" data-old="${esc(b.dataset.ssid || "")}" novalidate>
       ${field("mw-ssid", "New Wi-Fi name", `<input id="mw-ssid" name="ssid" maxlength="32" autocomplete="off" placeholder="${esc(b.dataset.ssid || "")}">`, "Now: <b>" + esc(b.dataset.ssid || "—") + "</b>. Leave empty to keep it.")}
@@ -1615,14 +1681,15 @@ const actions = {
   "otp-resend": async b => { await guard(b, () => API.sendOtp(b.dataset.phone, ((document.querySelector('[data-form="otp-verify"]') || { dataset: {} }).dataset.purpose === "request") ? "customer" : undefined)); toast("OTP sent again on WhatsApp."); openOtpStep(b.dataset.phone, (document.querySelector('[data-form="otp-verify"]') || { dataset: {} }).dataset.purpose || "login"); },
   "reload": () => render(),
   "login": () => openLogin(),
-  "logout": async () => { await API.signOut(); try { localStorage.removeItem("cb-session"); localStorage.removeItem("cb-role"); } catch (e) {} toast("Logged out."); go("home"); },
-  "fill-admin": () => {   // fills the admin username only; the person types the password and logs in themselves
+  "logout": async () => { await API.signOut(); try { localStorage.removeItem("cb-session"); localStorage.removeItem("cb-role"); } catch (e) { } toast("Logged out."); go("home"); },
+  "fill-admin": () => {
     const ph = document.getElementById("pl-phone"), pw = document.getElementById("pl-pw");
     if (ph) ph.value = LIVE ? "9999999999" : "9876500999";
-    if (!LIVE && pw) pw.value = "Demo@1234";   // demo mode only: fake local data, no real account
+    const stagingPw = process.env.NEXT_PUBLIC_STAGING_ADMIN_PW || "";
+    if (pw) pw.value = LIVE ? stagingPw : "Demo@1234";
     (pw || ph) && (pw || ph).focus();
   },
-  "demo-login": async b => { const u = await API.signInDemo(b.dataset.id); try { localStorage.setItem("cb-session", u.id); } catch (e) {} closeModal(); toast(`Logged in as ${u.full_name} (${ROLE_NAME[u.role]}).`); go(ROLE_HOME[u.role]); },
+  "demo-login": async b => { const u = await API.signInDemo(b.dataset.id); try { localStorage.setItem("cb-session", u.id); } catch (e) { } closeModal(); toast(`Logged in as ${u.full_name} (${ROLE_NAME[u.role]}).`); go(ROLE_HOME[u.role]); },
   "reset-demo": () => { resetDemoData(); S.cities = null; S.results = null; S.compare = []; toast("Demo data reset."); go(S.view === "home" ? "home" : S.view, S.tab); },
   "pick-pin": b => { $("#pin").value = b.dataset.pin; searchPin(b.dataset.pin); },
   "f-speed": b => { S.f.speed = Number(b.dataset.v); renderResults(); },
@@ -1684,14 +1751,18 @@ const actions = {
   "pick-area": b => { document.getElementById("lc-area").value = b.dataset.v; },
   "use-location": async b => {
     const err = document.getElementById("pin-err");
-    try { const c = await guard(b, getCoords); const r = await API.geoReverse(c.lat, c.lng);
-      document.getElementById("pin").value = r.pincode; toast(`Location found: ${r.pincode}${r.area ? " · " + r.area : ""}${r.simulated || c.simulated ? " (simulated in preview)" : ""}`); searchPin(r.pincode); }
+    try {
+      const c = await guard(b, getCoords); const r = await API.geoReverse(c.lat, c.lng);
+      document.getElementById("pin").value = r.pincode; toast(`Location found: ${r.pincode}${r.area ? " · " + r.area : ""}${r.simulated || c.simulated ? " (simulated in preview)" : ""}`); searchPin(r.pincode);
+    }
     catch (e) { if (err) err.textContent = errMsg(e); }
   },
   "pin-location": async b => {
     const f = b.closest("form"), out = document.getElementById("rq-loc");
-    try { const c = await guard(b, getCoords); f.dataset.lat = c.lat.toFixed(6); f.dataset.lng = c.lng.toFixed(6);
-      out.innerHTML = `<b style="color:var(--ok)">Location pinned</b> (${c.lat.toFixed(4)}, ${c.lng.toFixed(4)})${c.simulated ? " · simulated in preview" : ""}`; b.textContent = "Update location"; }
+    try {
+      const c = await guard(b, getCoords); f.dataset.lat = c.lat.toFixed(6); f.dataset.lng = c.lng.toFixed(6);
+      out.innerHTML = `<b style="color:var(--ok)">Location pinned</b> (${c.lat.toFixed(4)}, ${c.lng.toFixed(4)})${c.simulated ? " · simulated in preview" : ""}`; b.textContent = "Update location";
+    }
     catch (e) { out.textContent = errMsg(e); }
   },
   "auto-assign": async b => { await guard(b, () => API.setAutoAssign(b.dataset.v === "1")); toast("Auto-assign turned " + (b.dataset.v === "1" ? "on." : "off.")); render(); },
@@ -1720,7 +1791,7 @@ const onClick = e => {
   const t = e.target.closest("[data-tab]");
   if (t && !t.closest("form")) { S.tab = t.dataset.tab; renderedKey = S.view + "/" + S.tab; navigate(pathFor(S.view, S.tab), "replace"); render(); return; }
   const a = e.target.closest("[data-act]");
-  if (a && actions[a.dataset.act]) { if (a.tagName !== "INPUT") e.preventDefault(); track(actions[a.dataset.act](a, e)).catch(() => {}); }
+  if (a && actions[a.dataset.act]) { if (a.tagName !== "INPUT") e.preventDefault(); track(actions[a.dataset.act](a, e)).catch(() => { }); }
 };
 /* PIN lookup in forms (India Post directory through our API): checks the PIN, shows state / district / serviceability and suggests area names. */
 /* A list of PIN codes ("452010, 452016"): every one is checked against India Post; bad ones are flagged and block the form. */
@@ -1810,12 +1881,12 @@ const onChange = e => {
   if (e.target.id === "ap-file") { readPinFile(e.target); return; }
   if (e.target.name === "category" && e.target.closest("form[data-form=plan], form[data-form=tip-plan]")) { syncPlanForm(e.target.closest("form")); return; }
   if (e.target.name === "sim_conn") { const port = e.target.value === "port"; document.getElementById("sm-port").hidden = !port; document.getElementById("sm-prefwrap").hidden = port; return; }
-  if (e.target.dataset && e.target.dataset.zoneLoc) { const v = e.target.value; guard(null, () => API.saveLocationZone(e.target.dataset.zoneLoc, v)).then(() => { toast(v ? "Zone set to " + ZONE_NAME[v] + "." : "Zone removed."); }).catch(() => {}); return; }
+  if (e.target.dataset && e.target.dataset.zoneLoc) { const v = e.target.value; guard(null, () => API.saveLocationZone(e.target.dataset.zoneLoc, v)).then(() => { toast(v ? "Zone set to " + ZONE_NAME[v] + "." : "Zone removed."); }).catch(() => { }); return; }
   if (e.target.id === "zone-pick") { S.zoneFilter = e.target.value; resetServerTable("adm-leads"); render(); return; }
   if (e.target.id === "lc-pin") { const z = ZONE_BY_PIN[e.target.value.trim()], sel = document.getElementById("lc-zone"); if (z && sel && !sel.value) sel.value = z; }
-  if (e.target.id === "cu-role") { const a = e.target.value === "admin"; ["cu-firm", "cu-pins"].forEach(k => { document.querySelector(`[data-f="${k}"]`).hidden = a; }); document.getElementById("cu-note").hidden = a; return; }
+  if (e.target.id === "cu-role") { const a = e.target.value === "admin";["cu-firm", "cu-pins"].forEach(k => { document.querySelector(`[data-f="${k}"]`).hidden = a; }); document.getElementById("cu-note").hidden = a; return; }
   if (e.target.id === "cp-what") { const a = e.target.value.split("|")[2], inp = document.getElementById("cp-amt"); if (inp) { inp.value = a || ""; if (!a) inp.focus(); } return; }
-  if (e.target.id === "dl-pin" && isPin(e.target.value.trim())) { API.searchPlans(e.target.value.trim()).then(r => { const sel = document.getElementById("dl-plan"); if (!sel) return; sel.innerHTML = `<option value="">${r.plans.length ? "No plan yet / callback" : "No plans at this PIN code"}</option>` + r.plans.sort((a, b) => a.price_monthly - b.price_monthly).map(p => `<option value="${p.id}">${esc(joinDot(p.provider && p.provider.name, p.name, speedTxt(p), inr(p.price_monthly)))}</option>`).join(""); const ar = document.getElementById("dl-area"); if (ar && !ar.value && r.areas[0]) ar.value = r.areas[0]; }).catch(() => {}); return; }
+  if (e.target.id === "dl-pin" && isPin(e.target.value.trim())) { API.searchPlans(e.target.value.trim()).then(r => { const sel = document.getElementById("dl-plan"); if (!sel) return; sel.innerHTML = `<option value="">${r.plans.length ? "No plan yet / callback" : "No plans at this PIN code"}</option>` + r.plans.sort((a, b) => a.price_monthly - b.price_monthly).map(p => `<option value="${p.id}">${esc(joinDot(p.provider && p.provider.name, p.name, speedTxt(p), inr(p.price_monthly)))}</option>`).join(""); const ar = document.getElementById("dl-area"); if (ar && !ar.value && r.areas[0]) ar.value = r.areas[0]; }).catch(() => { }); return; }
   if (e.target.id === "nc-payer") { const c = e.target.value === "customer"; document.querySelector('[data-f="nc-partner"]').hidden = c; document.querySelector('[data-f="nc-customer"]').hidden = !c; document.getElementById("nc-kind").value = c ? "customer_payment" : "registration_fee"; return; }
   const el = e.target; if (!el.dataset || !el.dataset.filter) return;
   const k = el.dataset.filter;
@@ -1937,8 +2008,10 @@ const forms = {
     const d = { name: val(f, "name"), phone: val(f, "phone"), email: val(f, "email"), pincode: val(f, "pincode"), area: val(f, "area"), address: val(f, "address"), preferred_date: val(f, "preferred_date"), consent: val(f, "consent"), plan_id: f.dataset.plan || null, lat: f.dataset.lat ? Number(f.dataset.lat) : null, lng: f.dataset.lng ? Number(f.dataset.lng) : null, product: f.dataset.product || "broadband" }, e = {};
     if (d.product === "sim") {
       const conn = (f.querySelector("input[name=sim_conn]:checked") || {}).value || "new";
-      d.sim = { connection: conn, type: f.dataset.simtype || "prepaid", for_whom: val(f, "for_whom"), port_number: conn === "port" ? val(f, "port_number") : null, current_operator: conn === "port" ? val(f, "current_operator") : null,
-        number_preference: conn === "new" ? val(f, "number_preference") : null, delivery_slot: val(f, "delivery_slot"), kyc: (f.querySelector("input[name=kyc]:checked") || {}).value || "doorstep" };
+      d.sim = {
+        connection: conn, type: f.dataset.simtype || "prepaid", for_whom: val(f, "for_whom"), port_number: conn === "port" ? val(f, "port_number") : null, current_operator: conn === "port" ? val(f, "current_operator") : null,
+        number_preference: conn === "new" ? val(f, "number_preference") : null, delivery_slot: val(f, "delivery_slot"), kyc: (f.querySelector("input[name=kyc]:checked") || {}).value || "doorstep"
+      };
       if (conn === "port" && !isPhone(d.sim.port_number || "")) e["sm-portno"] = "Enter the 10-digit number to port.";
       if (d.sim.number_preference && !/^\d{1,4}$/.test(d.sim.number_preference)) e["sm-pref"] = "Use up to 4 digits.";
       if (d.address.length < 5) e["rq-addr"] = "Enter the delivery address.";
@@ -2006,10 +2079,14 @@ const forms = {
   },
   provider: async (f, btn) => { const d = { id: f.dataset.id, name: val(f, "name"), kind: val(f, "kind"), website: val(f, "website") }; if (!setErr(f, d.name.length < 2 ? { "pv-name": "Enter the provider name." } : {})) return; await guard(btn, () => API.saveProvider(d)); closeModal(); toast("Provider saved."); render(); },
   plan: async (f, btn) => { const d = planFormData(f); if (!setErr(f, planFormErrors(d))) return; await guard(btn, () => API.savePlan(d)); closeModal(); toast("Plan saved."); render(); },
-  "tip-plan": async (f, btn) => { const d = planFormData(f); if (!setErr(f, planFormErrors(d))) return; const provs = await API.tipProviders();
-    await guard(btn, () => API.tipSubmitPlans([planToRow(d, provs)])); closeModal(); toast("Sent to admin for review."); render(); },
-  "activate-sim": async (f, btn) => { const r = val(f, "reference"), e = {}; if (r.length < 3) e["as-ref"] = "Enter the activation reference."; if (!val(f, "kyc")) e["as-kyc"] = "Confirm KYC is complete.";
-    if (!setErr(f, e)) return; await guard(btn, () => API.dsaActivateSim(f.dataset.id, r)); closeModal(); toast("Activated. Payout created for approval."); render(); },
+  "tip-plan": async (f, btn) => {
+    const d = planFormData(f); if (!setErr(f, planFormErrors(d))) return; const provs = await API.tipProviders();
+    await guard(btn, () => API.tipSubmitPlans([planToRow(d, provs)])); closeModal(); toast("Sent to admin for review."); render();
+  },
+  "activate-sim": async (f, btn) => {
+    const r = val(f, "reference"), e = {}; if (r.length < 3) e["as-ref"] = "Enter the activation reference."; if (!val(f, "kyc")) e["as-kyc"] = "Confirm KYC is complete.";
+    if (!setErr(f, e)) return; await guard(btn, () => API.dsaActivateSim(f.dataset.id, r)); closeModal(); toast("Activated. Payout created for approval."); render();
+  },
   "review-reject": async (f, btn) => { await guard(btn, () => API.adminReviewPlan(f.dataset.id, false, val(f, "note"))); closeModal(); toast("Submission rejected."); render(); },
   "add-city": async (f, btn) => { const d = { name: val(f, "name"), district: val(f, "district"), tier: val(f, "tier") }; if (!setErr(f, d.name.length < 2 ? { "ac-name": "Enter the city or town name." } : {})) return; await guard(btn, () => API.adminAddCity(d)); closeModal(); S.cities = null; toast(d.name + " added as launching soon."); render(); },
   "pins-import": async (f, btn) => {
@@ -2038,11 +2115,14 @@ const forms = {
     const d = { registration_fee_tip: val(f, "registration_fee_tip"), gst_percent: val(f, "gst_percent"), lead_target_default: val(f, "lead_target_default"), tip_share_percent: val(f, "tip_share_percent") }, e = {};
     if (!(Number(d.lead_target_default) >= 0) || d.lead_target_default === "") e["st-target"] = "Enter 0 or more."; if (!(Number(d.tip_share_percent) >= 0 && Number(d.tip_share_percent) <= 100) || d.tip_share_percent === "") e["st-share"] = "Enter 0 to 100.";
     if (!(Number(d.registration_fee_tip) >= 0) || d.registration_fee_tip === "") e["st-tip"] = "Enter 0 or more."; if (!(Number(d.gst_percent) >= 0 && Number(d.gst_percent) <= 28)) e["st-gst"] = "Enter 0 to 28.";
-    if (!setErr(f, e)) return; await guard(btn, () => API.saveSettings(d)); toast("Fees saved."); },
-  "new-charge": async (f, btn) => { const d = { payer_type: val(f, "payer_type"), partner_id: val(f, "partner_id"), customer_id: val(f, "customer_id"), kind: val(f, "kind"), description: val(f, "description"), base: val(f, "base") }, e = {};
+    if (!setErr(f, e)) return; await guard(btn, () => API.saveSettings(d)); toast("Fees saved.");
+  },
+  "new-charge": async (f, btn) => {
+    const d = { payer_type: val(f, "payer_type"), partner_id: val(f, "partner_id"), customer_id: val(f, "customer_id"), kind: val(f, "kind"), description: val(f, "description"), base: val(f, "base") }, e = {};
     if (d.payer_type === "partner" && !d.partner_id) e["nc-partner"] = "Choose the DSA or TIP."; if (d.payer_type === "customer" && !d.customer_id) e["nc-customer"] = "Choose the customer.";
     if (d.description.length < 3) e["nc-desc"] = "Add a description."; if (!(Number(d.base) > 0)) e["nc-amt"] = "Enter an amount.";
-    if (!setErr(f, e)) return; await guard(btn, () => API.adminCreateCharge(d)); closeModal(); toast("Charge created and sent on WhatsApp."); render(); },
+    if (!setErr(f, e)) return; await guard(btn, () => API.adminCreateCharge(d)); closeModal(); toast("Charge created and sent on WhatsApp."); render();
+  },
   "charge-offline": async (f, btn) => { const r = val(f, "reference"); if (!setErr(f, r.length >= 3 ? {} : { "co-ref": "Enter the reference." })) return; await guard(btn, () => API.adminSetCharge(f.dataset.id, "paid_offline", r)); closeModal(); toast("Marked as paid."); render(); },
   "otp-send": async (f, btn) => {
     const phone = val(f, "phone"); if (!setErr(f, phoneError(phone) ? { "lg-phone": phoneError(phone) } : {})) return;
@@ -2055,7 +2135,7 @@ const forms = {
     let u;
     try { u = await guard(btn, () => API.verifyOtp(f.dataset.phone, otp, purpose === "request" && pend ? pend.name : "", purpose === "request" ? "customer" : undefined)); }
     catch (e) { setErr(f, { "lg-otp": errMsg(e) }); return; }
-    clearInterval(otpTimer); try { localStorage.setItem("cb-session", u.id); } catch (e) {}
+    clearInterval(otpTimer); try { localStorage.setItem("cb-session", u.id); } catch (e) { }
     renderHeader();
     if (purpose === "reset") { openSetPassword("reset"); return; }
     if (purpose === "request" && pend) { S.pendingReq = null; const r = await guard(null, () => API.requestConnection(pend)); showRequestDone(r, pend); return; }
@@ -2066,7 +2146,7 @@ const forms = {
 };
 const onSubmit = e => {
   const f = e.target.closest("form[data-form]"); if (!f) return; e.preventDefault();
-  const fn = forms[f.dataset.form]; if (fn) track(fn(f, f.querySelector('[type="submit"]'))).catch(() => {});
+  const fn = forms[f.dataset.form]; if (fn) track(fn(f, f.querySelector('[type="submit"]'))).catch(() => { });
 };
 
 
@@ -2093,7 +2173,7 @@ let booted = false;
 
 async function bootData() {
   if (LIVE) { try { await API.init(); } catch (e) { toast("Could not connect to the server.", true); } }
-  else { loadDemo(); migrateCities(); let sid = null; try { sid = localStorage.getItem("cb-session"); } catch (e) {} if (sid) await API.restore(sid); }
+  else { loadDemo(); migrateCities(); let sid = null; try { sid = localStorage.getItem("cb-session"); } catch (e) { } if (sid) await API.restore(sid); }
   renderHeader(); updateCompareBar(); publish({ ready: true });
   resolveReady();
 }
