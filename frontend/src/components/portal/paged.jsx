@@ -22,8 +22,8 @@ export function usePaged(role, kind, { status, size = 10, extra, load } = {}) {
   useEffect(() => { const t = setTimeout(() => { setDq(q.trim()); setPage(1); }, 250); return () => clearTimeout(t); }, [q]);
   useEffect(() => {
     if (!active) return;
-    const again = () => bump(); window.addEventListener("cb:render", again); window.addEventListener("cb:poll", again);   // cb:poll = 30 s live refresh
-    return () => { window.removeEventListener("cb:render", again); window.removeEventListener("cb:poll", again); };
+    const again = () => bump(); window.addEventListener("cb:render", again);
+    return () => window.removeEventListener("cb:render", again);
   }, [active]);
   useEffect(() => {
     if (!active) return;
@@ -54,7 +54,7 @@ export function PagedFoot({ p }) {
   return (
     <div className="tt-foot" aria-busy={loading}>
       <span className="tt-count" aria-live="polite">{total ? `${from}–${to} of ${total}` : loading ? "Loading…" : dq ? `No rows match “${dq}”` : ""}</span>
-      {total > 0 && <span className="tt-pager">{/* QA 14: always shown, ‹ 1 › on a single page */}
+      {pages > 1 && <span className="tt-pager">
         <button type="button" disabled={page === 1} aria-label="Previous page" onClick={() => p.setPage(page - 1)}>‹</button>{out}
         <button type="button" disabled={page === pages} aria-label="Next page" onClick={() => p.setPage(page + 1)}>›</button>
       </span>}

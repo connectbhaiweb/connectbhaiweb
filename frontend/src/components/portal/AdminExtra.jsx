@@ -31,7 +31,7 @@ function CustomersTable() {
     <Card title={`Customers (${p.total})`} Icon={User}>
       <PagedBar p={p} label="Search customers" />
       <div className="pt-table pt-t-pc" role="table" aria-label="Customers" data-server>
-        <div className="pt-tr pt-th" role="row"><span role="columnheader">Customer</span><span role="columnheader">PIN / area</span><span role="columnheader">Latest plan</span><span role="columnheader">Requests</span><span role="columnheader">Status</span><span role="columnheader">Joined</span><span role="columnheader">Actions</span></div>
+        <div className="pt-tr pt-th" role="row"><span role="columnheader">Customer</span><span role="columnheader">PIN / area</span><span role="columnheader">Latest plan</span><span role="columnheader">Requests</span><span role="columnheader">Status</span><span role="columnheader">Joined</span></div>
         {p.rows.map(c => { const l = c.s && c.s.latest; return (
           <div className="pt-tr" role="row" key={c.id}>
             <span role="cell" className="pt-name"><span><b>{c.full_name}</b><small>{c.phone ? "+91 " + c.phone : c.email || ""}</small></span></span>
@@ -40,10 +40,6 @@ function CustomersTable() {
             <span role="cell">{c.s ? c.s.requests : 0}</span>
             <span role="cell">{l ? <Chip s={l.status} /> : <Chip label="No request" tone="grey" />}</span>
             <span role="cell">{fDate(c.created_at)}</span>
-            <span role="cell" className="pt-acts">{/* QA point 6: View + Disable/Enable login (no customer delete API) */}
-              <button type="button" className="pt-link" data-act="row-view">View</button>
-              <button type="button" className={c.disabled ? "pt-ok" : "pt-no"} data-act="toggle-user" data-id={c.id} data-v={c.disabled ? "0" : "1"}>{c.disabled ? "Enable" : "Disable"}</button>
-            </span>
           </div>); })}
       </div>
       <Empty p={p} what="customers" /><PagedFoot p={p} />
@@ -64,7 +60,7 @@ function PartnersTable({ type, totals }) {
             <span role="cell">{isT ? <Progress n={t.leads || 0} /> : t.leads || 0}</span>
             <span role="cell">{t.installs || 0}</span>
             <span role="cell"><b>{inr(isT ? t.paid_amount : t.comm_paid)}</b></span>
-            <span role="cell" className="pt-acts">{isT ? t.paid_count || 0 : t.comm_count || 0}<Link className="pt-more" href={isT ? "/admin/billing" : "/admin/payments"}><Receipt aria-hidden="true" />Payments</Link><button type="button" className="pt-link" data-act="row-view">View</button></span>
+            <span role="cell" className="pt-acts">{isT ? t.paid_count || 0 : t.comm_count || 0}<Link className="pt-more" href={isT ? "/admin/billing" : "/admin/payments"}><Receipt aria-hidden="true" />View</Link></span>
           </div>); })}
       </div>
       <Empty p={p} what={isT ? "TIPs" : "DSA agents"} /><PagedFoot p={p} />

@@ -296,5 +296,3 @@ html[data-shell] .dsh-page,html[data-shell-pending] .dsh-page{display:block}
   .cu-pay-what{font-size:13px}
   .cu-step-txt b{white-space:normal;overflow-wrap:anywhere}
 }
-/* QA: a lead with no DSA shows only the installer card, so it takes the full row */
-.cu-people>:only-child{grid-column:1/-1}

@@ -152,11 +152,11 @@ export default function CarePlanPage({ base, tab }) {
         </div>}>
         {list.length ? (
           <div className="pt-table cp-table" role="table" aria-label="Devices">
-            <div className="pt-tr pt-th" role="row">{["Customer", "Status", "Wi-Fi speed", "Signal", "Last seen", "Model", "SSID", "Devices", "Uptime", "Actions"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
+            <div className="pt-tr pt-th" role="row">{["Customer", "Status", "Wi-Fi speed", "Signal", "Last seen", "Model", "SSID", "Devices", "Uptime"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
             {list.map(d => (
               <div className="pt-tr" role="row" key={d.id}>
                 <span role="cell" className="pt-name"><span><b>{d.customer.name}</b><small>{ph(d.customer.mobile)}</small></span></span>
-                <span role="cell" data-l="Status"><Chip label={d.status === "online" ? "Online" : d.status === "unknown" ? "Not reported" : "Offline"} tone={d.status === "online" ? "green" : d.status === "unknown" ? "grey" : "red"} />{d.live === false && <small className="cp-sn" title="Not a live reading yet: shows Live once the modem reports through GenieACS">Simulated</small>}</span>
+                <span role="cell" data-l="Status"><Chip label={d.status === "online" ? "Online" : "Offline"} tone={d.status === "online" ? "green" : "red"} /></span>
                 <span role="cell" data-l="Wi-Fi speed">{d.wifi.speedMbps ? `${d.wifi.speedMbps} Mbps` : "—"}</span>
                 <span role="cell" data-l="Signal"><Chip label={d.signal.rxPowerDbm != null ? `${d.signal.quality} · ${d.signal.rxPowerDbm} dBm` : "No signal"} tone={SIG[d.signal.quality]} /></span>
                 <span role="cell" data-l="Last seen">{ago(d.lastInform)}</span>
@@ -164,7 +164,6 @@ export default function CarePlanPage({ base, tab }) {
                 <span role="cell" data-l="SSID" className="pt-ell">{d.wifi.ssid}</span>
                 <span role="cell" data-l="Devices">{d.wifi.connectedDevices}</span>
                 <span role="cell" data-l="Uptime">{up(d.uptimeSeconds)}</span>
-                <span role="cell" data-l="Actions"><DeviceActs d={d} onDone={reload} /></span>
               </div>
             ))}
           </div>
@@ -174,36 +173,6 @@ export default function CarePlanPage({ base, tab }) {
     </div></div>
   );
 }
-/* QA 12/13: Refresh and Router test right in the dashboard. Router test needs a linked modem (GenieACS id or ONT serial),
-   an active Care plan and the modem online; Refresh needs it linked. Each shows a loader and says what happened. */
-function DeviceActs({ d, onDone }) {
-  const [busy, setBusy] = useState(""), [msg, setMsg] = useState(null);
-  const linked = d.linked !== false, canTest = linked && d.active !== false && d.status === "online";
-  const why = !linked ? "Not linked to GenieACS yet" : d.active === false ? "Care plan is not active" : d.status !== "online" ? "Modem must be online" : "";
-  const run = async kind => {
-    setBusy(kind); setMsg(null);
-    try {
-      const { API } = await import("@/lib/connectbhai/api");
-      if (kind === "refresh") {
-        const r = await API.deviceRefresh(d.id);
-        setMsg({ ok: true, t: r.state === "online" ? "Online now" : r.state === "offline" ? "Offline" : "Not reported yet" }); onDone && onDone();
-      } else {
-        setMsg({ ok: true, t: "Testing… up to 5 min" });
-        const t = await API.deviceRouterTest(d.id);
-        setMsg({ ok: true, t: `${Number(t.download_mbps).toFixed(1)} Mbps line speed${t.is_simulated ? " (simulated)" : ""}` });
-      }
-    } catch (e) { setMsg({ ok: false, t: (e && e.message) || "Could not reach the modem. Try again." }); }
-    finally { setBusy(""); }
-  };
-  return (
-    <span className="cp-acts">
-      <button type="button" className="pt-link" disabled={!linked || !!busy} title={linked ? "" : why} onClick={() => run("refresh")}>{busy === "refresh" ? "Refreshing…" : "Refresh"}</button>
-      <button type="button" className="pt-link" disabled={!canTest || !!busy} title={why} onClick={() => run("test")}>{busy === "test" ? "Testing…" : "Router test"}</button>
-      {msg ? <small role="status" className={msg.ok ? "cp-ok" : "cp-err"}>{msg.t}</small> : !canTest && why ? <small className="cp-sn">{why}</small> : null}
-    </span>
-  );
-}
-
 function facts(d) {
   return [["Status", d.status === "online" ? "Online" : "Offline"], ["Wi-Fi speed", d.wifi.speedMbps ? `${d.wifi.speedMbps} Mbps` : "—"], ["Signal", d.signal.rxPowerDbm != null ? `${d.signal.quality} (${d.signal.rxPowerDbm} dBm)` : "No signal"],
     ["Last seen", ago(d.lastInform)], ["Model", `${d.manufacturer} ${d.model}`], ["Serial number", d.serialNumber], ["SSID", `${d.wifi.ssid} · ${d.wifi.band}, ch ${d.wifi.channel}`],

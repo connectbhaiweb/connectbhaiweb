@@ -37,7 +37,6 @@ export default function CustomerDashboard({ tab }) {
   const due = charges.filter(c => ["due", "failed"].includes(c.status));
   const counts = { bookings: leads.length, support: tickets.filter(t => ["open", "in_progress"].includes(t.status)).length, payments: due.length, chat: unread };
   const first = (user.full_name || "").split(" ")[0];
-  const hasPlan = leads.some(l => l.status !== "lost");   // already chose a plan (open request or live connection): the button is for another address
 
   return (
     <div className="dsh-page">
@@ -49,7 +48,7 @@ export default function CustomerDashboard({ tab }) {
             <span className="cu-role"><UserRound aria-hidden="true" />Customer</span>
             <p><span>Manage your bookings, payments and service requests</span><span className="cu-wide"> — all in one place</span>.</p>
           </div>
-          <button type="button" className="cu-btn cu-btn-primary cu-find" data-go="home" data-scroll="search">{hasPlan ? "New connection" : "Find plans"} <ArrowRight aria-hidden="true" /></button>
+          <button type="button" className="cu-btn cu-btn-primary cu-find" data-go="home" data-scroll="search">Find plans <ArrowRight aria-hidden="true" /></button>
         </header>
 
         <div className="cu-grid">
@@ -111,8 +110,8 @@ function BookingCard({ lead, booking, events }) {
       {lost && <p className="cu-note">This request was closed. Search your PIN code again to request a new connection.</p>}
 
       <div className="cu-people">
-        {lead.dsa && <Person label="Your agent" city={cityOf(lead.pincode)} p={lead.dsa} kind="DSA" text={`Namaste, about my Connect Bhai request ${lead.ref_code}`} />}   {/* only when a DSA brought this lead */}
-        <Person label="Your installer" city={cityOf(lead.pincode)} p={lead.tip} kind="Installation partner" text={`Namaste, about my connection ${lead.ref_code}`} store />
+        {(lead.dsa || !["installed", "lost"].includes(lead.status)) && <Person label="Your agent" city={cityOf(lead.pincode)} p={lead.dsa} kind="DSA" text={`Namaste, about my Connect Bhai request ${lead.ref_code}`} />}
+        <Person label="Your installer" city={cityOf(lead.pincode)} p={lead.tip} kind={`${lead.plan && lead.plan.provider ? lead.plan.provider.name + " " : ""}TIP`} text={`Namaste, about my connection ${lead.ref_code}`} store />
       </div>
     </section>
   );
@@ -123,7 +122,7 @@ function Person({ label, p, kind, text, store, city }) {
   return (
     <div className="cu-person">
       <span className={`cu-ava${store ? " is-store" : ""}`} aria-hidden="true">{store ? <Store /> : p ? p.name.split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase() : <UserRound />}</span>
-      <div className="cu-person-txt"><span>{label}</span><b>{name || "Finding an installer"}</b><em>{p ? [kind, city].filter(Boolean).join(" · ") : "Their name and number show here once assigned"}</em></div>
+      <div className="cu-person-txt"><span>{label}</span><b>{name || "Assigned shortly"}</b><em>{p ? [kind, city].filter(Boolean).join(" · ") : "You get a WhatsApp message"}</em></div>
       <div className="cu-person-acts">
         {p && p.phone ? <>
           <a className="cu-btn cu-btn-call" href={`tel:+91${p.phone}`} aria-label={`Call ${name}, ${fmtPhone(p.phone)}`}><Phone aria-hidden="true" />Call</a>
@@ -223,10 +222,8 @@ function PaymentsCard({ due, charges }) {
         <button type="button" className="cu-btn cu-btn-primary cu-btn-block" data-act="pay" data-id={c.id}>Pay now <ArrowRight aria-hidden="true" /></button>
       </> : <>
         {last
-          ? <><div className="cu-pay-row"><div><span className="cu-pay-what">Last payment</span><b className="cu-amt">{inr(last.amount)}</b></div><span className="cu-chip cu-chip-green cu-due">Paid</span></div>
-            <p className="cu-pay-note">Nothing due right now{last.paid_at ? ` · paid ${fDate(last.paid_at)}` : ""}</p></>
-          : <><div className="cu-pay-row"><div><span className="cu-pay-what">No payments yet</span><b className="cu-amt">{inr(0)}</b></div><span className="cu-chip cu-chip-blue cu-due">Nothing due</span></div>
-            <p className="cu-pay-note">Charges show here when there is something to pay.</p></>}
+          ? <div className="cu-pay-row"><div><span className="cu-pay-what">Nothing due · last paid{last.paid_at ? ` ${fDate(last.paid_at)}` : ""}</span><b className="cu-amt">{inr(last.amount)}</b></div><span className="cu-chip cu-chip-green cu-due">Paid</span></div>
+          : <div className="cu-pay-row"><div><span className="cu-pay-what">No payments yet</span><b className="cu-amt">{inr(0)}</b></div><span className="cu-chip cu-chip-blue cu-due">Nothing due</span></div>}
         <Link href="/my/payments" className="cu-btn cu-btn-soft cu-btn-block">View payments <ArrowRight aria-hidden="true" /></Link>
       </>}
       <PayMarks />

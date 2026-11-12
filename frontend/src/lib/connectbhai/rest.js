@@ -95,7 +95,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   };
   const BS = { scheduled: "scheduled", rescheduled: "scheduled", completed: "installed", cancelled: "cancelled" };
   const mapDevice = d => d && ({ id: S(d.id), booking_id: null, lead_id: S(d.lead_id), state: d.online == null ? "unknown" : d.online ? "online" : "offline", last_seen: d.last_seen_at, rx_dbm: num(d.rx_power_dbm), ssid: d.wifi_ssid, clients: d.connected_clients,
-    acs: d.genieacs_device_id || d.serial_number ? "connectbhai" : null, active: d.is_active !== false, make: "", model: d.model || "", firmware: "", wan: d.online ? "Connected" : d.online === false ? "Down" : "—", uptime_h: null, reboots_7d: 0, reboots_30d: 0, is_simulated: !(d.genieacs_device_id || d.last_seen_at), source: "acs" });
+    acs: d.genieacs_device_id || d.serial_number ? "connectbhai" : null, active: d.is_active !== false, make: "", model: d.model || "", firmware: "", wan: d.online ? "Connected" : d.online === false ? "Down" : "—", uptime_h: null, reboots_7d: 0, reboots_30d: 0, is_simulated: true, source: "acs" });
   const mapBooking = (b, devs) => {
     const ld = b.lead || {}, dv = devs ? devs.find(d => String(d.lead_id) === String(b.lead_id)) : null;
     const out = { id: S(b.id), ref_code: "BK-" + String(b.id).padStart(6, "0"), lead_id: S(b.lead_id), customer_id: S(ld.customer_user_id), plan_id: S(ld.plan && ld.plan.id), plan: ld.plan ? mapPlan(ld.plan) : null,
@@ -201,8 +201,6 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     },
     async popularPins() { const r = await get("/cities/1/areas", { anon: true }).catch(() => []); const by = new Map(); (Array.isArray(r) ? r : []).forEach(a => { if (!by.has(a.pincode)) by.set(a.pincode, { pin: a.pincode, area: a.name.split(",")[0], city_id: "1" }); }); return [...by.values()].slice(0, 8); },
     async cities() { return (await get("/cities", { anon: true })).map(mapCity); },
-    /** every PIN code we serve, with its area and city (for PIN suggestions); public, cached by the API */
-    async pinDirectory() { const cs = (await get("/cities", { anon: true })).filter(c => ["live", "soon"].includes(c.status)); const rows = await Promise.all(cs.map(c => get(`/cities/${c.id}/areas`, { anon: true }).then(a => a.map(x => ({ pin: x.pincode, area: x.name, city: c.name }))).catch(() => []))); return rows.flat(); },
     async joinWaitlist(f) {
       if (!f.consent) fail("Please agree so we can message you at launch.");
       const r = await post("/waitlist", { city_id: Number(f.city_id), phone: f.phone, name: f.name }, { anon: true }); return { city: r.city, waiting: 0 };
@@ -397,8 +395,6 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       fail("Admin accounts are created by the system owner with a password.");
     },
     async adminResetPassword() { fail("Partners and customers sign in with a WhatsApp OTP, so there is no password to reset."); },
-    /** delete a PENDING DSA/TIP application with no activity (the API refuses anything else and says why) */
-    async deletePartner(id) { need("admin"); await del("/users/" + id); return true; },
     async adminSetDisabled(id, off) { need("admin"); if (String(id) === String(me.id)) fail("You cannot disable your own login."); await patch(`/users/${id}/active`, { is_active: !off }); return true; },
 
     /* ---- catalogue / locations (admin) ---- */
@@ -507,13 +503,10 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       return deviceFor(bookingId).then(async d => { if (onQueued) onQueued(); const t = await post(`/care-plan/devices/${d.id}/speed-test`);
         return { id: S(t.id), booking_id: S(bookingId), kind: "router", status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: !!t.simulated, created_at: t.created_at }; });
     },
-    /* QA 12/13: refresh and router test by device id (the dashboard Care plan list has no bookings loaded) */
-    async deviceRefresh(id) { const r = await post(`/care-plan/devices/${id}/refresh`); return mapDevice(r.device || r); },
-    async deviceRouterTest(id) { const t = await post(`/care-plan/devices/${id}/speed-test`); return { status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: !!t.simulated }; },
     /* real modems for the React Care plan screens (one page of up to 100, in that screen's shape) */
     async carePlanDevices() {
       const d = await get("/care-plan/devices" + qs({ page: 1, limit: 100 })), q = v => v >= -25 ? "Good" : v >= -27 ? "Weak" : "Bad";
-      return (d.items || []).map(x => { const rx = num(x.rx_power_dbm); return { id: S(x.id), serialNumber: x.serial_number || "", manufacturer: "", model: x.model || "Modem", firmwareVersion: "—", customer: { userId: null, name: (x.lead && x.lead.customer_name) || "", mobile: "" }, status: x.online == null ? "unknown" : x.online ? "online" : "offline", linked: !!(x.genieacs_device_id || x.serial_number), active: x.is_active !== false, live: !!(x.genieacs_device_id || x.last_seen_at), lastInform: x.last_seen_at || null, wifi: { ssid: x.wifi_ssid || "—", band: "", channel: "—", connectedDevices: x.connected_clients == null ? 0 : x.connected_clients, speedMbps: null }, signal: { quality: rx == null ? "Bad" : q(rx), rxPowerDbm: rx }, ip: null, uptimeSeconds: 0, partner: {} }; });
+      return (d.items || []).map(x => { const rx = num(x.rx_power_dbm); return { id: S(x.id), serialNumber: x.serial_number || "", manufacturer: "", model: x.model || "Modem", firmwareVersion: "—", customer: { userId: null, name: (x.lead && x.lead.customer_name) || "", mobile: "" }, status: x.online ? "online" : "offline", lastInform: x.last_seen_at || null, wifi: { ssid: x.wifi_ssid || "—", band: "", channel: "—", connectedDevices: x.connected_clients == null ? 0 : x.connected_clients, speedMbps: null }, signal: { quality: rx == null ? "Bad" : q(rx), rxPowerDbm: rx }, ip: null, uptimeSeconds: 0, partner: {} }; });
     },
     /* admin "Fetch from GenieACS": refresh every linked modem now, then list every modem GenieACS knows (linked to a customer or not) */
     async carePlanFetchAcs() { need("admin"); const polled = await post("/care-plan/poll").catch(() => null); const d = await get("/care-plan/acs-devices"); return { polled, ...d }; },

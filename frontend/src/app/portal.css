@@ -168,7 +168,7 @@
   .pt-kpi-txt b{font-size:27px}.pt-kpi-txt span{font-size:13.5px}.pt-kpi-txt small{font-size:12.5px}
 }
 @media (max-width:1279px){
-  .pt-t-calls,.pt-t-cust,.pt-t-leads,.pt-t-pc,.pt-t-pt,.cp-table{overflow-x:auto}.pt-t-calls .pt-tr{min-width:760px}.pt-t-cust .pt-tr,.pt-t-leads .pt-tr,.pt-t-pc .pt-tr,.pt-t-pt .pt-tr{min-width:1000px}.cp-table .pt-tr{min-width:1150px}
+  .pt-t-calls,.pt-t-cust,.pt-t-leads,.pt-t-pc,.pt-t-pt,.cp-table{overflow-x:auto}.pt-t-calls .pt-tr{min-width:760px}.pt-t-cust .pt-tr,.pt-t-leads .pt-tr,.pt-t-pc .pt-tr,.pt-t-pt .pt-tr{min-width:860px}.cp-table .pt-tr{min-width:1000px}
   .pt{padding:18px clamp(14px,2vw,24px) 26px}
   .pt-row{grid-template-columns:minmax(0,1fr)!important}
   .pt-row-adm2{grid-template-columns:repeat(2,minmax(0,1fr))!important}.pt-row-adm2>.pt-chartcard{grid-column:1/-1}
@@ -226,13 +226,13 @@
 .cp-search input::placeholder{color:#5D6B86}
 .cp-search input:focus-visible{outline:3px solid #8DB4FF;outline-offset:1px}
 .cp-f{margin:0}.cp-f button{height:32px}
-.cp-table .pt-tr{grid-template-columns:170fr 100fr 90fr 150fr 95fr 170fr 140fr 70fr 80fr minmax(150px,150fr);min-height:56px;font-size:13.5px}
+.cp-table .pt-tr{grid-template-columns:170fr 90fr 90fr 150fr 95fr 170fr 140fr 70fr 80fr;min-height:56px;font-size:13.5px}
 .cp-sn{display:block;font-size:12px;color:var(--mut);font-family:var(--mono)}
 .cp-dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px 18px;margin:0}
 .cp-dl div{padding:10px 12px;border-radius:10px;background:#F4F7FD}.cp-dl dt{font-size:12.5px;color:var(--mut);font-weight:600}.cp-dl dd{margin:2px 0 0;font-weight:700;color:var(--ink);font-size:13px;overflow-wrap:anywhere}
 .cp-acts{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 4px}
-.pt-t-pc .pt-tr{grid-template-columns:200fr 170fr 210fr 80fr 120fr 110fr minmax(170px,170fr);min-height:56px}
-.pt-t-pt .pt-tr{grid-template-columns:220fr 110fr 150fr 90fr 120fr minmax(200px,180fr);min-height:60px}
+.pt-t-pc .pt-tr{grid-template-columns:200fr 170fr 210fr 80fr 120fr 110fr;min-height:56px}
+.pt-t-pt .pt-tr{grid-template-columns:220fr 110fr 150fr 90fr 120fr 120fr;min-height:60px}
 .pt-bd{display:grid;gap:0;margin:10px 0 0}
 .pt-bd div{display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px dashed #DCE4F2;font-size:13.5px}
 .pt-bd dt{color:var(--txt)}.pt-bd dd{margin:0;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -257,16 +257,3 @@
   .pt-more,.pt-link,.pt-chipbtn,.pt-assign,.pt-ok,.pt-no{min-height:44px}
   a.pt-more,a.pt-link{display:inline-flex;align-items:center}
 }
-
-/* QA: TIP Leads, the actions (Call, WhatsApp, Update, Schedule) stay on one line and every row lines up */
-.pt-t-leads .pt-tr{grid-template-columns:200fr 150fr 200fr 110fr 104fr minmax(300px,300fr)}
-.pt-t-leads .pt-acts{flex-wrap:nowrap}
-.pt-t-leads{overflow-x:auto}
-.pt-t-leads .pt-tr{min-width:980px}
-
-/* QA 12/13: device actions in the Care plan table */
-.cp-acts{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
-.cp-acts .pt-link:disabled{opacity:.45;cursor:not-allowed}
-.cp-acts small{flex-basis:100%;font-size:12px;line-height:1.3}
-.cp-ok{color:#14794A}.cp-err{color:#B42318}
-.pt-note{margin:0 0 14px;padding:10px 14px;border-radius:12px;background:#EAF1FF;color:#1E2A4A;font-size:14px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
