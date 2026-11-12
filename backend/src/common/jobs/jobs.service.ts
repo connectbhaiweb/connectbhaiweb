@@ -13,7 +13,7 @@ export interface EnqueueOptions {
   delayMs?: number;
 }
 
-const STALE_AFTER_MIN = 5;     // a job "running" longer than this belongs to a server that died: it is given back to the queue
+const STALE_AFTER_MIN = 20;    // a job "running" longer than this belongs to a server that died: it is given back to the queue (modem jobs wait up to ~15 min for a check-in)
 const KEEP_OTP_DAYS = 7;             // login-code messages are only useful for the rate limit (10 minutes)
 const KEEP_NOTIFICATION_DAYS = 90;  // message log kept this long
 const KEEP_DONE_DAYS = 7;     // finished jobs are kept this long for inspection, then removed
@@ -28,7 +28,7 @@ const KEEP_DONE_DAYS = 7;     // finished jobs are kept this long for inspection
  *  - the worker runs a few jobs at a time (default 8); an enqueue wakes it immediately, and it also polls every 2 seconds
  *  - a job that throws is tried again later with a growing pause, up to maxAttempts, then marked "failed" with the reason
  *  - several API servers can share the table: a job is claimed with one atomic UPDATE, so only one server runs it
- *  - a job found "running" for more than 5 minutes (its server died) goes back to "pending"
+ *  - a job found "running" for more than 20 minutes (its server died) goes back to "pending"
  *  - in tests (APP_ENV=test) the handler runs inside `enqueue`, without the table, so tests stay predictable
  */
 @Injectable()

@@ -111,18 +111,52 @@ export class GenieAcsProvider {
     });
   }
 
-  async runAction(deviceId: string, action: string, params: Record<string, any> = {}): Promise<ActionResult> {
-    if (this.isMock) return { ok: true };
-    const task =
-      action === 'reboot' ? { name: 'reboot' } :
+  /** The GenieACS task for a Care Plan action. The Wi-Fi password only ever travels inside this task: it is never written to our database. */
+  private actionTask(action: string, params: Record<string, any> = {}) {
+    return action === 'reboot' ? { name: 'reboot' } :
       action === 'factory_reset' ? { name: 'factoryReset' } :
       action === 'refresh' ? { name: 'refreshObject', objectName: '' } :
       { name: 'setParameterValues', parameterValues: [
         ['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID', params.ssid, 'xsd:string'],
         ...(params.password ? [['InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.PreSharedKey.1.KeyPassphrase', params.password, 'xsd:string']] : []),
       ] };
+  }
+
+  /**
+   * Hands a command to GenieACS and returns within a few seconds. If the modem answers the connection request the command has already run (executed);
+   * otherwise GenieACS keeps it queued (taskId) and the modem takes it at its next check-in, usually within a minute. Throws if GenieACS cannot be reached.
+   */
+  async queueAction(deviceId: string, action: string, params: Record<string, any> = {}): Promise<{ executed: boolean; taskId: string | null }> {
+    if (this.isMock) return { executed: true, taskId: null };
+    const r = await this.nbi(`/devices/${encodeURIComponent(deviceId)}/tasks?connection_request&timeout=4000`, { method: 'POST', body: JSON.stringify(this.actionTask(action, params)), ms: 10_000 });
+    if (r.status === 202) return { executed: false, taskId: ((await r.json().catch(() => null)) as any)?._id ?? null };
+    return { executed: true, taskId: null };
+  }
+  /** True while GenieACS still holds the task (the modem has not collected it). */
+  isTaskQueued(id: string) { return this.isQueued(id); }
+  /** Takes a queued task back (best effort), so a command that was given up on never runs later by surprise. */
+  async cancelTask(id: string) { await this.withdraw([id]); }
+  /** The newest fault GenieACS recorded for the modem (a task the modem refused), or null. */
+  async deviceFault(deviceId: string): Promise<{ code: string; message: string; at: Date } | null> {
+    if (this.isMock) return null;
+    const r = await this.nbi(`/faults?query=${encodeURIComponent(JSON.stringify({ device: deviceId }))}`, { ms: 8_000 });
+    const rows: any[] = await r.json();
+    const f = rows.sort((x, y) => String(y.timestamp).localeCompare(String(x.timestamp)))[0];
+    return f ? { code: String(f.code ?? ''), message: String(f.message ?? 'The modem refused the command'), at: new Date(f.timestamp) } : null;
+  }
+  /** When GenieACS last saw the modem boot (a reboot is confirmed by this moving forward). */
+  async lastBoot(deviceId: string): Promise<Date | null> {
+    if (this.isMock) return new Date();
+    const r = await this.nbi(`/devices?query=${encodeURIComponent(JSON.stringify({ _id: deviceId }))}&projection=_lastBoot`, { ms: 8_000 });
+    const t = ((await r.json()) as any[])[0]?._lastBoot;
+    return t ? new Date(t) : null;
+  }
+
+  async runAction(deviceId: string, action: string, params: Record<string, any> = {}): Promise<ActionResult> {
+    if (this.isMock) return { ok: true };
+    const task = this.actionTask(action, params);
     try {
-      const r = await fetch(`${this.base}/devices/${encodeURIComponent(deviceId)}/tasks?connection_request`, { method: 'POST', headers: this.headers(), body: JSON.stringify(task), signal: AbortSignal.timeout(15_000) });   // connection_request waits for the modem: cap it
+      const r = await fetch(`${this.base}/devices/${encodeURIComponent(deviceId)}/tasks?connection_request`, { method: 'POST', headers: this.headers(), body: JSON.stringify(task), signal: AbortSignal.timeout(15_000) });
       return r.ok ? { ok: true } : { ok: false, error: `GenieACS ${r.status}` };
     } catch (e: any) { this.logger.error(e?.message); return { ok: false, error: e?.name === 'TimeoutError' ? 'The modem did not answer in time' : 'GenieACS unreachable' }; }
   }

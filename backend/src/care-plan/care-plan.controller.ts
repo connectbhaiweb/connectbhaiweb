@@ -9,6 +9,7 @@ import { leadScope } from '../common/utils/scope';
 import { CarePlanSyncService } from './care-plan-sync.service';
 import { JobsService } from '../common/jobs/jobs.service';
 import { GenieAcsProvider } from './genieacs.provider';
+import { DEVICE_ACTION_JOB } from './device-action.runner';
 import { SPEED_TEST_JOB } from './speed-test.runner';
 
 class ActionDto {
@@ -97,8 +98,8 @@ export class CarePlanController {
     return this.sync.pollOne(d);
   }
 
-  /** Customer, TIP or admin. Wi-Fi password is sent to the modem but never stored. */
-  @Post('devices/:id/actions')
+  /** Customer, TIP or admin. Answers 202 at once with a row (queued / sent); the modem runs it at its next check-in and a background job sets the row to done or failed. The Wi-Fi password is sent to GenieACS only, never stored. */
+  @Post('devices/:id/actions') @HttpCode(202)
   async action(@Param('id', ParseIntPipe) id: number, @Body() d: ActionDto, @CurrentUser() u: AuthUser) {
     const dev = await this.device(id, u);
     if (u.role === 'dsa') throw new ForbiddenException();
@@ -110,10 +111,20 @@ export class CarePlanController {
       if (!dev.genieacs_device_id && !dev.serial_number) throw new BadRequestException('The router is not linked yet. Your installer links it at installation.');
       if (dev.online === false) throw new BadRequestException('The router is offline. Restart and Wi-Fi change need it online.');
     }
-    const stored = d.params ? { ssid: d.params.ssid } : undefined;
-    const row = await this.prisma.deviceAction.create({ data: { care_plan_device_id: id, requested_by: u.id, action: d.action, params: stored as Prisma.InputJsonValue | undefined } });
-    const res = await this.acs.runAction(dev.genieacs_device_id ?? dev.serial_number ?? `dev-${id}`, d.action, d.params);
-    return this.prisma.deviceAction.update({ where: { id: row.id }, data: { status: res.ok ? 'done' : 'failed', error: res.error, completed_at: new Date() } });
+    // one command of a kind at a time: a second click while the first still waits for the modem would restart it twice
+    const open = await this.prisma.deviceAction.findFirst({ where: { care_plan_device_id: id, action: d.action, status: { in: ['queued', 'sent'] }, created_at: { gt: new Date(Date.now() - 20 * 60_000) } }, select: { id: true } });
+    if (open) throw new ConflictException('This command is already waiting for the modem. It runs when the modem next checks in.');
+    const stored = d.params ? { ssid: d.params.ssid } : undefined;   // the password is never stored
+    const row = await this.prisma.deviceAction.create({ data: { care_plan_device_id: id, requested_by: u.id, action: d.action, params: stored as Prisma.InputJsonValue | undefined, status: 'queued' } });
+    // Hand it to GenieACS now (a few seconds at most) and answer. The modem collects it at its next check-in (about a minute); a background job
+    // follows it and sets the row to done / failed, so nobody waits on this request.
+    let q: { executed: boolean; taskId: string | null };
+    try { q = await this.acs.queueAction(dev.genieacs_device_id ?? dev.serial_number ?? `dev-${id}`, d.action, d.params); }
+    catch (e: any) { return this.prisma.deviceAction.update({ where: { id: row.id }, data: { status: 'failed', error: 'GenieACS could not be reached', completed_at: new Date() } }); }
+    if (q.executed && d.action !== 'reboot') return this.prisma.deviceAction.update({ where: { id: row.id }, data: { status: 'done', completed_at: new Date() } });   // the modem answered at once
+    await this.prisma.deviceAction.update({ where: { id: row.id }, data: { status: 'sent' } });
+    await this.jobs.enqueue(DEVICE_ACTION_JOB, { action_id: String(row.id), task_id: q.taskId }, { maxAttempts: 1 });
+    return this.prisma.deviceAction.findUnique({ where: { id: row.id } });
   }
 
   /**

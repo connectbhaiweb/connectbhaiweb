@@ -38,9 +38,9 @@ describe('care plan (modem monitoring)', () => {
   });
   it('customer can reboot and change Wi-Fi; the password is never stored', async () => {
     await c.prisma.carePlanDevice.update({ where: { id: dev }, data: { online: true } }); // the mock ACS reports ~1 in 7 serials offline
-    const reboot = await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'reboot' }).expect(201);
+    const reboot = await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'reboot' }).expect(202);   // accepted: the modem runs it at its next check-in (mock ACS answers at once, so it is already done)
     expect(reboot.body).toMatchObject({ action: 'reboot', status: 'done' });
-    const wifi = await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'change_wifi', params: { ssid: 'MyHome', password: 'SuperSecret123' } }).expect(201);
+    const wifi = await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'change_wifi', params: { ssid: 'MyHome', password: 'SuperSecret123' } }).expect(202);
     expect(wifi.body.status).toBe('done');
     const row = await c.prisma.deviceAction.findUniqueOrThrow({ where: { id: wifi.body.id } });
     expect(JSON.stringify(row.params)).toContain('MyHome');
@@ -81,7 +81,7 @@ describe('care plan (modem monitoring)', () => {
   it('modem commands are refused when the router is offline or not linked; refresh still works', async () => {
     await c.prisma.carePlanDevice.update({ where: { id: dev }, data: { online: false } });
     await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'reboot' }).expect(400);
-    await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'refresh' }).expect(201);
+    await c.http().post(`${P}/care-plan/devices/${dev}/actions`).set(bearer(custToken)).send({ action: 'refresh' }).expect(202);
     const l = await newLead(c, a, { tip: 'dream' });
     const nl = await c.prisma.carePlanDevice.create({ data: { lead_id: l.id, tip_user_id: a.ids.dream, is_active: true } }); // no serial, no GenieACS id
     await c.http().post(`${P}/care-plan/devices/${nl.id}/actions`).set(bearer(a.dream)).send({ action: 'reboot' }).expect(400);

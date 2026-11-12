@@ -96,7 +96,7 @@ const RX = v => v == null ? null : v >= -25 ? ["Good", "p-ok"] : v >= -27 ? ["We
 const rxPill = d => { const r = d && d.acs ? RX(d.rx_dbm) : null; return r ? pill(`Fiber signal ${r[0]} · ${Number(d.rx_dbm).toFixed(1)} dBm`, r[1]) : ""; };
 const upTxt = h => !h ? "just restarted" : h < 24 ? Math.round(h) + " h" : Math.floor(h / 24) + " d " + Math.round(h % 24) + " h";
 const acsName = b => { const d = b.device; return !d || !d.acs ? null : d.acs === "partner" ? (b.tip ? b.tip.name.replace(/\s*\(demo TIP\)/, "") + "'s GenieACS" : "Partner's GenieACS") : "Connect Bhai GenieACS"; };
-const actLine = a => `<div class="row small" style="gap:2px 8px;padding:4px 0;border-bottom:1px solid var(--line)"><b>${a.action === "reboot" ? "Restart" : a.action === "wifi" ? "Wi-Fi change" : esc(a.action)}</b>${a.detail ? `<span>${esc(a.detail)}</span>` : ""}<span class="muted">${esc(a.by_name || "")} · ${fdt(a.created_at)}</span>${a.simulated ? `<span class="badge sim">Simulated</span>` : ""}</div>`;
+const actLine = a => `<div class="row small" style="gap:2px 8px;padding:4px 0;border-bottom:1px solid var(--line)"><b>${a.action === "reboot" ? "Restart" : a.action === "wifi" ? "Wi-Fi change" : esc(a.action)}</b>${a.detail ? `<span>${esc(a.detail)}</span>` : ""}<span class="muted">${a.status === "done" ? "Done" : a.status === "failed" ? "Failed" : "Waiting for the modem"}</span><span class="muted">${esc(a.by_name || "")} · ${fdt(a.created_at)}</span>${a.simulated ? `<span class="badge sim">Simulated</span>` : ""}</div>`;
 
 /* ---------- contacts (call · WhatsApp · email · in-app chat) ---------- */
 const ICON = {
@@ -1538,7 +1538,7 @@ const actions = {
   "edit-acs": b => openAcs(b.dataset.id).catch(e => toast(errMsg(e), true)),
   "modem-reboot": b => openModal(`<h2>Restart modem?</h2><p class="muted" style="margin:6px 0 16px">Internet and Wi-Fi will be off for about 2 minutes while the modem restarts. Phones and laptops reconnect by themselves.</p>
     <div class="row"><button class="btn btn-primary" data-act="modem-reboot-go" data-id="${esc(b.dataset.id)}" type="button">Restart now</button><button class="btn btn-ghost" data-act="close-modal" type="button">Cancel</button></div>`),
-  "modem-reboot-go": async b => { const d = await guard(b, () => API.deviceAction(b.dataset.id, "reboot")); closeModal(); toast("Restart sent through GenieACS. Back in about 2 minutes." + (d && d.is_simulated ? " (simulated)" : "")); render(); },
+  "modem-reboot-go": async b => { const d = await guard(b, () => API.deviceAction(b.dataset.id, "reboot")); closeModal(); toast("Restart sent. The modem restarts when it next checks in (about a minute), then is back in about 2 minutes. The status shows under Restarts and Wi-Fi changes." + (d && d.is_simulated ? " (simulated)" : "")); render(); },
   "modem-wifi": b => openModal(`<h2>Change Wi-Fi name / password</h2><p class="notice" style="margin:8px 0 14px">Every phone and laptop on this Wi-Fi will disconnect. After about 1 minute, join the new Wi-Fi name with the new password.</p>
     <form class="stack" data-form="modem-wifi" data-id="${esc(b.dataset.id)}" data-old="${esc(b.dataset.ssid || "")}" novalidate>
       ${field("mw-ssid", "New Wi-Fi name", `<input id="mw-ssid" name="ssid" maxlength="32" autocomplete="off" placeholder="${esc(b.dataset.ssid || "")}">`, "Now: <b>" + esc(b.dataset.ssid || "—") + "</b>. Leave empty to keep it.")}
@@ -1922,7 +1922,7 @@ const forms = {
     if (pw && (pw.length < 8 || pw.length > 63)) e["mw-pw"] = "8 to 63 characters.";
     if (!setErr(f, e)) return;
     const d = await guard(btn, () => API.deviceAction(f.dataset.id, "wifi", { ssid, password: pw }));
-    closeModal(); toast("Wi-Fi updated through GenieACS. Join " + (d && d.ssid ? d.ssid : "your Wi-Fi") + (pw ? " with the new password." : ".")); render();
+    closeModal(); toast("Wi-Fi change sent. It applies when the modem next checks in (about a minute). Then join " + (ssid || (d && d.ssid) || "your Wi-Fi") + (pw ? " with the new password." : ".")); render();
   },
   acs: async (f, btn) => {
     const d = { mode: val(f, "mode"), url: val(f, "url"), key: f.elements.key ? f.elements.key.value.trim() : "", agreement: val(f, "agreement") }, e = {};
