@@ -38,7 +38,7 @@ const FAQ: [string, string, string][] = [
   ['Router & speed', 'Can I run a speed test before choosing?', 'Yes. The Wi-Fi speed test is free, takes about 30 seconds and works on your phone or laptop. Log in if you want to save the result or report slow speed to support.'],
   ['Booking & payment', 'How do I pay the booking amount?', 'Requesting a connection is free for customers. When a payment is due, you get a WhatsApp message with the amount and can pay online by UPI, card or net banking. Your payments are also listed under Payments in your dashboard.'],
   ['Installation', 'How long does installation take?', 'After you request a connection, an assigned TIP calls you and books a time. Every step (assigned, contacted, booked, installed) is updated in your dashboard, so you always see where it stands. Exact timing depends on your area and the TIP.'],
-  ['Router & speed', 'Can I check my router status after installation?', 'Yes, with the Connect Bhai Care plan (through GenieACS) you can see if your router is online, check fiber signal, restart it, change your Wi-Fi name or password and run a line speed test from the app.'],
+  ['Router & speed', 'Can I check my router status after installation?', 'Yes, with the Connect Bhai Care plan and Gene, your personal assistant, you can see if your router is online, check fiber signal, restart it, change your Wi-Fi name or password and run a line speed test from the app.'],
 ];
 
 const Eyebrow = ({ children, color }: { children: string; color: string }) => <Text style={{ color, fontSize: 12, fontWeight: '800', letterSpacing: 1.7 }}>{children.toUpperCase()}</Text>;
@@ -224,7 +224,7 @@ export default function Home() {
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13.5 }}>Test your Wi-Fi speed →</Text>
             </Pressable>
             <Pressable onPress={careRoute} accessibilityRole="button" style={{ ...headBtn, alignSelf: 'flex-start' }}>
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13.5 }}>Care plan (through GenieACS) →</Text>
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13.5 }}>Care plan →</Text>
             </Pressable>
           </View>
         </View>
@@ -296,12 +296,12 @@ export default function Home() {
         {/* care plan (website .tr-hero) */}
         <View style={{ paddingHorizontal: 16, paddingBottom: 44 }}>
           <View style={{ backgroundColor: t.surface, borderWidth: 1, borderColor: t.line, borderLeftWidth: 4, borderLeftColor: t.blue, borderRadius: 14, padding: 20, gap: 12 }}>
-            <Eyebrow color={t.blue}>Care plan · through GenieACS</Eyebrow>
+            <Eyebrow color={t.blue}>Care plan · Gene, your personal assistant</Eyebrow>
             <Text style={{ color: t.ink, fontFamily: 'display', fontWeight: '800', fontSize: 24, lineHeight: 28 }}>Connect Bhai Care plan: Bhai looks after your internet</Text>
-            <Text style={{ color: t.muted, fontSize: 16, lineHeight: 24 }}>With the Care plan (through GenieACS), your modem is watched 24x7. See Online / Offline and fiber signal, change your Wi-Fi name or password, restart the modem and test the line speed, all from the app. If the line goes down, your installer knows before you call.</Text>
+            <Text style={{ color: t.muted, fontSize: 16, lineHeight: 24 }}>With the Care plan and Gene, your personal assistant, your modem is watched 24x7. See Online / Offline and fiber signal, change your Wi-Fi name or password, restart the modem and test the line speed, all from the app. If the line goes down, your installer knows before you call.</Text>
             <Button label="Open my Care plan" onPress={careRoute} />
             <Button label="Wi-Fi speed test" kind="secondary" onPress={() => router.push('/speed')} />
-            {[['Installer links the modem', "Scans the ONT serial; the modem reports to the installer's or Connect Bhai's GenieACS"], ['Modem reports every 5 minutes', 'Status, fiber signal, Wi-Fi and restarts'], ['You control it in the app', 'Restart, Wi-Fi change, line speed test']].map(([h, p], i) => (
+            {[['Installer links the modem', "Scans the ONT serial; the modem reports to the installer's or Connect Bhai's Gene"], ['Modem reports every 5 minutes', 'Status, fiber signal, Wi-Fi and restarts'], ['You control it in the app', 'Restart, Wi-Fi change, line speed test']].map(([h, p], i) => (
               <View key={h} style={{ flexDirection: 'row', gap: 12 }}>
                 <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: t.blueSoft, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: t.blue, fontWeight: '800', fontSize: 13 }}>{i + 1}</Text></View>
                 <View style={{ flex: 1 }}><Text style={{ color: t.ink, fontWeight: '800' }}>{h}</Text><Text style={{ color: t.muted, fontSize: 14, lineHeight: 20 }}>{p}</Text></View>
@@ -368,7 +368,7 @@ export default function Home() {
           </View>
           <View style={{ gap: 6 }}>
             <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, marginBottom: 2 }}>Customers</Text>
-            {([['Search by PIN code', goTop], ['Wi-Fi speed test', () => router.push('/speed')], ['Care plan (through GenieACS)', careRoute], ['My dashboard', () => router.push(user ? '/dashboard' : '/login')]] as [string, () => void][]).map(([l, f]) => (
+            {([['Search by PIN code', goTop], ['Wi-Fi speed test', () => router.push('/speed')], ['Care plan', careRoute], ['My dashboard', () => router.push(user ? '/dashboard' : '/login')]] as [string, () => void][]).map(([l, f]) => (
               <Pressable key={l} onPress={f} accessibilityRole="button"><Text style={{ color: PALE, fontSize: 14, fontWeight: '600' }}>{l}</Text></Pressable>
             ))}
           </View>

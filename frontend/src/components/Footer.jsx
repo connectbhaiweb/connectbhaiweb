@@ -1,7 +1,12 @@
+"use client";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import Logo from "./Logo";
+import { subscribe, getSnapshot, getServerSnapshot } from "@/lib/connectbhai/runtime";
+import { ROLE_HOME } from "@/lib/connectbhai/shared";
 
 export default function Footer() {
+  const { user } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   return (
     <footer>
       <div className="wrap">
@@ -19,10 +24,10 @@ export default function Footer() {
             <ul>
               <li><button className="linkbtn" data-go="home" data-scroll="search" type="button">Search by PIN code</button></li>
               <li><button className="linkbtn" data-go="speed" type="button">Wi-Fi speed test</button></li>
-              <li><button className="linkbtn" data-go="router" type="button">Care plan (through GenieACS)</button></li>
+              <li><button className="linkbtn footer-care" data-go="router" type="button">Care plan</button></li>
               <li><button className="linkbtn" data-go="home" data-scroll="faq" type="button">FAQ</button></li>
               <li><button className="linkbtn" data-go="home" data-scroll="get-app" type="button">Get the app</button></li>
-              <li><button className="linkbtn" data-go="my" type="button">My dashboard</button></li>
+              {user && <li><button className="linkbtn" data-go={ROLE_HOME[user.role] || "my"} type="button">My dashboard</button></li>}
               <li><button className="linkbtn" data-go="home" data-scroll="partners" type="button">Become a DSA or TIP</button></li>
             </ul>
           </div>

@@ -159,8 +159,8 @@ function seedDemo() {
   db.leads.forEach(l => { if (l.pincode === "452010") { l.lat = 22.7533 + Math.random() * 0.01; l.lng = 75.8937 + Math.random() * 0.01; l.location_source = "gps"; } });
   db.profiles.forEach(p => { p.pw = demoHash("Demo@1234", p.id); p.must_change = false; p.disabled = false; });
   db.leads.forEach(l => { l.product = l.product || "broadband"; });
-  /* GenieACS: Malwa Fibernet already runs its own GenieACS (Connect Bhai reads it through its API);
-     Narmada Netlink's modems report to Connect Bhai's own GenieACS. */
+  /* Gene: Malwa Fibernet already runs its own Gene (Connect Bhai reads it through its API);
+     Narmada Netlink's modems report to Connect Bhai's own Gene. */
   const acsOf = { "pt-t1": { acs_mode: "partner", acs_url: "http://acs.malwafibernet.example:7557", acs_key_set: true, acs_agreement: true },
     "pt-t2": { acs_mode: "connectbhai", acs_url: "http://acs.connectbhai.in:7557", acs_key_set: true, acs_agreement: true } };
   db.partners.forEach(p => { if (p.type === "tip") Object.assign(p, { acs_mode: null, acs_url: "", acs_key_set: false, acs_agreement: false, acs_updated_at: ago(30) }, acsOf[p.id] || {}); });
@@ -309,7 +309,7 @@ const Demo = (() => {
     routerTest: (bookingId, onQueued) => {
       try {
         const b = byId("bookings", bookingId); if (!b || !canSeeBooking(b) || b.status !== "installed") fail("Connection not found.");
-        if (!b.ont_serial) fail("This modem is not on the Care plan (through GenieACS) yet. The installer must add the ONT serial number.");
+        if (!b.ont_serial) fail("This modem is not on the Care plan yet. The installer must add the ONT serial number.");
         const p = byId("plans", b.plan_id) || { speed_mbps: 100 };
         if (onQueued) onQueued();
         return new Promise(res => setTimeout(() => {
@@ -404,15 +404,15 @@ const Demo = (() => {
       if (d.acs) { d.rx_dbm = +((d.rx_dbm || -20) + (Math.random() - 0.5) * 0.6).toFixed(1); d.clients = d.state === "online" ? Math.max(1, (d.clients || 2) + Math.round((Math.random() - 0.5) * 2)) : 0; d.wan = d.state === "online" ? "Connected" : "Down"; }
       return done(d);
     }),
-    /* GenieACS commands. Live: the "genieacs" edge function finds the modem by ONT serial on the right ACS
-       (the TIP's own GenieACS or Connect Bhai's) and posts a task with ?connection_request. */
+    /* Gene commands. Live: the "genieacs" edge function finds the modem by ONT serial on the right ACS
+       (the TIP's own Gene or Connect Bhai's) and posts a task with ?connection_request. */
     deviceAction: (bookingId, action, p) => new Promise((res, rej) => setTimeout(() => { try {
       p = p || {};
       const b = byId("bookings", bookingId);
       if (!b || b.status !== "installed" || !(isAdmin() || (me && ((me.role === "customer" && b.customer_id === me.id) || (me.role === "tip" && b.tip_partner_id === me.partner_id))))) fail("You do not have access to this modem.");
       const d = DB.device_status.find(x => x.booking_id === b.id), tip = byId("partners", b.tip_partner_id);
-      if (!b.ont_serial || !d || !d.acs) fail("This modem is not linked to GenieACS yet. The installer adds the ONT serial, and admin sets the ACS for this TIP partner.");
-      if (!(tip && tip.acs_agreement) || (d.acs === "partner" && !tip.acs_key_set)) fail("The TIP partner's GenieACS access is not complete (API key or written agreement missing). Ask Connect Bhai admin.");
+      if (!b.ont_serial || !d || !d.acs) fail("This modem is not linked to Gene yet. The installer adds the ONT serial, and admin sets Gene up for this TIP partner.");
+      if (!(tip && tip.acs_agreement) || (d.acs === "partner" && !tip.acs_key_set)) fail("The TIP partner's Gene access is not complete (API key or written agreement missing). Ask Connect Bhai admin.");
       if (d.state !== "online") fail("The modem is offline, so it cannot take commands. Check power and fiber, or raise a complaint.");
       const l = byId("leads", b.lead_id);
       const log = (what, detail) => DB.device_actions.push({ id: uuid(), booking_id: b.id, action: what, detail: detail || null, by_id: me.id, by_role: me.role, by_name: me.partner_id ? partnerName(me.partner_id) : (me.full_name || "User"), acs: d.acs, status: "done", simulated: true, created_at: nowISO() });
@@ -436,8 +436,8 @@ const Demo = (() => {
     adminAcs: wrap(() => { need("admin"); return DB.partners.filter(p => p.type === "tip").map(p => Object.assign({}, p, { linked: DB.bookings.filter(b => b.tip_partner_id === p.id && b.status === "installed" && b.ont_serial).length })); }),
     saveAcs: wrap((id, f) => {
       need("admin"); const p = byId("partners", id); if (!p || p.type !== "tip") fail("TIP partner not found.");
-      if (!["partner", "connectbhai", ""].includes(f.mode || "")) fail("Choose the ACS.");
-      if (f.mode === "partner" && !/^https?:\/\/\S+$/.test(f.url || "")) fail("Enter the partner's GenieACS API (NBI) address, e.g. http://acs.partner.in:7557");
+      if (!["partner", "connectbhai", ""].includes(f.mode || "")) fail("Choose the Gene setup.");
+      if (f.mode === "partner" && !/^https?:\/\/\S+$/.test(f.url || "")) fail("Enter the partner's Gene API address, e.g. http://acs.partner.in:7557");
       if (f.mode === "partner" && !(p.acs_mode === "partner" && p.acs_key_set) && !f.key) fail("Enter the API key the partner gave you.");
       if (f.mode && !f.agreement) fail("Get the written agreement from the partner first.");
       p.acs_mode = f.mode || null; p.acs_url = f.mode === "partner" ? f.url.trim() : f.mode === "connectbhai" ? "http://acs.connectbhai.in:7557" : "";
@@ -481,7 +481,7 @@ const Demo = (() => {
       if (ont && DB.bookings.some(x => x.id !== b.id && x.ont_serial === ont.trim().toUpperCase())) fail("This ONT serial is already linked to another connection.");
       b.status = status; if (connRef) b.connection_ref = connRef.trim(); if (ont) b.ont_serial = ont.trim().toUpperCase();
       const l = byId("leads", b.lead_id);
-      if (b.ont_serial) {   // linking the ONT serial puts the modem on this TIP's ACS (their own GenieACS or Connect Bhai's)
+      if (b.ont_serial) {   // linking the ONT serial puts the modem on this TIP's ACS (their own Gene or Connect Bhai's)
         const d0 = DB.device_status.find(x => x.booking_id === b.id), tp = byId("partners", b.tip_partner_id);
         if (d0) { d0.acs = (tp && tp.acs_mode) || null; if (!d0.model) Object.assign(d0, { make: "Syrotech", model: "SY-GPON-2010-WADONT", firmware: "V3.2.18", rx_dbm: -19.5, ssid: (l.name || "Home").split(" ")[0] + "_WiFi", clients: 1, uptime_h: 0, reboots_7d: 0, reboots_30d: 0 }); }
       }
@@ -890,7 +890,7 @@ const Live = (() => {
     async myTickets() { return chk(await sb.from("tickets").select("*").eq("customer_id", me.id).order("created_at", { ascending: false })); },
     async raiseTicket(f) { return chk(await sb.rpc("raise_ticket", { p_booking: f.booking_id || null, p_type: f.type, p_category: f.category, p_description: f.description })); },
     // Modem control goes through the "genieacs" edge function. It holds each ACS address and API key (never sent to the browser),
-    // checks the caller may act on this booking, finds the modem by ONT serial and posts the GenieACS task.
+    // checks the caller may act on this booking, finds the modem by ONT serial and posts the Gene task.
     async refreshDevice(id) { await this._acs({ action: "refresh", booking_id: id }); return chk(await sb.from("device_status").select("*").eq("booking_id", id).single()); },
     async deviceAction(id, action, p) { await this._acs(Object.assign({ action, booking_id: id }, p || {})); return chk(await sb.from("device_status").select("*").eq("booking_id", id).single()); },
     async deviceLog(id) { return chk(await sb.from("device_actions").select("*").eq("booking_id", id).order("created_at", { ascending: false }).limit(6)); },

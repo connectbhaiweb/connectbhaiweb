@@ -130,7 +130,7 @@ function Leads({ stats, partner }) {
   return (
     <>
       <PortalHead title="Leads" sub="Requests from your PIN codes, your installations (Booked) and your customers (Installed), in one place." pins={partner.service_pincodes} />
-      {f === "installed" && <p className="pt-note">Enter the ONT serial when you complete an installation and keep the modem linked to GenieACS, so the customer stays on the Care plan. <button type="button" className="pt-link" data-go="tip" data-go-tab="careplan">Manage modems</button></p>}
+      {f === "installed" && <p className="pt-note">Enter the ONT serial when you complete an installation and keep the modem linked to Gene, so the customer stays on the Care plan. <button type="button" className="pt-link" data-go="tip" data-go-tab="careplan">Manage modems</button></p>}
       <div className="pt-filters" role="group" aria-label="Filter leads">{F.map(([k, l, n]) => <button key={k} type="button" aria-pressed={f === k} onClick={() => setF(k)}>{l}<span>{n}</span></button>)}</div>
       <Card title={`${F.find(x => x[0] === f)[1]} leads (${p.total})`} Icon={Users}>
         <PagedBar p={p} label="Search leads" />

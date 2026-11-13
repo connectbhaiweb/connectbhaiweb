@@ -529,9 +529,9 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       const d = await get("/care-plan/devices" + qs({ page: 1, limit: 100 })), q = v => v >= -25 ? "Good" : v >= -27 ? "Weak" : "Bad";
       return (d.items || []).map(x => { const rx = num(x.rx_power_dbm); return { id: S(x.id), serialNumber: x.serial_number || "", manufacturer: "", model: x.model || "Modem", firmwareVersion: "—", customer: { userId: null, name: (x.lead && x.lead.customer_name) || "", mobile: "" }, status: x.online == null ? "unknown" : x.online ? "online" : "offline", linked: !!(x.genieacs_device_id || x.serial_number), active: x.is_active !== false, live: !!(x.genieacs_device_id || x.last_seen_at), lastInform: x.last_seen_at || null, wifi: { ssid: x.wifi_ssid || "—", band: "", channel: "—", connectedDevices: x.connected_clients == null ? 0 : x.connected_clients, speedMbps: num(x.speed_mbps) }, signal: { quality: rx == null ? "Bad" : q(rx), rxPowerDbm: rx }, ip: null, uptimeSeconds: 0, partner: {} }; });
     },
-    /* admin "Fetch from GenieACS": refresh every linked modem now, then list every modem GenieACS knows (linked to a customer or not) */
+    /* admin "Fetch from Gene": refresh every linked modem now, then list every modem Gene knows (linked to a customer or not) */
     async carePlanFetchAcs() { need("admin"); const polled = await post("/care-plan/poll").catch(() => null); const d = await get("/care-plan/acs-devices"); return { polled, ...d }; },
-    /* admin "Link": customers with a Care Plan record but no modem yet, and attaching a GenieACS modem to one of them */
+    /* admin "Link": customers with a Care Plan record but no modem yet, and attaching a Gene modem to one of them */
     async carePlanLinkCandidates() { need("admin"); return (await get("/care-plan/link-candidates")).items || []; },
     async carePlanLink(recordId, acsDevice) {
       need("admin");
@@ -541,7 +541,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     },
     async carePlanSummary() { const d = await get("/care-plan/summary"); return { ...d, zones: d.zones || [] }; },
     async adminAcs() { need("admin"); const [p, sm] = await Promise.all([this.adminPartners(), get("/care-plan/summary")]); return p.filter(x => x.type === "tip").map(x => ({ ...x, linked: (sm.tips || {})[x.id] || 0 })); },
-    async saveAcs() { fail("GenieACS is configured on the server (GENIEACS_NBI_URL), not per partner."); },
+    async saveAcs() { fail("Gene is configured on the server (GENIEACS_NBI_URL), not per partner."); },
   };
   return apiFor;
 }

@@ -6,7 +6,7 @@ import { useDashData } from "@/components/dashboard/useDashData";
 import { Card, Chip, Failed, More } from "@/components/portal/parts";
 import { hrefOf } from "@/components/dashboard/nav";
 
-/* Care plan (GenieACS) list + summary card. Data: API.carePlanDevices (rest.js) */
+/* Care plan (Gene) list + summary card. Data: API.carePlanDevices (rest.js) */
 const ago = iso => { if (!iso) return "—"; const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 6e4)); return m < 1 ? "Just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
 const up = s => { if (!s) return "—"; const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600); return d ? `${d}d ${h}h` : `${h}h`; };
 const ph = m => String(m).replace(/^(\d{5})(\d{5})$/, "+91 $1 $2");
@@ -54,10 +54,10 @@ export default function CarePlanPage({ base, tab }) {
     catch (e) { setLinkErr((e && e.message) || "Could not link this modem."); }
     setLinkBusy(false);
   };
-  const fetchAcs = async () => {   // admin: refresh the linked modems, then list everything GenieACS knows
+  const fetchAcs = async () => {   // admin: refresh the linked modems, then list everything Gene knows
     setAcsBusy(true); setAcsErr("");
     try { const { API } = await import("@/lib/connectbhai/api"); setAcs(await API.carePlanFetchAcs()); reload(); }
-    catch (e) { setAcsErr((e && e.message) || "Could not reach GenieACS."); }
+    catch (e) { setAcsErr((e && e.message) || "Could not reach Gene."); }
     setAcsBusy(false);
   };
   const list = useMemo(() => {
@@ -75,7 +75,7 @@ export default function CarePlanPage({ base, tab }) {
     const d = all[0], b = data.booking, live = !!(b && b.device && b.device.acs && b.device.active !== false && b.device.state === "online");
     return (
       <div className="dsh-page"><div className="pt">
-        <header className="pt-head"><div><h1>Care plan</h1><p>Your router, Wi-Fi and connection health, reported by GenieACS.</p></div></header>
+        <header className="pt-head"><div><h1>Care plan</h1><p>Your router, Wi-Fi and connection health, reported by Gene, your personal assistant.</p></div></header>
         {d ? (
           <Card title={`${d.manufacturer} ${d.model}`} Icon={Router} action={<Chip label={d.status === "online" ? "Online" : "Offline"} tone={d.status === "online" ? "green" : "red"} />}>
             <dl className="cp-dl">{facts(d).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
@@ -91,15 +91,15 @@ export default function CarePlanPage({ base, tab }) {
   }
   return (
     <div className="dsh-page"><div className="pt">
-      <header className="pt-head"><div><h1>Care plan</h1><p>{role === "admin" ? "Every customer router / ONT reported by GenieACS." : "Routers / ONTs of your customers, reported by GenieACS."}</p></div>
-        {role === "admin" && <button type="button" className="cu-btn cu-btn-primary" onClick={fetchAcs} disabled={acsBusy}><RefreshCw aria-hidden="true" />{acsBusy ? "Fetching…" : "Fetch from GenieACS"}</button>}
+      <header className="pt-head"><div><h1>Care plan</h1><p>{role === "admin" ? "Every customer router / ONT reported by Gene, your personal assistant." : "Routers / ONTs of your customers, reported by Gene, your personal assistant."}</p></div>
+        {role === "admin" && <button type="button" className="cu-btn cu-btn-primary" onClick={fetchAcs} disabled={acsBusy}><RefreshCw aria-hidden="true" />{acsBusy ? "Fetching…" : "Fetch from Gene"}</button>}
       </header>
       {role === "admin" && acsErr && <p className="pt-muted" role="alert">{acsErr}</p>}
       {role === "admin" && acs && (
-        <Card title={`Modems in GenieACS (${acs.total})`} Icon={Router}>
-          {acs.mock ? <p className="pt-muted">GenieACS is not connected on this server (mock mode), so there is nothing to list.</p>
+        <Card title={`Modems in Gene (${acs.total})`} Icon={Router}>
+          {acs.mock ? <p className="pt-muted">Gene is not connected on this server (mock mode), so there is nothing to list.</p>
             : acs.items.length ? (
-              <div className="pt-table cp-table" role="table" aria-label="Modems in GenieACS">
+              <div className="pt-table cp-table" role="table" aria-label="Modems in Gene">
                 <div className="pt-tr pt-th" role="row">{["Customer", "Status", "IP", "Signal", "Last seen", "Model", "SSID", "Firmware", "Linked"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
                 {acs.items.map(d => (
                   <div className="pt-tr" role="row" key={d.id}>
@@ -115,7 +115,7 @@ export default function CarePlanPage({ base, tab }) {
                   </div>
                 ))}
               </div>
-            ) : <p className="pt-muted">GenieACS has no modems yet. A modem appears here after it checks in.</p>}
+            ) : <p className="pt-muted">Gene has no modems yet. A modem appears here after it checks in.</p>}
         </Card>
       )}
       {role === "admin" && linkFor && (
@@ -156,7 +156,7 @@ export default function CarePlanPage({ base, tab }) {
             {list.map(d => (
               <div className="pt-tr" role="row" key={d.id}>
                 <span role="cell" className="pt-name"><span><b>{d.customer.name}</b><small>{ph(d.customer.mobile)}</small></span></span>
-                <span role="cell" data-l="Status"><Chip label={d.status === "online" ? "Online" : d.status === "unknown" ? "Not reported" : "Offline"} tone={d.status === "online" ? "green" : d.status === "unknown" ? "grey" : "red"} />{d.live === false && <small className="cp-sn" title="Not a live reading yet: shows Live once the modem reports through GenieACS">Simulated</small>}</span>
+                <span role="cell" data-l="Status"><Chip label={d.status === "online" ? "Online" : d.status === "unknown" ? "Not reported" : "Offline"} tone={d.status === "online" ? "green" : d.status === "unknown" ? "grey" : "red"} />{d.live === false && <small className="cp-sn" title="Not a live reading yet: shows Live once the modem reports through Gene, your personal assistant">Simulated</small>}</span>
                 <span role="cell" data-l="Wi-Fi speed">{d.wifi.speedMbps ? `${d.wifi.speedMbps} Mbps` : "—"}</span>
                 <span role="cell" data-l="Signal"><Chip label={d.signal.rxPowerDbm != null ? `${d.signal.quality} · ${d.signal.rxPowerDbm} dBm` : "No signal"} tone={SIG[d.signal.quality]} /></span>
                 <span role="cell" data-l="Last seen">{ago(d.lastInform)}</span>
@@ -174,12 +174,12 @@ export default function CarePlanPage({ base, tab }) {
     </div></div>
   );
 }
-/* QA 12/13: Refresh and Router test right in the dashboard. Router test needs a linked modem (GenieACS id or ONT serial),
+/* QA 12/13: Refresh and Router test right in the dashboard. Router test needs a linked modem (Gene id or ONT serial),
    an active Care plan and the modem online; Refresh needs it linked. Each shows a loader and says what happened. */
 function DeviceActs({ d, onDone }) {
   const [busy, setBusy] = useState(""), [msg, setMsg] = useState(null);
   const linked = d.linked !== false, canTest = linked && d.active !== false && d.status === "online";
-  const why = !linked ? "Not linked to GenieACS yet" : d.active === false ? "Care plan is not active" : d.status !== "online" ? "Modem must be online" : "";
+  const why = !linked ? "Not linked to Gene yet" : d.active === false ? "Care plan is not active" : d.status !== "online" ? "Modem must be online" : "";
   const run = async kind => {
     setBusy(kind); setMsg(null);
     try {

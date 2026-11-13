@@ -101,12 +101,12 @@ function setErr(form, map) {
 }
 const val = (form, name) => { const el = form.elements[name]; if (!el) return ""; if (el.type === "checkbox") return el.checked; const v = String(el.value || "").trim(); return /phone$/.test(name) ? normPhone(v) : v; };
 /* QA 12: what a Refresh actually found */
-const stateMsg = d => !d ? "Status refreshed." : d.state === "online" ? "Router is online." : d.state === "offline" ? `Router is offline${d.last_seen ? " (last seen " + fdt(d.last_seen) + ")" : ""}.` : "The router has not reported to GenieACS yet.";
+const stateMsg = d => !d ? "Status refreshed." : d.state === "online" ? "Router is online." : d.state === "offline" ? `Router is offline${d.last_seen ? " (last seen " + fdt(d.last_seen) + ")" : ""}.` : "The router has not reported to Gene yet.";
 function deviceView(d) {
   const live = d && !d.is_simulated;
-  const tag = live ? `<span class="badge live" title="Reported by the modem through GenieACS (Care plan)">Live · GenieACS</span>`
-    : `<span class="badge sim" title="Not a live reading. Shows Live once the modem reports through GenieACS.">Simulated</span>`;
-  if (!d || d.state === "unknown") return `${pill(live ? "Not reporting to GenieACS" : "Not reporting yet", "p-grey")} ${tag}`;
+  const tag = live ? `<span class="badge live" title="Reported by the modem through Gene, your personal assistant (Care plan)">Live · Gene</span>`
+    : `<span class="badge sim" title="Not a live reading. Shows Live once the modem reports through Gene, your personal assistant.">Simulated</span>`;
+  if (!d || d.state === "unknown") return `${pill(live ? "Not reporting to Gene" : "Not reporting yet", "p-grey")} ${tag}`;
   const m = d.last_seen ? Math.max(0, Math.round((Date.now() - new Date(d.last_seen)) / 60000)) : null;
   return `${d.state === "online" ? pill("Online", "p-ok") : pill("Offline", "p-bad")} ${tag}${m !== null ? ` <span class="muted small">last seen ${m < 1 ? "just now" : m < 120 ? m + " min ago" : fdt(d.last_seen)}</span>` : ""}`;
 }
@@ -148,11 +148,11 @@ async function trackAction(id, kind, ssid) {
   paint(); loadHist(id); if (st === "done") toast(kind === "reboot" ? "Restart finished. Your router is back." : "Wi-Fi changed.");
   return true;
 }
-/* ---------- modem (GenieACS) helpers ---------- */
+/* ---------- modem (Gene) helpers ---------- */
 const RX = v => v == null ? null : v >= -25 ? ["Good", "p-ok"] : v >= -27 ? ["Weak", "p-warn"] : ["Bad", "p-bad"];   // ONT optical RX power
 const rxPill = d => { const r = d && d.acs ? RX(d.rx_dbm) : null; return r ? pill(`Fiber signal ${r[0]} · ${Number(d.rx_dbm).toFixed(1)} dBm`, r[1]) : ""; };
 const upTxt = h => !h ? "just restarted" : h < 24 ? Math.round(h) + " h" : Math.floor(h / 24) + " d " + Math.round(h % 24) + " h";
-const acsName = b => { const d = b.device; return !d || !d.acs ? null : d.acs === "partner" ? (b.tip ? b.tip.name.replace(/\s*\(demo TIP\)/, "") + "'s GenieACS" : "Partner's GenieACS") : "Connect Bhai GenieACS"; };
+const acsName = b => { const d = b.device; return !d || !d.acs ? null : d.acs === "partner" ? (b.tip ? b.tip.name.replace(/\s*\(demo TIP\)/, "") + "'s Gene" : "Partner's Gene") : "Connect Bhai Gene"; };
 const actLine = a => `<div class="row small" style="gap:2px 8px;padding:4px 0;border-bottom:1px solid var(--line)"><b>${a.action === "reboot" ? "Restart" : a.action === "wifi" ? "Wi-Fi change" : esc(a.action)}</b>${a.detail ? `<span>${esc(a.detail)}</span>` : ""}<span class="muted">${a.status === "done" ? "Done" : a.status === "failed" ? "Failed" : "Waiting for the modem"}</span><span class="muted">${esc(a.by_name || "")} · ${fdt(a.created_at)}</span>${a.simulated ? `<span class="badge sim">Simulated</span>` : ""}</div>`;
 
 /* ---------- contacts (call · WhatsApp · email · in-app chat) ---------- */
@@ -300,13 +300,13 @@ async function renderHome() {
         <div id="searchBody">${searchBody()}</div>
       </form>
       <div class="hero-foot"><div class="trust"><span><i></i>Free for customers</span><span><i></i>BSNL TIPs, DSAs &amp; local ISPs</span><span><i></i>Installation tracked end to end</span></div>
-      <div class="row" style="margin-top:16px"><button class="btn btn-ghost btn-sm hero-link" data-go="speed" type="button">Test your Wi-Fi speed →</button><button class="btn btn-ghost btn-sm hero-link" data-go="router" type="button">Care plan (through GenieACS) →</button></div></div>
+      <div class="row" style="margin-top:16px"><button class="btn btn-ghost btn-sm hero-link" data-go="speed" type="button">Test your Wi-Fi speed →</button><button class="btn btn-sm hero-link hero-care" data-go="router" type="button">♥ Care plan →</button></div></div>
     </div>
     <div class="hero-story">
       <div class="hero-side">${(document.getElementById("tpl-story") || { innerHTML: "" }).innerHTML}
       <div class="carecard"><span class="cc-tag">★ Featured</span>
         <div class="cc-top"><span class="cc-ico"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-4.5-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.5-9 9-9 9z"/></svg></span><div class="cc-t"><b>Connect Bhai Care plan</b><small>Live modem status, restart and Wi-Fi control, right from your phone.</small></div></div>
-        <div class="cc-panel"><svg class="cc-router" viewBox="0 0 120 84" aria-hidden="true" focusable="false"><g fill="none" stroke="#22D3EE" stroke-width="5" stroke-linecap="round"><path class="cc-w1" d="M46 22c9-8 19-8 28 0"/><path class="cc-w2" d="M38 11c14-12 30-12 44 0"/></g><path d="M34 52 28 32M86 52l6-20" stroke="#2F7BFF" stroke-width="6" stroke-linecap="round"/><rect x="12" y="50" width="96" height="28" rx="12" fill="#2F7BFF"/><circle cx="32" cy="64" r="4" fill="#4ADE80"/><circle cx="46" cy="64" r="4" fill="#fff"/><circle cx="60" cy="64" r="4" fill="#fff"/><rect x="74" y="60" width="26" height="7" rx="3.5" fill="#fff" opacity=".35"/></svg><ul class="cc-rows"><li><span>Modem</span><b class="cc-ok"><i></i>Online</b></li><li><span>Fiber signal</span><b><em class="cc-bars"><u></u><u></u><u></u><u></u></em>Strong</b></li><li><span>Speed</span><b>98 Mbps</b></li></ul></div>
+        <div class="cc-panel"><svg class="cc-router" viewBox="0 0 120 84" aria-hidden="true" focusable="false"><g fill="none" stroke="#22D3EE" stroke-width="5" stroke-linecap="round"><path class="cc-w1" d="M46 22c9-8 19-8 28 0"/><path class="cc-w2" d="M38 11c14-12 30-12 44 0"/></g><path d="M34 52 28 32M86 52l6-20" stroke="#2F7BFF" stroke-width="6" stroke-linecap="round"/><rect x="12" y="50" width="96" height="28" rx="12" fill="#2F7BFF"/><circle cx="32" cy="64" r="4" fill="#4ADE80"/><circle cx="46" cy="64" r="4" fill="#fff"/><circle cx="60" cy="64" r="4" fill="#fff"/><rect x="74" y="60" width="26" height="7" rx="3.5" fill="#fff" opacity=".35"/></svg><ul class="cc-rows"><li><span>Modem</span><b class="cc-ok"><i></i>Online</b></li><li><span>Fiber signal</span><b><em class="cc-bars"><u></u><u></u><u></u><u></u></em>Strong</b></li><li><span>Speed</span><b><span class="cc-speed" aria-hidden="true"></span><span class="cc-sr">98 Mbps</span></b></li></ul></div>
         <ul class="cc-feats"><li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><span>Restart</span></li><li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg><span>Wi-Fi name</span></li><li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Password</span></li><li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg><span>Speed test</span></li></ul>
         <button class="cc-cta" data-go="router" type="button">Explore Care plan <span aria-hidden="true">→</span></button></div></div>
       <p class="meet"><b>Meet Bhai</b>, your internet guide. He finds the plans, compares them, and stays with you till the router says <i>Connected</i>.</p>
@@ -325,10 +325,10 @@ async function renderHome() {
   ${citiesSection()}
   <section class="sec" id="router" style="padding-top:0"><div class="wrap">
     <div class="card tr-hero">
-      <div style="min-width:0"><span class="eyebrow">Care plan · through GenieACS</span><h2 style="font-size:clamp(24px,3.2vw,32px);margin:8px 0">Connect Bhai Care plan: Bhai looks after your internet</h2>
-        <p class="muted">With the Care plan (through GenieACS), your modem is watched 24x7. See Online / Offline and fiber signal, change your Wi-Fi name or password, restart the modem and test the line speed, all from the app. If the line goes down, your installer knows before you call.</p>
+      <div style="min-width:0"><span class="eyebrow">Care plan · Gene, your personal assistant</span><h2 style="font-size:clamp(24px,3.2vw,32px);margin:8px 0">Connect Bhai Care plan: Bhai looks after your internet</h2>
+        <p class="muted">With the Care plan and Gene, your personal assistant, your modem is watched 24x7. See Online / Offline and fiber signal, change your Wi-Fi name or password, restart the modem and test the line speed, all from the app. If the line goes down, your installer knows before you call.</p>
         <div class="row" style="margin-top:14px"><button class="btn btn-primary" data-go="router" type="button">Open my Care plan</button><button class="btn btn-ghost" data-go="speed" type="button">Wi-Fi speed test</button></div></div>
-      <ol class="trsteps"><li><b>Installer links the modem</b><span>Scans the ONT serial; the modem reports to the installer's or Connect Bhai's GenieACS</span></li><li><b>Modem reports every 5 minutes</b><span>Status, fiber signal, Wi-Fi and restarts</span></li><li><b>You control it in the app</b><span>Restart, Wi-Fi change, line speed test</span></li></ol>
+      <ol class="trsteps"><li><b>Installer links the modem</b><span>Scans the ONT serial; the modem reports to the installer's or Connect Bhai's Gene</span></li><li><b>Modem reports every 5 minutes</b><span>Status, fiber signal, Wi-Fi and restarts</span></li><li><b>You control it in the app</b><span>Restart, Wi-Fi change, line speed test</span></li></ol>
     </div>
   </div></section>
   <section class="sec" id="partners" style="padding-top:0"><div class="wrap split">
@@ -754,10 +754,10 @@ async function renderTIP() {
   })}
     <h3 style="margin:22px 0 10px;font-size:17px">Assigned leads to schedule</h3>
     ${serverTable("tip-toschedule", { role: "tip", kind: "leads", filters: () => ({ status: "tobook" }), label: "Search leads", empty: "Nothing to schedule.", html: rows => `<div class="list">${rows.map(l => leadRow(l, "tip")).join("")}</div>` })}`;
-  if (tab === "customers") body = `<div class="notice info" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span style="flex:1 1 320px">Enter the ONT serial when you mark an installation complete, and set the modem's ACS URL to your own GenieACS (or Connect Bhai's, as agreed with admin). Keep the ACS link on after installation so the customer stays on the Care plan. Use it only with the provider's written authorisation.</span><button class="btn btn-primary btn-sm" data-go="tip" data-go-tab="careplan" type="button">Manage modems</button></div>
+  if (tab === "customers") body = `<div class="notice info" style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span style="flex:1 1 320px">Enter the ONT serial when you mark an installation complete, and set the modem's Gene address to your own (or Connect Bhai's, as agreed with admin). Keep the ACS link on after installation so the customer stays on the Care plan. Use it only with the provider's written authorisation.</span><button class="btn btn-primary btn-sm" data-go="tip" data-go-tab="careplan" type="button">Manage modems</button></div>
     ${serverTable("tip-customers", {
     role: "tip", kind: "bookings", filters: () => ({ status: "installed", devices: true }), label: "Search customers", empty: "No installed customers yet.", html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Customer</th><th>Connection ref</th><th>Plan</th><th>Installed</th><th>Authorised</th><th>Router status</th><th></th></tr></thead><tbody>
-    ${rows.map(b => `<tr><td><b>${esc(b.lead.name)}</b><br><span class="muted">${esc(fmtPh(b.lead.phone))}</span>${b.lead.email ? `<br><span class="muted small">${esc(b.lead.email)}</span>` : ""}${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}</td><td class="mono">${esc(b.connection_ref || "—")}<br><span class="muted">ONT ${esc(b.ont_serial || "not linked")}</span></td><td>${esc(b.plan ? b.plan.name : "")}<br><span class="muted">${b.plan ? b.plan.speed_mbps + " Mbps" : ""}</span></td><td>${fdate(b.installed_at)}</td><td>${b.authorized ? pill("Authorised", "p-ok") : pill("Pending", "p-warn")}</td><td>${deviceView(b.device)}${b.device && b.device.acs ? `<div style="margin-top:4px">${rxPill(b.device)}</div>` : ""}<div class="small" id="rt-${b.id}" style="margin-top:4px"></div></td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button" ${b.device && b.device.acs ? "" : "disabled title=\"Not linked to GenieACS yet\""}>Refresh</button><button class="btn btn-soft btn-sm" data-act="router-test" data-id="${b.id}" type="button" ${b.device && b.device.acs && b.device.active !== false && b.device.state === "online" ? "" : "disabled title=\"Needs a linked modem that is online\""}>Router test</button></div></td></tr>`).join("")}</tbody></table></div>`
+    ${rows.map(b => `<tr><td><b>${esc(b.lead.name)}</b><br><span class="muted">${esc(fmtPh(b.lead.phone))}</span>${b.lead.email ? `<br><span class="muted small">${esc(b.lead.email)}</span>` : ""}${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}</td><td class="mono">${esc(b.connection_ref || "—")}<br><span class="muted">ONT ${esc(b.ont_serial || "not linked")}</span></td><td>${esc(b.plan ? b.plan.name : "")}<br><span class="muted">${b.plan ? b.plan.speed_mbps + " Mbps" : ""}</span></td><td>${fdate(b.installed_at)}</td><td>${b.authorized ? pill("Authorised", "p-ok") : pill("Pending", "p-warn")}</td><td>${deviceView(b.device)}${b.device && b.device.acs ? `<div style="margin-top:4px">${rxPill(b.device)}</div>` : ""}<div class="small" id="rt-${b.id}" style="margin-top:4px"></div></td><td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button" ${b.device && b.device.acs ? "" : "disabled title=\"Not linked to Gene yet\""}>Refresh</button><button class="btn btn-soft btn-sm" data-act="router-test" data-id="${b.id}" type="button" ${b.device && b.device.acs && b.device.active !== false && b.device.state === "online" ? "" : "disabled title=\"Needs a linked modem that is online\""}>Router test</button></div></td></tr>`).join("")}</tbody></table></div>`
   })}`;
   if (tab === "tickets") body = serverTable("tip-tickets", {
     role: "tip", kind: "tickets", label: "Search tickets", empty: "No service tickets.", html: rows => `<div class="list">${rows.map(t => `<div class="item"><div class="ih"><h3>${esc(t.category)}</h3>${tickPill(t.status)}<span class="spacer"></span><span class="mono muted">${esc(t.ref_code)}</span></div>
@@ -808,7 +808,7 @@ async function openBookingStatus(id) {
    <form class="stack" data-form="booking-status" data-id="${id}" novalidate>
     ${field("bs-status", "New status", `<select id="bs-status" name="status">${next.map(s => `<option value="${s}">${BOOK[s]}</option>`).join("")}</select>`)}
     ${field("bs-ref", "Connection reference", `<input id="bs-ref" name="ref" placeholder="Provider account / FTTH ID" value="${esc(b.connection_ref || "")}">`, "Required to mark Installed. Marking installed also marks the connection authorised and creates commissions.")}
-    ${field("bs-ont", "ONT / modem serial number (GenieACS)", `<input id="bs-ont" name="ont" placeholder="e.g. ZTEGC8A1B2C3" value="${esc(b.ont_serial || "")}" autocapitalize="characters">`, "Printed on the modem label. Links the modem to GenieACS (your own or Connect Bhai's) for live status, Wi-Fi change, restart and line speed tests.")}
+    ${field("bs-ont", "ONT / modem serial number (Gene)", `<input id="bs-ont" name="ont" placeholder="e.g. ZTEGC8A1B2C3" value="${esc(b.ont_serial || "")}" autocapitalize="characters">`, "Printed on the modem label. Links the modem to Gene (your own or Connect Bhai's) for live status, Wi-Fi change, restart and line speed tests.")}
     <button class="btn btn-primary" type="submit">Save</button></form>`);
 }
 function openTicketStatus(id, cur) {
@@ -1491,21 +1491,21 @@ async function downloadTemplate() {
 }
 
 /* =====================================================================
-   CARE PLAN · through GenieACS
+   CARE PLAN · through Gene, your personal assistant
    ===================================================================== */
-const CARE_NOTE = `<div class="notice info" style="margin-bottom:14px">Status marked <b>Live · GenieACS</b> comes from the modem through GenieACS, the Care plan system: the installer's own GenieACS or Connect Bhai's. Restart and Wi-Fi change are sent as GenieACS tasks. Modems not linked yet, and everything in this demo, are marked <b>Simulated</b>.</div>`;
+const CARE_NOTE = `<div class="notice info" style="margin-bottom:14px">Status marked <b>Live · Gene</b> comes from the modem through Gene, your personal assistant, the Care plan system: the installer's own Gene or Connect Bhai's. Restart and Wi-Fi change are sent as Gene tasks. Modems not linked yet, and everything in this demo, are marked <b>Simulated</b>.</div>`;
 const OUTAGE_MIN = 3;   // offline modems in one area that suggest a line / OLT fault (demo: 3; live site: 10)
 function routerCard(b, withCustomer) {
   const d = b.device || {}, u = me(), linked = !!d.acs, active = d.active !== false, on = d.state === "online", off = d.state === "offline";
   const canAct = linked && u && u.role !== "dsa", canTest = linked && active && on, r = linked ? RX(d.rx_dbm) : null, weak = !!(r && r[0] !== "Good"), manyRb = linked && (d.reboots_7d || 0) >= 3;
   return `<div class="item"><div class="ih"><h3>${withCustomer && b.lead ? esc(b.lead.name) + " · " : ""}${planLine(b.plan)}</h3><span class="spacer"></span><span class="mono muted">${esc(b.connection_ref || b.ref_code)}</span></div>
     <div class="row">${deviceView(b.device)}${rxPill(d)}<span class="spacer"></span><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button" ${linked ? "" : "disabled"}>Refresh status</button></div>
-    <div class="meta">${withCustomer && b.lead ? `<span><b>${esc(b.lead.phone)}</b> · ${esc(b.lead.area || "")} ${esc(b.lead.pincode || "")}</span>` : ""}<span>ONT serial <b class="mono">${esc(b.ont_serial || "not linked")}</b></span>${linked ? `<span>ACS <b>${esc(acsName(b))}</b></span>` : b.ont_serial ? `<span>ACS <b style="color:var(--warn)">not set for this TIP</b></span>` : ""}${d.model ? `<span>Modem <b>${esc(d.make + " " + d.model)}</b></span>` : ""}${d.firmware ? `<span>Firmware <b class="mono">${esc(d.firmware)}</b></span>` : ""}<span>Installed <b>${fdate(b.installed_at)}</b></span>${b.tip ? `<span>Installer <b>${esc(b.tip.name)}</b></span>` : ""}</div>
+    <div class="meta">${withCustomer && b.lead ? `<span><b>${esc(b.lead.phone)}</b> · ${esc(b.lead.area || "")} ${esc(b.lead.pincode || "")}</span>` : ""}<span>ONT serial <b class="mono">${esc(b.ont_serial || "not linked")}</b></span>${linked ? `<span>Gene <b>${esc(acsName(b))}</b></span>` : b.ont_serial ? `<span>ACS <b style="color:var(--warn)">not set for this TIP</b></span>` : ""}${d.model ? `<span>Modem <b>${esc(d.make + " " + d.model)}</b></span>` : ""}${d.firmware ? `<span>Firmware <b class="mono">${esc(d.firmware)}</b></span>` : ""}<span>Installed <b>${fdate(b.installed_at)}</b></span>${b.tip ? `<span>Installer <b>${esc(b.tip.name)}</b></span>` : ""}</div>
     ${linked ? `<div class="mstats"><div><span>Wi-Fi name</span><b>${esc(d.ssid || "—")}</b></div><div><span>Devices on Wi-Fi</span><b>${on ? (d.clients ?? "—") : 0}</b></div><div><span>Running for</span><b>${on ? upTxt(d.uptime_h) : "Offline"}</b></div><div><span>Restarts 7 / 30 days</span><b style="${manyRb ? "color:var(--bad)" : ""}">${d.reboots_7d || 0} / ${d.reboots_30d || 0}</b></div></div>` : ""}
     ${weak ? `<p class="notice">Fiber signal is ${r[0].toLowerCase()} (${Number(d.rx_dbm).toFixed(1)} dBm; good is −25 dBm or better). ${u && u.role === "customer" ? "Your installer can see this and will check the fiber." : "Check the fiber connector, patch cord and splitter before the customer complains."}</p>` : ""}
     ${manyRb && u && u.role !== "customer" ? `<p class="notice">Restarted ${d.reboots_7d} times in 7 days. Check the power adapter or the modem.</p>` : ""}
     <div class="row">${canAct ? `<button class="btn btn-primary btn-sm" data-act="modem-reboot" data-id="${b.id}" type="button" ${on ? "" : "disabled"}>Restart modem</button><button class="btn btn-soft btn-sm" data-act="modem-wifi" data-id="${b.id}" data-ssid="${esc(d.ssid || "")}" type="button" ${on ? "" : "disabled"}>Change Wi-Fi name / password</button>` : ""}<button class="btn btn-ghost btn-sm" data-act="router-test" data-id="${b.id}" type="button" ${canTest ? "" : "disabled"}>Line speed test</button>${withCustomer ? "" : `<button class="btn btn-ghost btn-sm" data-go="speed" type="button">Wi-Fi speed test</button>`}${u && u.role === "customer" && off ? `<button class="btn btn-danger btn-sm" data-act="offline-complaint" data-id="${b.id}" type="button">Raise complaint</button>` : ""}</div>
-    ${!linked ? `<p class="muted small">${b.ont_serial ? "The ACS is not set for this TIP yet. Admin sets it under Care plan → ACS servers." : "Not linked yet: the installer adds the ONT serial when marking the installation complete."}</p>` : !active ? `<p class="muted small">Care plan is not active for this modem, so restart, Wi-Fi change and the line test are off.</p>` : !on ? `<p class="muted small">${off ? "The modem is offline." : "The modem has not reported yet."} Restart, Wi-Fi change and the line test need it online. Refresh status to check again.</p>` : ""}
+    ${!linked ? `<p class="muted small">${b.ont_serial ? "Gene is not set up for this TIP yet. Admin sets it under Care plan → Gene setup." : "Not linked yet: the installer adds the ONT serial when marking the installation complete."}</p>` : !active ? `<p class="muted small">Care plan is not active for this modem, so restart, Wi-Fi change and the line test are off.</p>` : !on ? `<p class="muted small">${off ? "The modem is offline." : "The modem has not reported yet."} Restart, Wi-Fi change and the line test need it online. Refresh status to check again.</p>` : ""}
     <p class="small" id="rt-${b.id}"></p>
     <div class="split" style="gap:12px;border-top:1px dashed var(--line);padding-top:8px"><div class="stack" style="gap:4px;min-width:0"><span class="muted small" style="font-weight:800">Recent speed tests</span><div class="stack" style="gap:4px" data-hist="${b.id}"><span class="muted small">Loading…</span></div></div>
       <div class="stack" style="gap:4px;min-width:0"><span class="muted small" style="font-weight:800">Recent modem actions</span><div class="stack" style="gap:4px" data-acts="${b.id}"><span class="muted small">Loading…</span></div></div></div></div>`;
@@ -1519,11 +1519,11 @@ function routerZones(zones, idx) {   // modems grouped by AREA (PIN code); zones
     <div class="zgrid">${rows.slice(0, 4).map(r => `<div class="zcard ${r.off >= OUTAGE_MIN ? "none" : r.off || r.weak ? "low" : "good"}"><b>${esc(r.pin)}</b><span class="muted small">${esc(r.name)} · ${r.n} modem${r.n === 1 ? "" : "s"}</span><div class="row" style="gap:6px">${pill(r.on + " online", "p-ok")}${r.off ? pill(r.off + " offline", "p-bad") : ""}${r.weak ? pill(r.weak + " weak signal", "p-warn") : ""}</div></div>`).join("")}</div>${rows.length > 4 ? `<p class="muted small">Top 4 areas shown, +${rows.length - 4} more. All modems are listed below with search.</p>` : ""}</div>`;
 }
 function acsCard(tips) {
-  const mode = p => p.acs_mode === "partner" ? pill("TIP's own GenieACS", "p-blue") : p.acs_mode === "connectbhai" ? pill("Connect Bhai GenieACS", "p-ok") : pill("Not set", "p-grey");
-  return `<div class="card stack" style="margin-bottom:16px"><div><h3>ACS servers (GenieACS)</h3><p class="muted small">Each TIP's modems report to one ACS. Use the TIP's own GenieACS through its API (nothing changes on the modem), or Connect Bhai's GenieACS. The app never talks to a modem directly: app → Connect Bhai backend → GenieACS → modem. It does not touch BSNL's systems.</p></div>
+  const mode = p => p.acs_mode === "partner" ? pill("TIP's own Gene", "p-blue") : p.acs_mode === "connectbhai" ? pill("Connect Bhai Gene", "p-ok") : pill("Not set", "p-grey");
+  return `<div class="card stack" style="margin-bottom:16px"><div><h3>Gene setup</h3><p class="muted small">Each TIP's modems report to one Gene. Use the TIP's own Gene through its API (nothing changes on the modem), or Connect Bhai's Gene. The app never talks to a modem directly: app → Connect Bhai backend → Gene → modem. It does not touch BSNL's systems.</p></div>
     <div class="list">${tips.map(p => `<div class="item"><div class="ih"><h3>${esc(p.name)}</h3>${mode(p)}${p.acs_mode ? (p.acs_agreement ? pill("Written OK on file", "p-ok") : pill("Written OK missing", "p-warn")) : ""}<span class="spacer"></span><button class="btn btn-soft btn-sm" data-act="edit-acs" data-id="${p.id}" type="button">Set ACS</button></div>
       <div class="meta"><span>API address <b class="mono">${esc(p.acs_url || "—")}</b></span>${p.acs_mode === "partner" ? `<span>API key <b>${p.acs_key_set ? "added" : "not added"}</b></span>` : ""}${p.linked != null ? `<span>Linked modems <b>${p.linked}</b></span>` : ""}${p.acs_updated_at ? `<span>Updated <b>${fdate(p.acs_updated_at)}</b></span>` : ""}</div></div>`).join("") || `<p class="muted">No TIPs yet.</p>`}</div>
-    <details><summary class="linkbtn small" style="display:inline">For the developer: GenieACS calls the backend makes</summary>
+    <details><summary class="linkbtn small" style="display:inline">For the developer: Gene calls the backend makes</summary>
       <div class="dev-dev stack" style="gap:6px;margin-top:8px">
         <span>Find the modem: <code>GET {API}/devices/?query={"_deviceId._SerialNumber":"&lt;ONT serial&gt;"}</code></span>
         <span>Restart: <code>POST {API}/devices/&lt;id&gt;/tasks?connection_request</code> with <code>{"name":"reboot"}</code></span>
@@ -1533,18 +1533,18 @@ function acsCard(tips) {
 }
 async function openAcs(id) {
   const p = (await API.adminAcs()).find(x => x.id === id); if (!p) { toast("TIP not found.", true); return; }
-  openModal(`<h2>ACS for ${esc(p.name)}</h2><p class="muted" style="margin:4px 0 12px">Where this TIP's modems report. Saving here does not change the modems; the installer sets the same ACS address on each modem.</p>
+  openModal(`<h2>Gene setup for ${esc(p.name)}</h2><p class="muted" style="margin:4px 0 12px">Where this TIP's modems report. Saving here does not change the modems; the installer sets the same Gene address on each modem.</p>
     <form class="stack" data-form="acs" data-id="${p.id}" novalidate>
-      ${field("ac-mode", "ACS", `<select id="ac-mode" name="mode"><option value="partner" ${p.acs_mode === "partner" ? "selected" : ""}>TIP's own GenieACS (connect through its API)</option><option value="connectbhai" ${p.acs_mode === "connectbhai" ? "selected" : ""}>Connect Bhai GenieACS (acs.connectbhai.in)</option><option value="" ${!p.acs_mode ? "selected" : ""}>Not set</option></select>`)}
+      ${field("ac-mode", "Gene setup", `<select id="ac-mode" name="mode"><option value="partner" ${p.acs_mode === "partner" ? "selected" : ""}>TIP's own Gene (connect through its API)</option><option value="connectbhai" ${p.acs_mode === "connectbhai" ? "selected" : ""}>Connect Bhai Gene (acs.connectbhai.in)</option><option value="" ${!p.acs_mode ? "selected" : ""}>Not set</option></select>`)}
       <div class="stack" data-acs="partner" ${p.acs_mode === "partner" ? "" : "hidden"}>
-        ${field("ac-url", "TIP's GenieACS API (NBI) address", `<input id="ac-url" name="url" value="${esc(p.acs_mode === "partner" ? p.acs_url : "")}" placeholder="http://acs.partner.in:7557" autocomplete="off">`, "Only Connect Bhai's server should be allowed to reach it.")}
+        ${field("ac-url", "TIP's Gene API address", `<input id="ac-url" name="url" value="${esc(p.acs_mode === "partner" ? p.acs_url : "")}" placeholder="http://acs.partner.in:7557" autocomplete="off">`, "Only Connect Bhai's server should be allowed to reach it.")}
         ${field("ac-key", "API key", `<input id="ac-key" name="key" type="password" autocomplete="off" placeholder="${p.acs_mode === "partner" && p.acs_key_set ? "Saved · leave empty to keep it" : "Key from the TIP"}">`, "Stored on the server only. It is never shown again.")}</div>
       <div class="field" data-f="ac-agree"><label class="check"><input type="checkbox" name="agreement" ${p.acs_agreement ? "checked" : ""}> Written agreement on file: what Connect Bhai may see (status, fiber signal) and do (restart, Wi-Fi change)</label><span class="ferr" id="ac-agree-err"></span></div>
-      <button class="btn btn-primary" type="submit">Save ACS</button></form>`);
+      <button class="btn btn-primary" type="submit">Save Gene setup</button></form>`);
 }
 async function renderRouter() {
   const u = me();
-  const head = (title, sub) => `<div class="dhead"><div><span class="eyebrow">Care plan · through GenieACS</span><h1>${title}</h1><p class="muted" style="max-width:64ch;margin-top:6px">${sub}</p></div><div class="row"><button class="btn btn-ghost" data-go="speed" type="button">Wi-Fi speed test</button></div></div>`;
+  const head = (title, sub) => `<div class="dhead"><div><span class="eyebrow">Care plan · Gene, your personal assistant</span><h1>${title}</h1><p class="muted" style="max-width:64ch;margin-top:6px">${sub}</p></div><div class="row"><button class="btn btn-ghost" data-go="speed" type="button">Wi-Fi speed test</button></div></div>`;
   if (!u || u.role === "dsa") {
     const ico = (d, n = 22) => `<svg viewBox="0 0 24 24" width="${n}" height="${n}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
     const I = {
@@ -1556,10 +1556,10 @@ async function renderRouter() {
       shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>'
     };
     const art = `<svg class="care-art" viewBox="0 0 320 220" role="img" aria-hidden="true" focusable="false"><circle cx="160" cy="116" r="96" style="fill:var(--blue-soft)"/><path d="M96 82c36-34 92-34 128 0M118 104c24-22 60-22 84 0" fill="none" style="stroke:var(--sky);stroke-width:7;stroke-linecap:round"/><rect x="62" y="132" width="196" height="46" rx="14" style="fill:var(--blue)"/><circle cx="92" cy="155" r="6" style="fill:var(--ok)"/><circle cx="114" cy="155" r="6" style="fill:#fff"/><circle cx="136" cy="155" r="6" style="fill:#fff"/><rect x="190" y="150" width="50" height="10" rx="5" style="fill:#fff" opacity=".35"/><path d="M92 132V104M228 132V104" style="stroke:var(--blue);stroke-width:7;stroke-linecap:round"/><circle cx="252" cy="62" r="22" style="fill:var(--ok)"/><path d="m241 62 8 8 14-16" fill="none" style="stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round"/></svg>`;
-    const steps = [["01", I.wrench, "We set it up", "Your TIP technician links your modem to GenieACS at installation."], ["02", I.activity, "It reports in", "Your modem checks in every 5 minutes, automatically."], ["03", I.gauge, "You stay in control", "See it live, restart it and change your Wi-Fi from your dashboard."]];
+    const steps = [["01", I.wrench, "We set it up", "Your TIP technician links your modem to Gene at installation."], ["02", I.activity, "It reports in", "Your modem checks in every 5 minutes, automatically."], ["03", I.gauge, "You stay in control", "See it live, restart it and change your Wi-Fi from your dashboard."]];
     const feats = [[I.wifi, "Online / Offline"], [I.signal, "Fiber signal"], [I.restart, "Restart modem"], [I.pencil, "Wi-Fi name"], [I.lock, "Wi-Fi password"], [I.gauge, "Line speed test"]];
     app.innerHTML = `<div class="wrap dash care-page">
-      <section class="care-hero"><div class="care-copy"><span class="eyebrow">Care plan · through GenieACS</span><h1>Connect Bhai Care plan</h1>
+      <section class="care-hero"><div class="care-copy"><span class="eyebrow">Care plan · Gene, your personal assistant</span><h1>Connect Bhai Care plan</h1>
         <p class="muted">Keep an eye on your home modem and fix common problems yourself.</p>
         ${u ? "" : `<div class="row"><button class="btn btn-primary" data-act="login" type="button">${ico(I.shield, 18)} Log in to Care plan</button></div>`}
         ${u ? `<p class="muted small" style="margin-top:12px">Modem status is shown to the customer, the installing TIP and admin, so it is not available for DSA accounts.</p>` : ""}</div>
@@ -1571,7 +1571,7 @@ async function renderRouter() {
   const many = u.role !== "customer", f = S.routerFilter || "all";
   const isLinked = b => !!(b.ont_serial && b.device && b.device.acs);
   const title = u.role === "customer" ? "My Care plan" : u.role === "tip" ? "Care plan · modems I installed" : "Care plan · all modems";
-  const sub = u.role === "customer" ? "Live status of your home modem. Restart it, change your Wi-Fi name or password, and test the line speed without Wi-Fi in between." : "Every installed modem through GenieACS: online / offline, fiber signal and restarts, by area. Search by customer, phone or reference.";
+  const sub = u.role === "customer" ? "Live status of your home modem. Restart it, change your Wi-Fi name or password, and test the line speed without Wi-Fi in between." : "Every installed modem through Gene, your personal assistant: online / offline, fiber signal and restarts, by area. Search by customer, phone or reference.";
   if (!many) {   // a customer has only their own few connections
     const list = (await API.myBookings()).filter(b => b.status === "installed");
     app.innerHTML = `<div class="wrap dash">${head(title, sub)}${CARE_NOTE}
@@ -1584,7 +1584,7 @@ async function renderRouter() {
   zoneHtml = routerZones(sm.zones, areaIndex(locs));
   const chips = [["all", "All"], ["offline", "Offline"], ["weak", "Weak signal"], ["reboots", "3+ restarts in 7 days"], ["unlinked", "Not linked"]];
   app.innerHTML = `<div class="wrap dash">${head(title, sub)}
-    <div class="kpis"><div class="kpi"><span>Installed</span><b>${sm.installed}</b><small>${sm.linked} on GenieACS</small></div><div class="kpi"><span>Online</span><b style="color:var(--ok)">${sm.online}</b></div><div class="kpi"><span>Offline</span><b style="color:var(--bad)">${sm.offline}</b></div><div class="kpi"><span>Weak fiber signal</span><b style="color:var(--warn)">${sm.weak}</b></div></div>
+    <div class="kpis"><div class="kpi"><span>Installed</span><b>${sm.installed}</b><small>${sm.linked} on Gene</small></div><div class="kpi"><span>Online</span><b style="color:var(--ok)">${sm.online}</b></div><div class="kpi"><span>Offline</span><b style="color:var(--bad)">${sm.offline}</b></div><div class="kpi"><span>Weak fiber signal</span><b style="color:var(--warn)">${sm.weak}</b></div></div>
     ${acsHtml}${zoneHtml}
     <div class="chips" style="margin-bottom:14px">${chips.map(([k, l]) => `<button type="button" class="chip" data-act="router-filter" data-v="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
     ${CARE_NOTE}
@@ -1702,7 +1702,7 @@ const actions = {
     const out = document.getElementById("rt-" + b.dataset.id); const label = b.textContent;
     b.disabled = true; b.textContent = "Router test running…"; if (out) out.textContent = "The router is downloading a test file. This can take 1–5 minutes.";
     try {
-      const t = await API.routerTest(b.dataset.id, q => { if (q && out) out.textContent = "Waiting for the modem to check in with GenieACS (up to 5 minutes)…"; });
+      const t = await API.routerTest(b.dataset.id, q => { if (q && out) out.textContent = "Waiting for the modem to check in with Gene (up to 5 minutes)…"; });
       if (!out) toast(t.status === "done" ? `Router speed: ${Number(t.download_mbps).toFixed(1)} Mbps (line speed, without Wi-Fi).` : "Router test failed. Please try again later.", t.status !== "done");
       if (out) out.innerHTML = t.status === "done" ? `Router speed: <b>${Number(t.download_mbps).toFixed(1)} Mbps</b> (line speed, without Wi-Fi)${t.is_simulated ? ` <span class="badge sim">Simulated</span>` : ""}` : "Router test failed. Please try again later.";
       loadHist(b.dataset.id);
@@ -2101,7 +2101,7 @@ const forms = {
     if (d.mode === "partner" && !/^https?:\/\/\S+$/.test(d.url)) e["ac-url"] = "Enter the address, e.g. http://acs.partner.in:7557";
     if (d.mode && !d.agreement) e["ac-agree"] = "Get the written agreement from the TIP first.";
     if (!setErr(f, e)) return;
-    await guard(btn, () => API.saveAcs(f.dataset.id, d)); closeModal(); toast("ACS saved."); render();
+    await guard(btn, () => API.saveAcs(f.dataset.id, d)); closeModal(); toast("Gene setup saved."); render();
   },
   "ticket-status": async (f, btn) => { const s = val(f, "status"), n = val(f, "note"); if (!setErr(f, ["resolved", "closed"].includes(s) && n.length < 3 ? { "ts-note": "Tell the customer what was done." } : {})) return; await guard(btn, () => API.updateTicket(f.dataset.id, s, n)); closeModal(); toast("Ticket updated."); render(); },
   assign: async (f, btn) => { const dsa = f.dataset.curDsa || "", tip = val(f, "tip"); if (!setErr(f, !tip ? { "as-tip": "Choose a TIP (installer)." } : {})) return; await guard(btn, () => API.assignLead(f.dataset.id, dsa, tip)); closeModal(); toast("Lead assigned."); render(); },

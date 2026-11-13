@@ -219,3 +219,80 @@ html[data-shell] .backrow .wrap{max-width:none;margin:0;padding:12px 28px 0}
 @media (prefers-reduced-motion:reduce){.cc-ok i,.cc-w1,.cc-w2{animation:none}.cc-cta{transition:none}}
 /* desktop: the right column never makes the hero taller than the search card; the animation shrinks to fit */
 @media (min-width:901px){.hero-side{contain:size}.hero-side .story .stage{max-height:100%}}
+
+/* Hero story v2: 16 s loop, four 4 s steps. --d is each element's start offset in seconds (phase shift of one shared loop). */
+.story .fsc,.story .fe,.story .fcap,.story .fdot,.story .fpopb,.story .ffib,.story .fled,.story .fwv,.story .ftype,.story .fshield,.story .fheart,.story .fping{animation-duration:16s;animation-iteration-count:infinite;animation-fill-mode:backwards;animation-delay:var(--d,0s);animation-timing-function:ease-out}
+.story .fsc{animation-name:fsc;opacity:0}
+@keyframes fsc{0%{opacity:0}3%,22%{opacity:1}25%,100%{opacity:0}}
+.story .fe{animation-name:fe}
+@keyframes fe{0%{opacity:0;transform:translateY(12px)}3.5%,100%{opacity:1;transform:none}}
+.story .ftype{animation-name:ftype;transform-box:fill-box;transform-origin:0 50%}
+@keyframes ftype{0%{transform:scaleX(0)}8%,100%{transform:scaleX(1)}}
+.story .fpopb{animation-name:fpopb;transform-box:fill-box;transform-origin:center}
+@keyframes fpopb{0%{transform:scale(0)}2.5%{transform:scale(1.3)}4%,100%{transform:scale(1)}}
+.story .ffib{animation-name:ffib;stroke-dasharray:100}
+@keyframes ffib{0%{stroke-dashoffset:100}6%,100%{stroke-dashoffset:0}}
+.story .fled{animation-name:fled}
+@keyframes fled{0%{fill:#E5484D}1%,100%{fill:#22C55E}}
+.story .fwv{animation-name:fwv}
+@keyframes fwv{0%{opacity:0}2.5%,100%{opacity:1}}
+.story .fshield{animation-name:fe;animation-delay:12.1s}
+.story .fheart{animation-name:fheart;animation-delay:12.3s;transform-box:fill-box;transform-origin:center}
+@keyframes fheart{0%,6%,12%,100%{transform:scale(1)}3%,9%{transform:scale(1.18)}}
+.story .fping{animation-name:fping;animation-delay:12.5s;animation-timing-function:ease-in-out}
+@keyframes fping{0%,100%{opacity:1}50%{opacity:.35}}
+.story .fdot{animation-name:fdot;opacity:.28;animation-timing-function:linear}
+@keyframes fdot{0%{opacity:1}24.9%{opacity:1}25%,100%{opacity:.28}}
+.story .caps{padding:10px 12px}
+.story .fcap{grid-area:1/1;justify-self:start;margin:0;background:#0A1B3D;color:#fff;font-family:Sora,Manrope,system-ui,sans-serif;font-weight:700;font-size:clamp(12px,1.05vw,15px);padding:6px 12px;border-radius:10px;opacity:0;animation:fsc 16s infinite backwards;animation-delay:var(--d,0s)}
+.story .fcap span{color:#8DB4FF}
+
+/* Care plan card: live-looking animation */
+@property --spd{syntax:"<integer>";inherits:false;initial-value:0}
+.cc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.cc-speed{animation:cc-count 6s ease-in-out infinite;counter-reset:cc var(--spd);font-variant-numeric:tabular-nums}
+.cc-speed::after{content:counter(cc) " Mbps"}
+@keyframes cc-count{0%{--spd:0}35%,80%{--spd:98}100%{--spd:0}}
+.cc-bars u{transform-origin:bottom;animation:cc-bar 3s ease-in-out infinite}
+.cc-bars u:nth-child(2){animation-delay:.15s}.cc-bars u:nth-child(3){animation-delay:.3s}.cc-bars u:nth-child(4){animation-delay:.45s}
+@keyframes cc-bar{0%,100%{transform:scaleY(.35);opacity:.5}40%,70%{transform:scaleY(1);opacity:1}}
+.cc-feats li{animation:cc-hi 6s ease-in-out infinite}
+.cc-feats li:nth-child(2){animation-delay:1.5s}.cc-feats li:nth-child(3){animation-delay:3s}.cc-feats li:nth-child(4){animation-delay:4.5s}
+@keyframes cc-hi{0%,22%,100%{background:rgba(255,255,255,.1);transform:none}6%,16%{background:rgba(34,211,238,.35);transform:translateY(-2px)}}
+.carecard{animation:cc-glow 3.4s ease-in-out infinite}
+@keyframes cc-glow{0%,100%{box-shadow:0 0 0 4px rgba(34,211,238,.1),0 24px 60px -24px rgba(34,211,238,.4)}50%{box-shadow:0 0 0 6px rgba(34,211,238,.22),0 24px 70px -20px rgba(34,211,238,.75)}}
+.cc-cta{overflow:hidden}
+.cc-cta::after{content:"";position:absolute;top:0;bottom:0;left:-40%;width:30%;background:linear-gradient(100deg,transparent,rgba(47,123,255,.35),transparent);transform:skewX(-20deg);animation:cc-shine 3.6s ease-in-out infinite}
+@keyframes cc-shine{0%,60%{left:-40%}100%{left:130%}}
+.cc-ico{animation:cc-beat 2.4s ease-in-out infinite}
+@keyframes cc-beat{0%,100%{transform:scale(1)}12%{transform:scale(1.1)}24%{transform:scale(1)}36%{transform:scale(1.07)}}
+@media (prefers-reduced-motion:reduce){.cc-speed,.cc-bars u,.cc-feats li,.carecard,.cc-cta::after,.cc-ico{animation:none}.cc-speed{--spd:98}}
+
+/* Care plan links: more visible */
+.hero-care{background:linear-gradient(90deg,#FBBF24,#F59E0B)!important;color:#3B2300!important;border:0!important;font-weight:800;box-shadow:0 8px 22px -10px rgba(251,191,36,.8)}
+.hero-care:hover{transform:translateY(-2px)}
+footer .footer-care{color:var(--blue)!important;font-weight:800}
+footer .footer-care::before{content:"♥ ";color:#F59E0B}
+
+/* Care plan card: light version (matches the other cards) */
+.carecard{background:linear-gradient(160deg,#FFFFFF,#EEF4FF);color:#0A1B3D;border:1.5px solid #BFD2FF;backdrop-filter:none;animation:cc-glow-l 3.4s ease-in-out infinite}
+@keyframes cc-glow-l{0%,100%{box-shadow:0 0 0 4px rgba(20,80,230,.06),0 22px 50px -26px rgba(20,80,230,.45)}50%{box-shadow:0 0 0 6px rgba(20,80,230,.14),0 26px 60px -22px rgba(20,80,230,.7)}}
+.carecard::before{background:radial-gradient(closest-side,rgba(20,80,230,.16),transparent)}
+.cc-t b{color:#0A1B3D}
+.cc-t small{color:#4A5876}
+.cc-ico{background:linear-gradient(135deg,#1450E6,#2F7BFF);box-shadow:0 10px 24px -10px rgba(20,80,230,.8)}
+.cc-panel{background:#fff;border:1px solid #D6E0F5}
+.cc-rows li span{color:#53617F}
+.cc-rows li b{color:#0A1B3D}
+.cc-ok{color:#11804A!important}
+.cc-bars u{background:#1450E6}
+.cc-feats li{background:#E8EFFF;color:#0A2A78;animation-name:cc-hi-l}
+.cc-feats li svg{color:#1450E6}
+@keyframes cc-hi-l{0%,22%,100%{background:#E8EFFF;transform:none}6%,16%{background:#BCD0FF;transform:translateY(-2px)}}
+.cc-cta{background:linear-gradient(90deg,#1450E6,#2F7BFF);color:#fff}
+.cc-cta::after{background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent)}
+.cc-cta:hover{box-shadow:0 12px 28px -10px rgba(20,80,230,.7)}
+.cc-router rect[fill="#2F7BFF"]{fill:#1450E6}
+/* hero animation caption: light pill */
+.story .fcap{background:#fff;color:#0A1B3D;border:1.5px solid #BFD2FF;box-shadow:0 6px 16px -10px rgba(20,80,230,.5)}
+.story .fcap span{color:#1450E6}

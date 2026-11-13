@@ -7,7 +7,7 @@ import { api, type Device } from '@/lib/api';
 import { fDayTime } from '@/lib/format';
 import { useTheme } from '@/lib/theme';
 
-/* Customer: Care plan = view and control the home modem (GenieACS through the same API as the website) */
+/* Customer: Care plan = view and control the home modem (Gene through the same API as the website) */
 export default function Care() {
   const t = useTheme();
   const load = useLoad(() => api.devices());

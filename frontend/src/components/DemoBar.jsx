@@ -9,7 +9,7 @@ export default function DemoBar() {
         {!api && (
           <>
             <span>
-              <b>Prototype · demo data.</b><span className="demo-more"> Plans are samples, not real ISP offers. Demo WhatsApp OTP is 123456. Care plan (through GenieACS) features are simulated until GenieACS is linked.</span>
+              <b>Prototype · demo data.</b><span className="demo-more"> Plans are samples, not real ISP offers. Demo WhatsApp OTP is 123456. Care plan features with Gene, your personal assistant, are simulated until Gene is linked.</span>
             </span>
             <button className="linkbtn" data-act="login" type="button">Try a role</button>
             <button className="linkbtn" data-act="reset-demo" type="button">Reset demo data</button>
