@@ -271,8 +271,9 @@ html[data-shell] .backrow .wrap{max-width:none;margin:0;padding:12px 28px 0}
 /* Care plan links: more visible */
 .hero-care{background:linear-gradient(90deg,#FBBF24,#F59E0B)!important;color:#3B2300!important;border:0!important;font-weight:800;box-shadow:0 8px 22px -10px rgba(251,191,36,.8)}
 .hero-care:hover{transform:translateY(-2px)}
-footer .footer-care{color:var(--blue)!important;font-weight:800}
-footer .footer-care::before{content:"♥ ";color:#F59E0B}
+footer .footer-care{display:inline-flex;align-items:center;gap:10px;color:#fff!important;font-weight:800}
+footer .footer-care::after{content:"Featured";display:inline-block;padding:3px 14px 3px 9px;background:linear-gradient(90deg,#FBBF24,#F59E0B);color:#3B2300;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;line-height:1.2;clip-path:polygon(0 0,100% 0,calc(100% - 7px) 50%,100% 100%,0 100%);border-radius:3px 0 0 3px}
+footer .footer-care:hover{color:#FDE68A!important}
 
 /* Care plan card: light version (matches the other cards) */
 .carecard{background:linear-gradient(160deg,#FFFFFF,#EEF4FF);color:#0A1B3D;border:1.5px solid #BFD2FF;backdrop-filter:none;animation:cc-glow-l 3.4s ease-in-out infinite}
