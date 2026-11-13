@@ -25,7 +25,6 @@ export default function Header() {
   return (
     <header className="top">
       <div className="wrap">
-        <BackButton />
         <button className="brand" data-go="home" type="button" aria-label="Connect Bhai home">
           <Logo height={40} priority />
         </button>
@@ -35,6 +34,7 @@ export default function Header() {
           ))}
         </nav>
         <div className="acts" id="topacts">
+          <BackButton />
           {user ? (
             <>
               <button className="btn btn-ghost btn-sm acts-who" data-go={ROLE_HOME[user.role]} type="button">
