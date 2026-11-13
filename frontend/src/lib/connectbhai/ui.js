@@ -376,17 +376,24 @@ function searchBody() {
   if (S.city && cityList().length && !cityLive(S.city)) return soonBody();
   const pins = (S.pins || []).filter(p => !p.city_id || !S.city || p.city_id === S.city);
   const pinUI = (title, sub) => `<h2>${title}</h2><p class="muted small" style="margin-top:2px">${sub}</p>
-    <div class="pinrow"><input id="pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="452010" value="${esc(S.pin)}" aria-label="PIN code"><button class="btn btn-primary" type="submit">Search</button></div>
+    <div class="pinrow"><input id="pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="452010" value="${esc(S.pin)}" aria-label="PIN code"><button class="btn btn-primary" type="submit">Search</button><button class="btn btn-ghost" data-act="reset-pin" type="button" aria-label="Reset PIN code search">Reset</button></div>
     <button class="linkbtn small" data-act="use-location" type="button" style="margin-top:10px">Use my current location</button>
     <p class="ferr" id="pin-err" style="margin-top:6px"></p>
     <div class="chips" style="margin-top:6px">${pins.map(p => `<button type="button" class="chip" data-act="pick-pin" data-pin="${p.pin}" aria-pressed="${S.pin === p.pin}">${p.pin} · ${esc(p.area)}</button>`).join("")}</div>`;
-  if (S.product === "broadband") return pinUI("Check fiber plans at your address", "Enter your 6-digit PIN code");
+  if (S.product === "broadband") return pinUI("Check fiber plans at your pincode", "Enter your 6-digit PIN code");
   if (S.product === "air_fiber") return pinUI("Book Air Fiber", "Wireless home internet, no fiber cable needed. Check availability at your PIN code.");
   if (S.product === "tv") return pinUI("TV channel packs", "IPTV over your fiber line. Check what's available at your PIN code.");
   if (S.product === "sim") return `<h2>Book a SIM online</h2><p class="muted small" style="margin-top:2px">Get a new number or keep your number and switch (port). Delivered to your door in Indore with e-KYC.</p>
     <div class="chips" style="margin:12px 0">${[["prepaid", "Prepaid"], ["postpaid", "Postpaid"]].map(([k, l]) => `<button type="button" class="chip" data-act="sim-type" data-v="${k}" aria-pressed="${(S.simType || "prepaid") === k}">${l}</button>`).join("")}</div>
     <button class="btn btn-primary btn-block" type="submit">Show SIM plans</button>`;
   return `<h2>OTT packs</h2><p class="muted small" style="margin-top:2px">Streaming app bundles you can add to any connection.</p><button class="btn btn-primary btn-block" type="submit" style="margin-top:12px">Show OTT packs</button>`;
+}
+/* Clears the PIN, its results and the compare list, and puts the search card back to its empty state. */
+function resetSearch() {
+  S.pin = ""; S.areas = []; S.results = null; S.compare = [];
+  const r = $("#results"); if (r) r.hidden = true;
+  const how = $("#how"); if (how) how.style.paddingTop = "56px";
+  renderSearchCard(); updateCompareBar();
 }
 function renderSearchCard() {
   const b = document.getElementById("searchBody"); if (b) b.innerHTML = searchBody();
@@ -1219,7 +1226,7 @@ async function loadCities() {
 }
 function setCity(id) {
   if (!cityById(id)) return; S.city = id; try { localStorage.setItem(CITY_KEY, id); } catch (e) { }
-  S.results = null; S.compare = []; S.wlDone = null; const r = $("#results"); if (r) r.hidden = true;
+  S.wlDone = null; resetSearch();
   const sel = document.getElementById("city-pick"); if (sel) sel.value = id;
   const eb = document.getElementById("hero-city"); if (eb) eb.textContent = cityLive(id) ? cityName(id) : "Madhya Pradesh";
   document.querySelectorAll('[data-act="pick-city"]').forEach(b => b.setAttribute("aria-pressed", b.dataset.v === id));
@@ -1629,7 +1636,8 @@ const actions = {
   "launch-confirm": async b => { const n = await guard(b, () => API.adminLaunchCity(b.dataset.id)); closeModal(); S.cities = null; toast("City is live." + (n ? " WhatsApp sent to " + n + " " + (n === 1 ? "person" : "people") + " on the waiting list." : "")); render(); },
   "city-status": async b => { await guard(b, () => API.adminSetCityStatus(b.dataset.id, b.dataset.s)); S.cities = null; toast(b.dataset.s === "hidden" ? "City hidden from the website." : "City set to launching soon."); render(); },
   "wl-city": b => { S.wlCity = b.dataset.v; render(); setTimeout(() => { const w = document.getElementById("waitlist"); if (w) w.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80); },
-  "product": b => { S.product = b.dataset.v; S.results = null; S.compare = []; const r = $("#results"); if (r) r.hidden = true; renderSearchCard(); updateCompareBar(); },
+  "product": b => { S.product = b.dataset.v; resetSearch(); },
+  "reset-pin": () => { resetSearch(); const i = $("#pin"); if (i) i.focus(); },
   "sim-type": b => { S.simType = b.dataset.v; renderSearchCard(); },
   "sim-type-results": b => { S.simType = b.dataset.v; showCatalog(); },
   "plan-cat": b => { S.planCat = b.dataset.v; render(); },
