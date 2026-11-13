@@ -376,8 +376,8 @@ function searchBody() {
   if (S.city && cityList().length && !cityLive(S.city)) return soonBody();
   const pins = (S.pins || []).filter(p => !p.city_id || !S.city || p.city_id === S.city);
   const pinUI = (title, sub) => `<h2>${title}</h2><p class="muted small" style="margin-top:2px">${sub}</p>
-    <div class="pinrow"><input id="pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="452010" value="${esc(S.pin)}" aria-label="PIN code"><button class="btn btn-primary" type="submit">Search</button><button class="btn btn-ghost" data-act="reset-pin" type="button" aria-label="Reset PIN code search">Reset</button></div>
-    <button class="linkbtn small" data-act="use-location" type="button" style="margin-top:10px">Use my current location</button>
+    <div class="pinrow"><input id="pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="452010" value="${esc(S.pin)}" aria-label="PIN code"><button class="btn btn-primary" type="submit">Search</button></div>
+    <div class="pinacts"><button class="linkbtn small" data-act="use-location" type="button">Use my current location</button><button class="resetbtn" data-act="reset-pin" type="button" aria-label="Reset PIN code search"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Reset</button></div>
     <p class="ferr" id="pin-err" style="margin-top:6px"></p>
     <div class="chips" style="margin-top:6px">${pins.map(p => `<button type="button" class="chip" data-act="pick-pin" data-pin="${p.pin}" aria-pressed="${S.pin === p.pin}">${p.pin} · ${esc(p.area)}</button>`).join("")}</div>`;
   if (S.product === "broadband") return pinUI("Check fiber plans at your pincode", "Enter your 6-digit PIN code");
@@ -1637,7 +1637,7 @@ const actions = {
   "city-status": async b => { await guard(b, () => API.adminSetCityStatus(b.dataset.id, b.dataset.s)); S.cities = null; toast(b.dataset.s === "hidden" ? "City hidden from the website." : "City set to launching soon."); render(); },
   "wl-city": b => { S.wlCity = b.dataset.v; render(); setTimeout(() => { const w = document.getElementById("waitlist"); if (w) w.scrollIntoView({ behavior: "smooth", block: "start" }); }, 80); },
   "product": b => { S.product = b.dataset.v; resetSearch(); },
-  "reset-pin": () => { resetSearch(); const i = $("#pin"); if (i) i.focus(); },
+  "reset-pin": () => { window.location.reload(); },
   "sim-type": b => { S.simType = b.dataset.v; renderSearchCard(); },
   "sim-type-results": b => { S.simType = b.dataset.v; showCatalog(); },
   "plan-cat": b => { S.planCat = b.dataset.v; render(); },
@@ -1689,7 +1689,9 @@ const actions = {
   "otp-resend": async b => { await guard(b, () => API.sendOtp(b.dataset.phone, ((document.querySelector('[data-form="otp-verify"]') || { dataset: {} }).dataset.purpose === "request") ? "customer" : undefined)); toast("OTP sent again on WhatsApp."); openOtpStep(b.dataset.phone, (document.querySelector('[data-form="otp-verify"]') || { dataset: {} }).dataset.purpose || "login"); },
   "reload": () => render(),
   "login": () => openLogin(),
-  "logout": async () => { await API.signOut(); try { localStorage.removeItem("cb-session"); localStorage.removeItem("cb-role"); } catch (e) { } toast("Logged out."); go("home"); },
+  // full page load on purpose: logging out clears every in-memory screen
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  "logout": async () => { await API.signOut(); try { localStorage.removeItem("cb-session"); localStorage.removeItem("cb-role"); } catch (e) { } window.location.href = "/"; },
   "fill-admin": () => {
     const ph = document.getElementById("pl-phone"), pw = document.getElementById("pl-pw");
     if (ph) ph.value = LIVE ? "9999999999" : "9876500999";
