@@ -151,8 +151,12 @@ html[data-shell] .dash{padding-top:22px}
 }
 @media (prefers-reduced-motion:reduce){.dsh-item,.dsh-side,.dsh-wa{transition:none}.dsh-item:hover{transform:none}}
 
-/* Back button: site header and dashboard top bar */
-.topback,.dsh-back{display:inline-flex;align-items:center;gap:6px;flex:none;height:36px;padding:0 12px 0 8px;border-radius:10px;border:1px solid rgba(141,180,255,.55);background:transparent;color:#fff;font:600 14px var(--body,Manrope,system-ui,sans-serif);cursor:pointer}
-.topback:hover,.dsh-back:hover{border-color:#fff;background:rgba(255,255,255,.08)}
-.topback svg,.dsh-back svg{width:18px;height:18px}
-@media (max-width:600px){.topback span,.dsh-back span{display:none}.topback,.dsh-back{width:36px;padding:0;justify-content:center}}
+/* Back button: floats top right of the page content (site pages and dashboards) */
+.backrow{position:relative;height:0;z-index:30}
+.backrow .wrap{display:flex;justify-content:flex-end;padding-top:12px}
+.pageback{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px 0 10px;border-radius:999px;border:1px solid #C3D0E8;background:#fff;color:#0A2A78;font:700 14px "Manrope",system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 14px -4px rgba(10,27,61,.35)}
+.pageback:hover{border-color:#1450E6;color:#1450E6}
+.pageback svg{width:18px;height:18px}
+html[data-shell] .backrow,html[data-shell-pending] .backrow{position:absolute;top:var(--dsh-top);right:0;left:var(--dsh-side);height:auto}
+html[data-shell] .backrow .wrap{max-width:none;margin:0;padding:12px 28px 0}
+@media (max-width:600px){.pageback span{display:none}.pageback{width:36px;padding:0;justify-content:center}}

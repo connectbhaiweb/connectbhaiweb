@@ -2,9 +2,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Bell, ChevronDown, Menu, Search, Store, UserRound } from "lucide-react";
+import { Bell, ChevronDown, Menu, Search, Store, UserRound } from "lucide-react";
 import Logo from "@/components/Logo";
-import { useGoBack } from "@/components/BackButton";
 import { CONFIG, LIVE } from "@/lib/connectbhai/config";
 import { initials } from "@/lib/connectbhai/shared";
 import { FEES, hrefOf } from "./nav";
@@ -16,7 +15,6 @@ function WhatsAppIcon() { return <svg viewBox="0 0 24 24" width="22" height="22"
 
 export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, acctOpen, onAcct, onClose }) {
   const router = useRouter();
-  const goBack = useGoBack();
   const [mOpen, setMOpen] = useState(false), [q, setQ] = useState(""), [res, setRes] = useState({ q: "", list: [] }), [open, setOpen] = useState(false), [hi, setHi] = useState(-1);
   const box = useRef(null), lid = useId();
   useEffect(() => {
@@ -62,7 +60,6 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
         )}
       </form>
       <div className="dsh-right">
-        <button type="button" className="dsh-back" aria-label="Go back" onClick={goBack}><ArrowLeft aria-hidden="true" /><span>Back</span></button>
         <button type="button" className="dsh-msearch" aria-label="Search" aria-expanded={mOpen} aria-controls="dsh-search" onClick={() => { setMOpen(v => !v); setTimeout(() => { const i = document.querySelector("#dsh-search input"); if (i) i.focus(); }, 30); }}><Search aria-hidden="true" /></button>
         <a className="dsh-wa" href={`https://wa.me/91${CONFIG.SUPPORT_PHONE}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp support"><WhatsAppIcon /></a>
         <Link prefetch={false} className="dsh-bell" href={hrefOf(role, "chat")} aria-label={chatCount ? `Messages, ${chatCount} unread` : "Messages"}><Bell aria-hidden="true" />{chatCount ? <i /> : null}</Link>

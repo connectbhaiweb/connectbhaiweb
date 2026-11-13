@@ -2,7 +2,6 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import Logo from "./Logo";
-import BackButton from "./BackButton";
 import { subscribe, getSnapshot, getServerSnapshot } from "@/lib/connectbhai/runtime";
 import { ROLE_HOME, ROLE_NAME, ROLE_NAV_LABEL, initials, viewFromPath } from "@/lib/connectbhai/shared";
 
@@ -34,7 +33,6 @@ export default function Header() {
           ))}
         </nav>
         <div className="acts" id="topacts">
-          <BackButton />
           {user ? (
             <>
               <button className="btn btn-ghost btn-sm acts-who" data-go={ROLE_HOME[user.role]} type="button">
