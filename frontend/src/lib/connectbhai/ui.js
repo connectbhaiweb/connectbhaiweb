@@ -1556,7 +1556,7 @@ async function renderRouter() {
     app.innerHTML = `<div class="wrap dash care-page">
       <section class="care-hero"><div class="care-copy"><span class="eyebrow">Care plan · through GenieACS</span><h1>Connect Bhai Care plan</h1>
         <p class="muted">Keep an eye on your home modem and fix common problems yourself.</p>
-        <div class="row">${u ? "" : `<button class="btn btn-primary" data-act="login" type="button">${ico(I.shield, 18)} Log in to see your modem</button>`}<button class="btn btn-ghost" data-go="speed" type="button">${ico(I.gauge, 18)} Wi-Fi speed test</button></div>
+        ${u ? "" : `<div class="row"><button class="btn btn-primary" data-act="login" type="button">${ico(I.shield, 18)} Log in to Care plan</button></div>`}
         ${u ? `<p class="muted small" style="margin-top:12px">Modem status is shown to the customer, the installing TIP and admin, so it is not available for DSA accounts.</p>` : ""}</div>
         <div class="care-visual">${art}</div></section>
       <div class="steps3 care-steps">${steps.map(([n, ic, t, d]) => `<div class="cstep"><span class="cstep-ico">${ico(ic)}</span><span class="n">${n}</span><h3>${t}</h3><p>${d}</p></div>`).join("")}</div>
