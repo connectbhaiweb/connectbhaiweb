@@ -14,6 +14,8 @@ import "./customer.css";
 import "./portal.css";
 import "./legacy-dash.css";
 import DemoBar from "@/components/DemoBar";
+import TrustBar from "@/components/TrustBar";
+import FloatingActions from "@/components/FloatingActions";
 import Header from "@/components/Header";
 import BackButton from "@/components/BackButton";
 import Footer from "@/components/Footer";
@@ -39,6 +41,7 @@ export default function RootLayout({ children }) {
         <script dangerouslySetInnerHTML={{ __html: `try{var p=location.pathname.split("/")[1];if(/^(my|dsa|tip|admin)$/.test(p)&&(localStorage.getItem("cb-session")||Object.keys(localStorage).some(function(k){return k.indexOf("sb-")===0})))document.documentElement.setAttribute("data-shell-pending",p);if(p===""&&!/[?&]site=1\\b/.test(location.search)&&sessionStorage.getItem("cb-site")!=="1"&&/^(dsa|tip|admin)$/.test(localStorage.getItem("cb-role")||"")&&localStorage.getItem("cb-session"))document.documentElement.setAttribute("data-entering","")}catch(e){}` }} />
       </head>
       <body>
+        <TrustBar />
         <DemoBar />
         <Header />
         <BackButton />
@@ -50,6 +53,7 @@ export default function RootLayout({ children }) {
         <Overlays />
         <StoryTemplate />
         <DashboardShell />
+        <FloatingActions />
         <ConnectBhaiRuntime />
         <TableTools />
       </body>
