@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import Image from "next/image";
 import { APP_LINKS } from "@/lib/connectbhai/config";
 
 const Ico = ({ children }) => (
@@ -45,8 +46,8 @@ export default async function AppDownload() {
               <i className="notch" />
               <b className="ph-t">Compare plans</b><small>2 of 3 selected · 452010</small>
               <div className="ph-cols">
-                <div className="ph-col"><em>Best value</em><span className="ph-logo">Jio</span><u>Jio Fiber</u><strong>₹599</strong><small>/month + GST</small><span>100 Mbps</span><span>Unlimited</span><span>Prime +12</span><i className="ph-btn">Book Now</i></div>
-                <div className="ph-col"><em>Fastest</em><span className="ph-logo red">airtel</span><u>Airtel</u><strong>₹799</strong><small>/month + GST</small><span>200 Mbps</span><span>Unlimited</span><span>Netflix +15</span><i className="ph-btn">Book Now</i></div>
+                <div className="ph-col"><em>Best value</em><span className="ph-logo"><Image src="/logos/bsnl.svg" alt="BSNL" width={28} height={28} unoptimized /></span><u>BSNL Fibre</u><strong>₹599</strong><small>/month + GST</small><span>100 Mbps</span><span>Unlimited</span><span>Prime +12</span><i className="ph-btn">Book Now</i></div>
+                <div className="ph-col"><em>Fastest</em><span className="ph-logo"><Image src="/logos/airtel.svg" alt="Airtel" width={28} height={28} unoptimized /></span><u>Airtel</u><strong>₹799</strong><small>/month + GST</small><span>200 Mbps</span><span>Unlimited</span><span>Netflix +15</span><i className="ph-btn">Book Now</i></div>
               </div>
               <div className="ph-add">+ Add a third plan</div>
             </div>
