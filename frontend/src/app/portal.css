@@ -320,3 +320,21 @@
 .cp-prog-spin{width:11px;height:11px;border:2px solid #1450E6;border-top-color:transparent;border-radius:50%;animation:cp-rot .8s linear infinite}
 @keyframes cp-rot{to{transform:rotate(360deg)}}
 .cp-prog-n{margin:0;font-size:12.5px;color:#4A5876;line-height:1.4}
+
+/* Care plan list: small icon buttons that fit inside the table */
+.cp-table .pt-tr{grid-template-columns:150fr 96fr 80fr 140fr 88fr 150fr 120fr 60fr 70fr minmax(190px,190fr);min-width:1180px}
+.pt-table.cp-table{overflow-x:auto}
+.cp-btns{display:flex;flex-wrap:nowrap;gap:6px}
+.cp-act{height:32px;min-width:32px;padding:0 8px;border-radius:9px}
+.cp-btns .cp-act{width:32px;padding:0}
+.cp-btns .cp-act span{display:none}
+.cp-btns .cp-act svg{width:16px;height:16px}
+.cp-sure{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 8px;border-radius:10px;background:#FFF4F2;border:1px solid #F3C6BE}
+.cp-sure small{flex:1 1 100%;font-weight:700;color:#912018;font-size:12px}
+.cp-sure .cp-act{flex:1;height:30px}
+@media (max-width:900px){
+  .cp-table .pt-tr{min-width:0}
+  .cp-btns{flex-wrap:wrap}
+  .cp-btns .cp-act{width:auto;padding:0 12px}
+  .cp-btns .cp-act span{display:inline}
+}

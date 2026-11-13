@@ -210,7 +210,7 @@ function Progress({ job, onClose }) {
 }
 
 function ActBtn({ Icon, label, off, why, running, tone = "", onClick, on }) {
-  return <button type="button" className={`cp-act ${tone} ${on ? "is-on" : ""}`} disabled={off || running} title={off && why ? why : ""} onClick={onClick}><Icon aria-hidden="true" /><span>{label}</span></button>;
+  return <button type="button" className={`cp-act ${tone} ${on ? "is-on" : ""}`} disabled={off || running} title={off && why ? `${label}: ${why}` : label} aria-label={label} onClick={onClick}><Icon aria-hidden="true" /><span>{label}</span></button>;
 }
 
 function DeviceActs({ d, onDone }) {
@@ -257,11 +257,14 @@ function DeviceActs({ d, onDone }) {
       <span className="cp-btns">
         <ActBtn Icon={RefreshCw} label="Refresh" off={!linked} why={why} running={running} onClick={() => run("refresh")} />
         <ActBtn Icon={Gauge} label="Router test" off={!ready} why={why} running={running} onClick={() => run("test")} />
-        {sure
-          ? <span className="cp-sure" role="group" aria-label="Confirm restart"><button type="button" className="cp-act cp-danger" onClick={() => run("reboot")} disabled={running}><Check aria-hidden="true" /><span>Yes, restart</span></button><button type="button" className="cp-act" onClick={() => setSure(false)} aria-label="Cancel restart"><X aria-hidden="true" /></button></span>
-          : <ActBtn Icon={Power} label="Restart" off={!ready} why={why} running={running} tone="cp-warn" onClick={() => { setWifi(false); setSure(true); }} />}
+        <ActBtn Icon={Power} label="Restart" off={!ready} why={why} running={running} tone="cp-warn" on={sure} onClick={() => { setWifi(false); setSure(v => !v); }} />
         <ActBtn Icon={Wifi} label="Wi-Fi" off={!ready} why={why} running={running} on={wifi} onClick={() => { setSure(false); setWifi(v => !v); }} />
       </span>
+      {sure && (
+        <span className="cp-sure" role="group" aria-label="Confirm restart"><small>Restart this modem?</small>
+          <button type="button" className="cp-act cp-danger" onClick={() => run("reboot")} disabled={running}><Check aria-hidden="true" /><span>Yes</span></button>
+          <button type="button" className="cp-act" onClick={() => setSure(false)}><X aria-hidden="true" /><span>No</span></button></span>
+      )}
       {wifi && (
         <form className="cp-wifi" onSubmit={e => { e.preventDefault(); if (!ssid && !pw) { setFormErr("Enter a new Wi-Fi name, a password, or both."); return; } if (pw && pw.length < 8) { setFormErr("The password needs at least 8 characters."); return; } run("wifi", { ssid, password: pw }); }}>
           <label><span>New Wi-Fi name</span><input value={ssid} onChange={e => setSsid(e.target.value)} placeholder={d.wifi && d.wifi.ssid ? d.wifi.ssid : "Wi-Fi name"} autoComplete="off" maxLength={32} /></label>
