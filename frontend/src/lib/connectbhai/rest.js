@@ -527,7 +527,15 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     /* Restart or change Wi-Fi by device id (the Care plan list). Same endpoint the customer screen uses. */
     async deviceActById(id, action, params) { await post(`/care-plan/devices/${id}/actions`, { action, ...(params ? { params } : {}) }); return true; },
     async deviceRefresh(id) { const r = await post(`/care-plan/devices/${id}/refresh`); return mapDevice(r.device || r); },
-    async deviceRouterTest(id) { const t = await waitSpeedTest(id, await post(`/care-plan/devices/${id}/speed-test`)); return { status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: !!t.simulated }; },
+    async deviceRouterTest(id, onAccepted) {
+      let row;
+      try { row = await post(`/care-plan/devices/${id}/speed-test`); }
+      catch (e) {   // a test is already running on this modem: follow that one instead of failing
+        if (!/already running/i.test((e && e.message) || "")) throw e;
+        const x = await get("/care-plan/devices/" + id); row = (x.speed_tests || []).find(r => r.status === "running");
+        if (!row) throw e;
+      }
+      if (onAccepted) onAccepted(row); const t = await waitSpeedTest(id, row); return { status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: !!t.simulated }; },
     /* real modems for the React Care plan screens (one page of up to 100, in that screen's shape) */
     async carePlanDevices() {
       const d = await get("/care-plan/devices" + qs({ page: 1, limit: 100 })), q = v => v >= -25 ? "Good" : v >= -27 ? "Weak" : "Bad";
