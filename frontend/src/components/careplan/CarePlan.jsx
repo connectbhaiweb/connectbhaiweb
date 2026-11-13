@@ -227,7 +227,7 @@ function CpModal({ title, sub, onClose, children }) {
 function ActBtn({ Icon, label, off, why, running, tone = "", onClick, on }) {
   const [tip, setTip] = useState(null);
   const show = e => { const r = e.currentTarget.getBoundingClientRect(); setTip({ x: r.left + r.width / 2, y: r.top }); };
-  const text = off && why ? `${label}: ${why}` : running ? "Request in progress · click to view" : label;
+  const text = off && why ? `${label}: ${why}` : running ? `${label} in progress · click to view` : label;
   return (
     <>
       <button type="button" className={`cp-act ${tone} ${on ? "is-on" : ""}`} disabled={off} aria-label={label} onClick={onClick}
@@ -237,28 +237,34 @@ function ActBtn({ Icon, label, off, why, running, tone = "", onClick, on }) {
   );
 }
 
+const KIND_NAME = { refresh: "Refresh", test: "Router test", reboot: "Restart", wifi: "Wi-Fi change" };
+const KIND_TITLE = { refresh: "Refreshing status", test: "Router speed test", reboot: "Restarting the modem", wifi: "Changing the Wi-Fi" };
+
+/* One job per action (Refresh, Router test, Restart, Wi-Fi), so each button shows its own status. Clicking an action that is
+   already running reopens its status; a different action can start while another is running; a finished or failed one starts fresh. */
 function DeviceActs({ d, onDone }) {
-  const [job, setJob] = useState(null), [panel, setPanel] = useState(null), [ssid, setSsid] = useState(""), [pw, setPw] = useState(""), [formErr, setFormErr] = useState("");
+  const [jobs, setJobs] = useState({}), [panel, setPanel] = useState(null), [ssid, setSsid] = useState(""), [pw, setPw] = useState(""), [formErr, setFormErr] = useState("");
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  const running = !!job && job.state === "running";
+  const isRun = k => !!jobs[k] && jobs[k].state === "running";
   const linked = d.linked !== false, online = d.status === "online", ready = linked && d.active !== false && online;
   const why = !linked ? "Not linked to Gene yet" : d.active === false ? "Care plan is not active" : !online ? "Modem must be online" : "";
-  const go = fn => (running ? setPanel("progress") : fn());   // a request is running: open its status instead of starting another
-  const patch = p => alive.current && setJob(j => (j ? { ...j, ...p } : j));
-  const start = (kind, note) => { setPanel("progress"); setFormErr(""); setJob({ kind, state: "running", step: 1, t0: Date.now(), note: note || "" }); };
+  const patch = (k, p) => alive.current && setJobs(j => (j[k] ? { ...j, [k]: { ...j[k], ...p } } : j));
+  const open = k => setPanel({ v: "progress", kind: k });
+  const closeProgress = k => { setPanel(null); setJobs(j => { if (!j[k] || j[k].state === "running") return j; const n = { ...j }; delete n[k]; return n; }); };
+  const click = k => { if (isRun(k)) return open(k); if (k === "reboot") return setPanel({ v: "confirm", kind: k }); if (k === "wifi") return setPanel({ v: "wifi", kind: k }); return run(k); };
 
   const run = async (kind, extra) => {
-    start(kind, kind === "reboot" ? "Internet and Wi-Fi at the customer's home are off for about 2 minutes." : kind === "wifi" ? "Phones and laptops on this Wi-Fi will disconnect for about a minute." : "");
+    const note = kind === "reboot" ? "Internet and Wi-Fi at the customer's home are off for about 2 minutes." : kind === "wifi" ? "Phones and laptops on this Wi-Fi will disconnect for about a minute." : "";
+    setFormErr(""); setJobs(j => ({ ...j, [kind]: { kind, state: "running", step: 1, t0: Date.now(), note } })); open(kind);
     try {
       const { API } = await import("@/lib/connectbhai/api");
       if (kind === "refresh") {
         const r = await API.deviceRefresh(d.id);
-        patch({ state: "done", note: r.state === "online" ? "The modem is online." : r.state === "offline" ? "The modem is offline." : "The modem has not reported yet." }); onDone && onDone();
+        patch(kind, { state: "done", note: r.state === "online" ? "The modem is online." : r.state === "offline" ? "The modem is offline." : "The modem has not reported yet." }); onDone && onDone();
       } else if (kind === "test") {
-        patch({ step: 1 });
         const t = await API.deviceRouterTest(d.id);
-        patch({ state: "done", note: `${Number(t.download_mbps).toFixed(1)} Mbps line speed${t.is_simulated ? " (simulated)" : ""}.` }); onDone && onDone();
+        patch(kind, { state: "done", note: `${Number(t.download_mbps).toFixed(1)} Mbps line speed${t.is_simulated ? " (simulated)" : ""}.` }); onDone && onDone();
       } else {
         if (typeof API.deviceActById !== "function") throw new Error("This action is not available in demo mode.");
         await API.deviceActById(d.id, kind === "reboot" ? "reboot" : "change_wifi", kind === "wifi" ? { ssid: extra.ssid || undefined, password: extra.password || undefined } : undefined);
@@ -266,34 +272,35 @@ function DeviceActs({ d, onDone }) {
         const t0 = Date.now(); let st = "queued";
         while (alive.current && st !== "done" && st !== "failed") {
           await new Promise(r => setTimeout(r, 4000));
-          if (Date.now() - t0 > 25 * 60 * 1000) { patch({ state: "timeout", note: "The modem has not checked in. It will apply this when it is back online." }); return; }
+          if (Date.now() - t0 > 25 * 60 * 1000) { patch(kind, { state: "timeout", note: "The modem has not checked in. It will apply this when it is back online." }); return; }
           try {
             const a = (await API.deviceActsById(d.id)).find(x => x.action === kind);
-            if (a) { st = a.status === "done" ? "done" : a.status === "failed" ? "failed" : a.status === "sent" ? "sent" : "queued"; if (st === "failed") patch({ state: "failed", note: a.error || "The modem did not accept it. Please try again." }); else patch({ step: st === "sent" ? 2 : st === "done" ? 3 : 1 }); }
+            if (a) { st = a.status === "done" ? "done" : a.status === "failed" ? "failed" : a.status === "sent" ? "sent" : "queued"; if (st === "failed") patch(kind, { state: "failed", note: a.error || "The modem did not accept it. Please try again." }); else patch(kind, { step: st === "sent" ? 2 : st === "done" ? 3 : 1 }); }
           } catch (e) { /* keep waiting; the next poll tries again */ }
         }
-        if (st === "done") { patch({ state: "done", note: kind === "wifi" ? `Customer can join ${extra.ssid ? extra.ssid : "the Wi-Fi"}${extra.password ? " with the new password" : ""}.` : "The internet is back." }); onDone && onDone(); }
+        if (st === "done") { patch(kind, { state: "done", note: kind === "wifi" ? `Customer can join ${extra.ssid ? extra.ssid : "the Wi-Fi"}${extra.password ? " with the new password" : ""}.` : "The internet is back." }); onDone && onDone(); }
       }
-    } catch (e) { patch({ state: "failed", note: (e && e.message) || "Could not reach the modem. Try again." }); }
+    } catch (e) { patch(kind, { state: "failed", note: (e && e.message) || "Could not reach the modem. Try again." }); }
   };
 
+  const pj = panel && panel.kind ? jobs[panel.kind] : null;
   return (
     <span className="cp-actbox">
       <span className="cp-btns">
-        <ActBtn Icon={RefreshCw} label="Refresh" off={!linked} why={why} running={running} onClick={() => go(() => run("refresh"))} />
-        <ActBtn Icon={Gauge} label="Router test" off={!ready} why={why} running={running} onClick={() => go(() => run("test"))} />
-        <ActBtn Icon={Power} label="Restart" off={!ready} why={why} running={running} tone="cp-warn" onClick={() => go(() => setPanel("confirm"))} />
-        <ActBtn Icon={Wifi} label="Wi-Fi" off={!ready} why={why} running={running} onClick={() => go(() => setPanel("wifi"))} />
+        <ActBtn Icon={RefreshCw} label="Refresh" off={!linked} why={why} running={isRun("refresh")} onClick={() => click("refresh")} />
+        <ActBtn Icon={Gauge} label="Router test" off={!ready} why={why} running={isRun("test")} onClick={() => click("test")} />
+        <ActBtn Icon={Power} label="Restart" off={!ready} why={why} running={isRun("reboot")} tone="cp-warn" onClick={() => click("reboot")} />
+        <ActBtn Icon={Wifi} label="Wi-Fi" off={!ready} why={why} running={isRun("wifi")} onClick={() => click("wifi")} />
       </span>
-      {panel && <CpModal title={panel === "confirm" ? "Restart modem?" : panel === "wifi" ? "Change Wi-Fi name / password" : ({ refresh: "Refreshing status", test: "Router speed test", reboot: "Restarting the modem", wifi: "Changing the Wi-Fi" })[job ? job.kind : "refresh"]}
-        sub={`${d.customer.name} · ${d.model || "Modem"} ${d.serialNumber || ""}`} onClose={() => { setPanel(null); if (!running) setJob(null); }}>
-        {panel === "confirm" && (
+      {panel && <CpModal title={panel.v === "confirm" ? "Restart modem?" : panel.v === "wifi" ? "Change Wi-Fi name / password" : KIND_TITLE[panel.kind]}
+        sub={`${d.customer.name} · ${d.model || "Modem"} ${d.serialNumber || ""}`} onClose={() => (panel.v === "progress" ? closeProgress(panel.kind) : setPanel(null))}>
+        {panel.v === "confirm" && (
           <>
             <p className="cp-mp">Internet and Wi-Fi at the customer&apos;s home will be off for about 2 minutes while the modem restarts. Phones and laptops reconnect by themselves.</p>
             <div className="cp-mrow"><button type="button" className="cp-act cp-danger cp-big" onClick={() => run("reboot")}><Power aria-hidden="true" />Restart now</button><button type="button" className="cp-act cp-big" onClick={() => setPanel(null)}>Cancel</button></div>
           </>
         )}
-        {panel === "wifi" && (
+        {panel.v === "wifi" && (
           <form className="cp-wifi" onSubmit={e => { e.preventDefault(); if (!ssid && !pw) { setFormErr("Enter a new Wi-Fi name, a password, or both."); return; } if (pw && pw.length < 8) { setFormErr("The password needs at least 8 characters."); return; } run("wifi", { ssid, password: pw }); }}>
             <p className="cp-mp">Every phone and laptop on this Wi-Fi will disconnect. After about a minute they can join the new name with the new password.</p>
             <label><span>New Wi-Fi name</span><input value={ssid} onChange={e => setSsid(e.target.value)} placeholder={d.wifi && d.wifi.ssid ? d.wifi.ssid : "Wi-Fi name"} autoComplete="off" maxLength={32} /></label>
@@ -302,10 +309,13 @@ function DeviceActs({ d, onDone }) {
             <div className="cp-mrow"><button type="submit" className="cp-act cp-go cp-big">Save Wi-Fi</button><button type="button" className="cp-act cp-big" onClick={() => setPanel(null)}>Cancel</button></div>
           </form>
         )}
-        {panel === "progress" && job && <Progress job={job} onClose={() => { setPanel(null); setJob(null); }} />}
+        {panel.v === "progress" && pj && <Progress job={pj} onClose={() => closeProgress(panel.kind)} />}
       </CpModal>}
-      {!panel && job ? <button type="button" className={`cp-chip ${job.state === "done" ? "is-ok" : job.state === "failed" || job.state === "timeout" ? "is-bad" : "is-run"}`} onClick={() => setPanel("progress")}><i aria-hidden="true" />{({ refresh: "Refresh", test: "Router test", reboot: "Restart", wifi: "Wi-Fi change" })[job.kind]} · {job.state === "running" ? "in progress" : job.state === "done" ? "done" : "failed"}<b>View status</b></button> : null}
-      {!panel && !job && why ? <small className="cp-msg cp-sn">{why}</small> : null}
+      {!panel && Object.values(jobs).map(j => (
+        <button key={j.kind} type="button" className={`cp-chip ${j.state === "done" ? "is-ok" : j.state === "failed" || j.state === "timeout" ? "is-bad" : "is-run"}`} onClick={() => open(j.kind)}>
+          <i aria-hidden="true" />{KIND_NAME[j.kind]} · {j.state === "running" ? "in progress" : j.state === "done" ? "done" : "failed"}<b>View</b>
+        </button>))}
+      {!panel && !Object.keys(jobs).length && why ? <small className="cp-msg cp-sn">{why}</small> : null}
     </span>
   );
 }
