@@ -2,8 +2,9 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, Menu, Search, Store, UserRound } from "lucide-react";
+import { ArrowLeft, Bell, ChevronDown, Menu, Search, Store, UserRound } from "lucide-react";
 import Logo from "@/components/Logo";
+import { useGoBack } from "@/components/BackButton";
 import { CONFIG, LIVE } from "@/lib/connectbhai/config";
 import { initials } from "@/lib/connectbhai/shared";
 import { FEES, hrefOf } from "./nav";
@@ -15,6 +16,7 @@ function WhatsAppIcon() { return <svg viewBox="0 0 24 24" width="22" height="22"
 
 export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, acctOpen, onAcct, onClose }) {
   const router = useRouter();
+  const goBack = useGoBack();
   const [mOpen, setMOpen] = useState(false), [q, setQ] = useState(""), [res, setRes] = useState({ q: "", list: [] }), [open, setOpen] = useState(false), [hi, setHi] = useState(-1);
   const box = useRef(null), lid = useId();
   useEffect(() => {
@@ -42,6 +44,7 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
   };
   return (
     <header className="dsh-top">
+      <button type="button" className="dsh-back" aria-label="Go back" onClick={goBack}><ArrowLeft aria-hidden="true" /><span>Back</span></button>
       <button type="button" className="dsh-burger" aria-label="Open menu" aria-expanded={navOpen} onClick={onBurger}><Menu aria-hidden="true" /></button>
       <Link href="/?site=1" className="dsh-logo" aria-label="Connect Bhai home"><Logo height={38} /></Link>
       <form className={`dsh-search${mOpen ? " is-open" : ""}`} id="dsh-search" role="search" onSubmit={submit} ref={box}>

@@ -292,7 +292,7 @@ async function renderHome() {
   <section class="hero"><div class="wrap">
     <div class="hero-copy">
       <div class="hero-head"><span class="eyebrow">Broadband marketplace · <span id="hero-city">${esc(cityLive(S.city) ? cityName(S.city) : "Madhya Pradesh")}</span></span>
-      <h1>Compare. Choose. <span>Connect.</span></h1>
+      <h1>Compare. Choose. Connect. <span>Care.</span></h1>
       <p class="lede">Fiber, Air Fiber, SIM, TV and OTT in one place. Compare what's available at your address side by side, and book in under a minute.</p></div>
       <form class="search" id="search" data-form="pin" novalidate>
         <div class="cityrow"><label for="city-pick">Your city</label><select id="city-pick" class="sel">${cityOptions(S.city)}</select></div>

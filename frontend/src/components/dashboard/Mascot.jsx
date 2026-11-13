@@ -1,4 +1,4 @@
-/* "Bhai" the mascot, as drawn in the dashboard design images (sidebar, above "Compare. Choose. Connect."). */
+/* "Bhai" the mascot, as drawn in the dashboard design images (sidebar, above "Compare. Choose. Connect. Care."). */
 export default function Mascot({ className }) {
   return (
     <svg className={className} viewBox="18 8 148 166" role="img" aria-label="Bhai, the Connect Bhai mascot">

@@ -11,7 +11,7 @@ export default function Footer() {
               <Logo height={40} />
             </Link>
             <p style={{ marginTop: 8 }}>
-              Compare. Choose. Connect. A broadband marketplace for Madhya Pradesh, live in Indore, connecting customers with BSNL TIPs, Direct Selling Agents and local internet providers.
+              Compare. Choose. Connect. Care. A broadband marketplace for Madhya Pradesh, live in Indore, connecting customers with BSNL TIPs, Direct Selling Agents and local internet providers.
             </p>
           </div>
           <div>

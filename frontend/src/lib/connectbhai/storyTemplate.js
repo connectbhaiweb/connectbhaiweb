@@ -108,7 +108,7 @@ const STORY_HTML = `<div class="story" id="story" aria-label="How Connect Bhai w
   <p class="cap cp2">Bhai finds every plan at your PIN code</p>
   <p class="cap cp3">Compare speed, price &amp; OTT side by side</p>
   <p class="cap cp4">Installation tracked till it's live</p>
-  <p class="cap cp5"><b>Compare. Choose. Connect.</b></p>
+  <p class="cap cp5"><b>Compare. Choose. Connect. Care.</b></p>
 </div>
 <div class="story-ctl">
   <button type="button" class="sbtn" data-act="story-toggle" aria-label="Pause animation">❚❚</button>

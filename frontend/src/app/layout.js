@@ -15,6 +15,7 @@ import "./portal.css";
 import "./legacy-dash.css";
 import DemoBar from "@/components/DemoBar";
 import Header from "@/components/Header";
+import BackButton from "@/components/BackButton";
 import Footer from "@/components/Footer";
 import CompareBar from "@/components/CompareBar";
 import Overlays from "@/components/Overlays";
@@ -25,7 +26,7 @@ import DashboardShell from "@/components/dashboard/DashboardShell";
 
 export const metadata = {
   title: "Connect Bhai",
-  description: "Connect Bhai: compare broadband plans by PIN code in Indore and request a connection. Compare. Choose. Connect.",
+  description: "Connect Bhai: compare broadband plans by PIN code in Indore and request a connection. Compare. Choose. Connect. Care.",
 };
 
 export const viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
@@ -40,6 +41,7 @@ export default function RootLayout({ children }) {
       <body>
         <DemoBar />
         <Header />
+        <BackButton />
         {/* Legacy views paint into #app; route components (children) render after it (home: app download + FAQ). */}
         <main id="app" />
         {children}

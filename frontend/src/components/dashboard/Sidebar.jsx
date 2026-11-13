@@ -26,7 +26,7 @@ export default function Sidebar({ role, cfg, current, counts, open, onNavigate }
       </nav>
       <div className="dsh-mascot">
         <Mascot className="dsh-mascot-art" />
-        <p>Compare. Choose. Connect.</p>
+        <p>Compare. Choose. Connect. Care.</p>
       </div>
       <svg className="dsh-wave" viewBox="0 0 296 56" preserveAspectRatio="xMinYMax slice" aria-hidden="true">
         <defs><linearGradient id="dshWave" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#0B3EA6" /><stop offset="1" stopColor="#062B78" /></linearGradient></defs>
