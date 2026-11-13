@@ -187,7 +187,7 @@ const STEPS = {
 const HEAD = { refresh: ["Refreshing status", "Status refreshed"], test: ["Testing the line speed", "Speed test finished"], reboot: ["Restarting the modem", "Restart finished"], wifi: ["Changing the Wi-Fi", "Wi-Fi changed"] };
 const mmss = s => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
 
-function Progress({ job, onStop }) {
+function Progress({ job }) {
   const [sec, setSec] = useState(0);
   const running = job.state === "running";
   useEffect(() => {
@@ -206,7 +206,6 @@ function Progress({ job, onStop }) {
         return <li key={t} className={ok ? "ok" : cur ? "cur" : x ? "bad" : ""}><span className="cp-prog-d">{ok ? <Check aria-hidden="true" /> : x ? <X aria-hidden="true" /> : cur ? <i className="cp-prog-spin" /> : i + 1}</span><span>{t}</span></li>;
       })}</ul>
       {job.note ? <p className="cp-prog-n">{job.note}</p> : null}
-      {running && sec >= 15 && onStop ? <button type="button" className="cp-stop" onClick={onStop}>Not happening? Stop waiting</button> : null}
     </div>
   );
 }
@@ -245,20 +244,19 @@ const KIND_TITLE = { refresh: "Refreshing status", test: "Router speed test", re
    already running reopens its status; a different action can start while another is running; a finished or failed one starts fresh. */
 function DeviceActs({ d, onDone }) {
   const [jobs, setJobs] = useState({}), [panel, setPanel] = useState(null), [ssid, setSsid] = useState(""), [pw, setPw] = useState(""), [formErr, setFormErr] = useState("");
-  const alive = useRef(true), stoppedRef = useRef({});
+  const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const isRun = k => !!jobs[k] && jobs[k].state === "running";
   const linked = d.linked !== false, online = d.status === "online", ready = linked && d.active !== false && online;
   const why = !linked ? "Not linked to Gene yet" : d.active === false ? "Care plan is not active" : !online ? "Modem must be online" : "";
-  const patch = (k, p) => alive.current && setJobs(j => (j[k] && !j[k].stopped ? { ...j, [k]: { ...j[k], ...p } } : j));
-  const stop = k => { stoppedRef.current[k] = true; setJobs(j => (j[k] ? { ...j, [k]: { ...j[k], stopped: true, state: "timeout", note: "Stopped waiting. If it is still running on the server, its result shows in the list after it finishes." } } : j)); };
+  const patch = (k, p) => alive.current && setJobs(j => (j[k] ? { ...j, [k]: { ...j[k], ...p } } : j));
   const open = k => setPanel({ v: "progress", kind: k });
   const closeProgress = k => { setPanel(null); setJobs(j => { if (!j[k] || j[k].state === "running") return j; const n = { ...j }; delete n[k]; return n; }); };
   const click = k => { if (isRun(k)) return open(k); if (k === "reboot") return setPanel({ v: "confirm", kind: k }); if (k === "wifi") return setPanel({ v: "wifi", kind: k }); return run(k); };
 
   const run = async (kind, extra) => {
     const note = kind === "reboot" ? "Internet and Wi-Fi at the customer's home are off for about 2 minutes." : kind === "wifi" ? "Phones and laptops on this Wi-Fi will disconnect for about a minute." : "";
-    stoppedRef.current[kind] = false; setFormErr(""); setJobs(j => ({ ...j, [kind]: { kind, state: "running", step: 0, t0: Date.now(), note } })); open(kind);
+    setFormErr(""); setJobs(j => ({ ...j, [kind]: { kind, state: "running", step: 0, t0: Date.now(), note } })); open(kind);
     try {
       const { API } = await import("@/lib/connectbhai/api");
       if (kind === "refresh") {
@@ -273,7 +271,7 @@ function DeviceActs({ d, onDone }) {
         if (kind === "wifi") { setSsid(""); setPw(""); }
         patch(kind, { step: 1 });
         const t0 = Date.now(); let st = "queued";
-        while (alive.current && st !== "done" && st !== "failed" && !stoppedRef.current[kind]) {
+        while (alive.current && st !== "done" && st !== "failed") {
           await new Promise(r => setTimeout(r, 4000));
           if (Date.now() - t0 > 25 * 60 * 1000) { patch(kind, { state: "timeout", note: "The modem has not checked in. It will apply this when it is back online." }); return; }
           try {
@@ -312,7 +310,7 @@ function DeviceActs({ d, onDone }) {
             <div className="cp-mrow"><button type="submit" className="cp-act cp-go cp-big">Save Wi-Fi</button><button type="button" className="cp-act cp-big" onClick={() => setPanel(null)}>Cancel</button></div>
           </form>
         )}
-        {panel.v === "progress" && pj && <Progress job={pj} onStop={() => stop(panel.kind)} />}
+        {panel.v === "progress" && pj && <Progress job={pj} />}
       </CpModal>}
       {!panel && Object.values(jobs).map(j => (
         <button key={j.kind} type="button" className={`cp-chip ${j.state === "done" ? "is-ok" : j.state === "failed" || j.state === "timeout" ? "is-bad" : "is-run"}`} onClick={() => open(j.kind)}>

@@ -370,4 +370,3 @@
 @keyframes cp-pulse{0%{box-shadow:0 0 0 0 rgba(20,80,230,.6)}100%{box-shadow:0 0 0 8px rgba(20,80,230,0)}}
 @media (prefers-reduced-motion:reduce){.cp-chip.is-run i{animation:none}}
 
-.cp-stop{justify-self:start;border:0;background:transparent;color:#B42318;font:700 12.5px var(--body,Manrope,system-ui,sans-serif);text-decoration:underline;cursor:pointer;padding:2px 0}
