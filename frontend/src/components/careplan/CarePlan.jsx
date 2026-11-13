@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { Check, Gauge, Power, RefreshCw, Router, Search, Settings, ShieldCheck, Wifi, WifiOff, X } from "lucide-react";
 import { useDashData } from "@/components/dashboard/useDashData";
 import { Card, Chip, Failed, More } from "@/components/portal/parts";
@@ -209,19 +210,33 @@ function Progress({ job, onClose }) {
   );
 }
 
+function CpModal({ title, sub, locked, onClose, children }) {
+  useEffect(() => {
+    const k = e => { if (e.key === "Escape" && !locked) onClose(); };
+    document.addEventListener("keydown", k); return () => document.removeEventListener("keydown", k);
+  }, [locked, onClose]);
+  return createPortal(
+    <div className="cp-modal" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !locked) onClose(); }}>
+      <div className="cp-dlg" role="dialog" aria-modal="true" aria-label={title}>
+        <div className="cp-dlg-h"><div><h3>{title}</h3><small>{sub}</small></div>{!locked && <button type="button" className="cp-prog-x" onClick={onClose} aria-label="Close"><X aria-hidden="true" /></button>}</div>
+        {children}
+      </div>
+    </div>, document.body);
+}
+
 function ActBtn({ Icon, label, off, why, running, tone = "", onClick, on }) {
   return <button type="button" className={`cp-act ${tone} ${on ? "is-on" : ""}`} disabled={off || running} title={off && why ? `${label}: ${why}` : label} aria-label={label} onClick={onClick}><Icon aria-hidden="true" /><span>{label}</span></button>;
 }
 
 function DeviceActs({ d, onDone }) {
-  const [job, setJob] = useState(null), [sure, setSure] = useState(false), [wifi, setWifi] = useState(false), [ssid, setSsid] = useState(""), [pw, setPw] = useState(""), [formErr, setFormErr] = useState("");
+  const [job, setJob] = useState(null), [panel, setPanel] = useState(null), [ssid, setSsid] = useState(""), [pw, setPw] = useState(""), [formErr, setFormErr] = useState("");
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const running = !!job && job.state === "running";
   const linked = d.linked !== false, online = d.status === "online", ready = linked && d.active !== false && online;
   const why = !linked ? "Not linked to Gene yet" : d.active === false ? "Care plan is not active" : !online ? "Modem must be online" : "";
   const patch = p => alive.current && setJob(j => (j ? { ...j, ...p } : j));
-  const start = (kind, note) => { setSure(false); setFormErr(""); setJob({ kind, state: "running", step: 1, t0: Date.now(), note: note || "" }); };
+  const start = (kind, note) => { setPanel("progress"); setFormErr(""); setJob({ kind, state: "running", step: 1, t0: Date.now(), note: note || "" }); };
 
   const run = async (kind, extra) => {
     start(kind, kind === "reboot" ? "Internet and Wi-Fi at the customer's home are off for about 2 minutes." : kind === "wifi" ? "Phones and laptops on this Wi-Fi will disconnect for about a minute." : "");
@@ -237,7 +252,7 @@ function DeviceActs({ d, onDone }) {
       } else {
         if (typeof API.deviceActById !== "function") throw new Error("This action is not available in demo mode.");
         await API.deviceActById(d.id, kind === "reboot" ? "reboot" : "change_wifi", kind === "wifi" ? { ssid: extra.ssid || undefined, password: extra.password || undefined } : undefined);
-        if (kind === "wifi") { setWifi(false); setSsid(""); setPw(""); }
+        if (kind === "wifi") { setSsid(""); setPw(""); }
         const t0 = Date.now(); let st = "queued";
         while (alive.current && st !== "done" && st !== "failed") {
           await new Promise(r => setTimeout(r, 4000));
@@ -257,23 +272,29 @@ function DeviceActs({ d, onDone }) {
       <span className="cp-btns">
         <ActBtn Icon={RefreshCw} label="Refresh" off={!linked} why={why} running={running} onClick={() => run("refresh")} />
         <ActBtn Icon={Gauge} label="Router test" off={!ready} why={why} running={running} onClick={() => run("test")} />
-        <ActBtn Icon={Power} label="Restart" off={!ready} why={why} running={running} tone="cp-warn" on={sure} onClick={() => { setWifi(false); setSure(v => !v); }} />
-        <ActBtn Icon={Wifi} label="Wi-Fi" off={!ready} why={why} running={running} on={wifi} onClick={() => { setSure(false); setWifi(v => !v); }} />
+        <ActBtn Icon={Power} label="Restart" off={!ready} why={why} running={running} tone="cp-warn" onClick={() => setPanel("confirm")} />
+        <ActBtn Icon={Wifi} label="Wi-Fi" off={!ready} why={why} running={running} onClick={() => setPanel("wifi")} />
       </span>
-      {sure && (
-        <span className="cp-sure" role="group" aria-label="Confirm restart"><small>Restart this modem?</small>
-          <button type="button" className="cp-act cp-danger" onClick={() => run("reboot")} disabled={running}><Check aria-hidden="true" /><span>Yes</span></button>
-          <button type="button" className="cp-act" onClick={() => setSure(false)}><X aria-hidden="true" /><span>No</span></button></span>
-      )}
-      {wifi && (
-        <form className="cp-wifi" onSubmit={e => { e.preventDefault(); if (!ssid && !pw) { setFormErr("Enter a new Wi-Fi name, a password, or both."); return; } if (pw && pw.length < 8) { setFormErr("The password needs at least 8 characters."); return; } run("wifi", { ssid, password: pw }); }}>
-          <label><span>New Wi-Fi name</span><input value={ssid} onChange={e => setSsid(e.target.value)} placeholder={d.wifi && d.wifi.ssid ? d.wifi.ssid : "Wi-Fi name"} autoComplete="off" maxLength={32} /></label>
-          <label><span>New password</span><input type="text" value={pw} onChange={e => setPw(e.target.value)} placeholder="At least 8 characters" autoComplete="off" maxLength={63} /></label>
-          {formErr && <small className="cp-formerr" role="alert">{formErr}</small>}
-          <span className="cp-wifi-acts"><button type="submit" className="cp-act cp-go" disabled={running}>Save Wi-Fi</button><button type="button" className="cp-act" onClick={() => { setWifi(false); setFormErr(""); }}>Cancel</button></span>
-        </form>
-      )}
-      {job ? <Progress job={job} onClose={() => setJob(null)} /> : why ? <small className="cp-msg cp-sn">{why}</small> : null}
+      {panel && <CpModal title={panel === "confirm" ? "Restart modem?" : panel === "wifi" ? "Change Wi-Fi name / password" : ({ refresh: "Refreshing status", test: "Router speed test", reboot: "Restarting the modem", wifi: "Changing the Wi-Fi" })[job ? job.kind : "refresh"]}
+        sub={`${d.customer.name} · ${d.model || "Modem"} ${d.serialNumber || ""}`} locked={running} onClose={() => { setPanel(null); if (!running) setJob(null); }}>
+        {panel === "confirm" && (
+          <>
+            <p className="cp-mp">Internet and Wi-Fi at the customer&apos;s home will be off for about 2 minutes while the modem restarts. Phones and laptops reconnect by themselves.</p>
+            <div className="cp-mrow"><button type="button" className="cp-act cp-danger cp-big" onClick={() => run("reboot")}><Power aria-hidden="true" />Restart now</button><button type="button" className="cp-act cp-big" onClick={() => setPanel(null)}>Cancel</button></div>
+          </>
+        )}
+        {panel === "wifi" && (
+          <form className="cp-wifi" onSubmit={e => { e.preventDefault(); if (!ssid && !pw) { setFormErr("Enter a new Wi-Fi name, a password, or both."); return; } if (pw && pw.length < 8) { setFormErr("The password needs at least 8 characters."); return; } run("wifi", { ssid, password: pw }); }}>
+            <p className="cp-mp">Every phone and laptop on this Wi-Fi will disconnect. After about a minute they can join the new name with the new password.</p>
+            <label><span>New Wi-Fi name</span><input value={ssid} onChange={e => setSsid(e.target.value)} placeholder={d.wifi && d.wifi.ssid ? d.wifi.ssid : "Wi-Fi name"} autoComplete="off" maxLength={32} /></label>
+            <label><span>New password</span><input type="text" value={pw} onChange={e => setPw(e.target.value)} placeholder="At least 8 characters" autoComplete="off" maxLength={63} /></label>
+            {formErr && <small className="cp-formerr" role="alert">{formErr}</small>}
+            <div className="cp-mrow"><button type="submit" className="cp-act cp-go cp-big">Save Wi-Fi</button><button type="button" className="cp-act cp-big" onClick={() => setPanel(null)}>Cancel</button></div>
+          </form>
+        )}
+        {panel === "progress" && job && <Progress job={job} onClose={() => { setPanel(null); setJob(null); }} />}
+      </CpModal>}
+      {!panel && why ? <small className="cp-msg cp-sn">{why}</small> : null}
     </span>
   );
 }

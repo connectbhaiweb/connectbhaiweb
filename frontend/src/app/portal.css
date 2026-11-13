@@ -338,3 +338,18 @@
   .cp-btns .cp-act{width:auto;padding:0 12px}
   .cp-btns .cp-act span{display:inline}
 }
+
+/* Care plan list: status window (pop-up) */
+.cp-modal{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:16px;background:rgba(7,21,57,.55);backdrop-filter:blur(2px)}
+.cp-dlg{width:min(460px,100%);max-height:calc(100svh - 32px);overflow:auto;background:#fff;border-radius:18px;padding:20px;box-shadow:0 30px 80px -20px rgba(7,21,57,.6);display:grid;gap:14px}
+.cp-dlg-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.cp-dlg-h h3{margin:0;font-size:18px;color:#0A1B3D}
+.cp-dlg-h small{color:#53617F;font-size:13px}
+.cp-mp{margin:0;color:#4A5876;font-size:14px;line-height:1.45}
+.cp-mrow{display:flex;gap:8px;flex-wrap:wrap}
+.cp-mrow .cp-act{flex:1}
+.cp-act.cp-big{height:42px;font-size:14px;padding:0 14px}
+.cp-dlg .cp-prog{padding:14px 16px}
+.cp-dlg .cp-prog li{font-size:14px}
+.cp-dlg .cp-wifi{padding:0;background:transparent;border:0}
+.cp-dlg .cp-wifi input{height:40px;font-size:14px}
