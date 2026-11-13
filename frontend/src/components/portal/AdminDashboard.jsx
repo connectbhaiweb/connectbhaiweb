@@ -1,7 +1,7 @@
 "use client";
 import { areaIndex } from "@/lib/connectbhai/areas";
 import { useState } from "react";
-import { Building2, CalendarDays, ChartColumn, Check, CircleCheck, CircleX, Coins, Handshake, MapPin, Phone, Store, Ticket, UserRound, Users, Wrench } from "lucide-react";
+import { Building2, CalendarDays, ChartColumn, Check, CircleCheck, CircleX, Coins, Handshake, MapPin, Phone, Store, Ticket, Users, Wrench } from "lucide-react";
 import { useDashData } from "@/components/dashboard/useDashData";
 import { Bars, Card, Chip, Counts, Failed, Kpi, Loading, More, Period, Pin, PortalHead } from "./parts";
 import { CarePlanCard } from "@/components/careplan/CarePlan";
@@ -54,7 +54,7 @@ export default function AdminDashboard({ tab }) {
                 <div className="pt-tr" role="row" key={l.id}>
                   <span role="cell"><b>{l.name}</b></span><span role="cell" className="pt-mono">{l.ref_code}</span><span role="cell"><Pin>{l.pincode}</Pin></span>
                   <span role="cell" className="pt-ell">{l.plan ? planName(l.plan) : "Callback, no plan"}</span>
-                  <span role="cell" className="pt-acts"><button type="button" className="pt-assign" data-act="assign" data-id={l.id}><UserRound aria-hidden="true" />Assign DSA</button><button type="button" className="pt-assign" data-act="assign" data-id={l.id}><Wrench aria-hidden="true" />Assign TIP</button></span>
+                  <span role="cell" className="pt-acts"><button type="button" className="pt-assign" data-act="assign" data-id={l.id}><Wrench aria-hidden="true" />Assign TIP</button></span>
                 </div>
               ))}
             </div>

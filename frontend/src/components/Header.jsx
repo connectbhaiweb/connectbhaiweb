@@ -47,7 +47,6 @@ export default function Header() {
           ) : (
             <>
               <button className="btn btn-ghost btn-sm" data-act="login" type="button">Log in</button>
-              <button className="btn btn-primary btn-sm acts-cta" data-go="home" data-scroll="search" type="button">Find plans</button>
             </>
           )}
         </div>
@@ -59,7 +58,6 @@ export default function Header() {
         {nav.map(([v, label]) => (
           <button key={v} type="button" data-go={v} aria-current={view === v ? "page" : undefined}>{label}</button>
         ))}
-        {!user && <button type="button" className="mnav-cta" data-go="home" data-scroll="search">Find plans</button>}
       </nav>
     </header>
   );

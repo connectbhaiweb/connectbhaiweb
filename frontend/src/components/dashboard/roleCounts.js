@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useDashData } from "./useDashData";
 import { dashboard, fetchPage } from "@/lib/connectbhai/paging";
 
@@ -36,5 +37,19 @@ const none = async () => ({});
 /** Live badge counts for the signed-in role; {} until loaded or when signed out. */
 export function useRoleCounts(role) {
   const { data } = useDashData(role || "none", LOAD[role] || none, !!LOAD[role]);
-  return data || {};
+  // new chat messages: check unread every 10 s (other badges keep the 30 s refresh) so the badge shows soon after a message arrives
+  const [live, setLive] = useState(null);
+  useEffect(() => {
+    if (!LOAD[role]) return;
+    let off = false;
+    const check = async () => {
+      if (document.hidden) return;
+      try { const { API } = await import("@/lib/connectbhai/api"); const n = unread(await threads(API)); if (!off) setLive(n); } catch (e) { /* keep the last count */ }
+    };
+    const t = setInterval(check, 10_000);
+    document.addEventListener("visibilitychange", check);
+    return () => { off = true; clearInterval(t); document.removeEventListener("visibilitychange", check); };
+  }, [role]);
+  const base = data || {};
+  return live == null ? base : { ...base, chat: live };
 }

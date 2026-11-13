@@ -2228,6 +2228,8 @@ function addRowViews() {
   });
 }
 let rowViewObs = null;
+/* A field turns red only while its error stands: typing, choosing or uploading clears the red border and the message for that field. */
+const clearBad = e => { const f = e.target && e.target.closest && e.target.closest(".field.bad"); if (!f) return; f.classList.remove("bad"); const er = f.querySelector(".ferr"); if (er) er.textContent = ""; };
 
 /* QA points 5, 7, 9: live data without refreshing the page. Every 30 s while the tab is visible, and at once when the user
    comes back to it, a quiet "cb:poll" reloads the React pages, the sidebar badges and the paged tables (what is on screen
@@ -2251,6 +2253,7 @@ export function init({ navigate: nav }) {
   document.addEventListener("keydown", onKeydown);
   document.addEventListener("click", onClick);
   document.addEventListener("input", onInput);
+  document.addEventListener("input", clearBad); document.addEventListener("change", clearBad);
   document.addEventListener("paste", onPaste);
   document.addEventListener("focusout", pinSuggestBlur);
   document.addEventListener("visibilitychange", onVisibility);
@@ -2267,6 +2270,7 @@ export function init({ navigate: nav }) {
     document.removeEventListener("focusout", pinSuggestBlur);
     document.removeEventListener("visibilitychange", onVisibility); clearInterval(pollT); if (rowViewObs) rowViewObs.disconnect();
     document.removeEventListener("input", onInput); document.removeEventListener("paste", onPaste);
+    document.removeEventListener("input", clearBad); document.removeEventListener("change", clearBad);
     document.removeEventListener("change", onChange);
     document.removeEventListener("submit", onSubmit);
   };

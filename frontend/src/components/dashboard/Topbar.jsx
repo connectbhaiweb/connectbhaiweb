@@ -62,7 +62,7 @@ export default function Topbar({ role, cfg, user, chatCount, navOpen, onBurger, 
       <div className="dsh-right">
         <button type="button" className="dsh-msearch" aria-label="Search" aria-expanded={mOpen} aria-controls="dsh-search" onClick={() => { setMOpen(v => !v); setTimeout(() => { const i = document.querySelector("#dsh-search input"); if (i) i.focus(); }, 30); }}><Search aria-hidden="true" /></button>
         <a className="dsh-wa" href={`https://wa.me/91${CONFIG.SUPPORT_PHONE}`} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp support"><WhatsAppIcon /></a>
-        <Link prefetch={false} className="dsh-bell" href={hrefOf(role, "chat")} aria-label={chatCount ? `Messages, ${chatCount} unread` : "Messages"}><Bell aria-hidden="true" />{chatCount ? <i /> : null}</Link>
+        <Link prefetch={false} className="dsh-bell" href={hrefOf(role, "chat")} aria-label={chatCount ? `Messages, ${chatCount} unread` : "Messages"}><Bell aria-hidden="true" />{chatCount ? <i>{chatCount > 9 ? "9+" : chatCount}</i> : null}</Link>
         <span className="dsh-sep" aria-hidden="true" />
         <div className="dsh-acct">
           <button type="button" className="dsh-acct-btn" aria-expanded={acctOpen} aria-haspopup="menu" onClick={() => onAcct(!acctOpen)}>

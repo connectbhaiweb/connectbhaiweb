@@ -28,7 +28,7 @@ export default async function AppDownload() {
         <div className="appcard">
           <div className="app-copy">
             <span className="app-pill">ConnectBhai App</span>
-            <h2 id="app-h">Compare, book and track<br />— all from your phone</h2>
+            <h2 id="app-h">Compare. Choose. Connect. Care.<br />— all from your phone</h2>
             <p className="app-lede">Everything you do on the website, in your pocket. Available on Android and iOS.</p>
             <ul className="app-points">
               {POINTS.map(([icon, b, rest]) => (<li key={b}>{icon}<span><b>{b}</b>{rest}</span></li>))}
@@ -42,26 +42,7 @@ export default async function AppDownload() {
             </div>
           </div>
           <div className="app-phones" aria-hidden="true">
-            <div className="phone ph1">
-              <i className="notch" />
-              <b className="ph-t">Compare plans</b><small>2 of 3 selected · 452010</small>
-              <div className="ph-cols">
-                <div className="ph-col"><em>Best value</em><span className="ph-logo"><Image src="/logos/bsnl.svg" alt="BSNL" width={28} height={28} unoptimized /></span><u>BSNL Fibre</u><strong>₹599</strong><small>/month + GST</small><span>100 Mbps</span><span>Unlimited</span><span>Prime +12</span><i className="ph-btn">Book Now</i></div>
-                <div className="ph-col"><em>Fastest</em><span className="ph-logo"><Image src="/logos/airtel.svg" alt="Airtel" width={28} height={28} unoptimized /></span><u>Airtel</u><strong>₹799</strong><small>/month + GST</small><span>200 Mbps</span><span>Unlimited</span><span>Netflix +15</span><i className="ph-btn">Book Now</i></div>
-              </div>
-              <div className="ph-add">+ Add a third plan</div>
-            </div>
-            <div className="phone ph2">
-              <i className="notch" />
-              <b className="ph-t">Track installation</b><small>Booking #CB-104B2</small>
-              <ol className="ph-steps">
-                <li className="done"><b>Lead received</b><small>Today, 10:12 am</small></li>
-                <li className="done"><b>TIP assigned</b><small>Sharma Networks</small></li>
-                <li className="now"><b>Installation scheduled</b><small>Tomorrow, 11 am</small></li>
-                <li><b>Installed</b><small>Pending</small></li>
-              </ol>
-              <div className="ph-router"><i /><span><b>Router online</b><small>98 Mbps · last seen 2 min ago</small></span></div>
-            </div>
+            <Image className="app-banner-img" src="/app-banner.svg" alt="" width={620} height={520} unoptimized />
           </div>
         </div>
       </div>

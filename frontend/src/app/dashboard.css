@@ -50,7 +50,7 @@ html[data-shell] .dash{padding-top:22px}
 .dsh-wa{width:38px;height:38px;border-radius:50%;background:#048A3C;display:grid;place-items:center;transition:transform .2s,box-shadow .2s}
 .dsh-bell{position:relative;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:#fff;transition:background .2s}
 .dsh-bell svg{width:26px;height:26px;stroke-width:1.9}
-.dsh-bell i{position:absolute;top:4px;right:6px;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle,#fff 0 1.5px,#F43F4A 2px);border:2px solid #071539}
+.dsh-bell i{position:absolute;top:0;right:0;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#F43F4A;border:2px solid #071539;color:#fff;font:800 10px/14px Manrope,system-ui,sans-serif;font-style:normal;text-align:center;box-sizing:border-box}
 .dsh-bell:hover{background:rgba(255,255,255,.1)}
 @media (hover:hover){.dsh-wa:hover{transform:translateY(-2px);box-shadow:0 8px 18px -6px rgba(37,211,102,.7)}}
 .dsh-sep{width:1px;height:30px;background:#2B4373;margin:0 6px 0 4px}
@@ -297,3 +297,7 @@ footer .footer-care:hover{color:#FDE68A!important}
 /* hero animation caption: light pill */
 .story .fcap{background:#fff;color:#0A1B3D;border:1.5px solid #BFD2FF;box-shadow:0 6px 16px -10px rgba(20,80,230,.5)}
 .story .fcap span{color:#1450E6}
+
+/* The floating Back pill got its own strip above the page head, so it no longer covers the Fetch / Add lead buttons at the top right */
+html[data-shell] :is(#app,.dsh-page),html[data-shell-pending] :is(#app,.dsh-page){padding-top:calc(var(--dsh-top) + 46px)}
+html[data-shell] #app .dsh-page,html[data-shell-pending] #app .dsh-page{padding-top:0}
