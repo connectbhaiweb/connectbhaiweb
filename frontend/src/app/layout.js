@@ -15,7 +15,6 @@ import "./portal.css";
 import "./legacy-dash.css";
 import DemoBar from "@/components/DemoBar";
 import Header from "@/components/Header";
-import BackButton from "@/components/BackButton";
 import Footer from "@/components/Footer";
 import CompareBar from "@/components/CompareBar";
 import Overlays from "@/components/Overlays";
@@ -41,7 +40,6 @@ export default function RootLayout({ children }) {
       <body>
         <DemoBar />
         <Header />
-        <BackButton />
         {/* Legacy views paint into #app; route components (children) render after it (home: app download + FAQ). */}
         <main id="app" />
         {children}

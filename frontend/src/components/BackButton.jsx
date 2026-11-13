@@ -15,16 +15,10 @@ export function useGoBack() {
   };
 }
 
-/* Strip under the site header on every page except home. Dashboards hide it (they have a Back button in their top bar). */
+/* Back button inside the site header (left of the logo), on every page except home. Dashboards have their own in the top bar. */
 export default function BackButton() {
   const pathname = usePathname();
   const back = useGoBack();
   if (pathname === "/") return null;
-  return (
-    <div className="backbar">
-      <div className="wrap">
-        <button type="button" className="backbtn" onClick={back} aria-label="Go back"><ArrowLeft aria-hidden="true" /><span>Back</span></button>
-      </div>
-    </div>
-  );
+  return <button type="button" className="topback" onClick={back} aria-label="Go back"><ArrowLeft aria-hidden="true" /><span>Back</span></button>;
 }

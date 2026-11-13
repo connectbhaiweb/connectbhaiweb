@@ -2,6 +2,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import Logo from "./Logo";
+import BackButton from "./BackButton";
 import { subscribe, getSnapshot, getServerSnapshot } from "@/lib/connectbhai/runtime";
 import { ROLE_HOME, ROLE_NAME, ROLE_NAV_LABEL, initials, viewFromPath } from "@/lib/connectbhai/shared";
 
@@ -24,6 +25,7 @@ export default function Header() {
   return (
     <header className="top">
       <div className="wrap">
+        <BackButton />
         <button className="brand" data-go="home" type="button" aria-label="Connect Bhai home">
           <Logo height={40} priority />
         </button>

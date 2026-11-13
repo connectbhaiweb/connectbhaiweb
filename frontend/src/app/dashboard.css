@@ -151,13 +151,8 @@ html[data-shell] .dash{padding-top:22px}
 }
 @media (prefers-reduced-motion:reduce){.dsh-item,.dsh-side,.dsh-wa{transition:none}.dsh-item:hover{transform:none}}
 
-/* Back button: site pages (strip under the header) and dashboards (top bar) */
-.backbar{background:var(--bg);border-bottom:1px solid var(--line)}
-.backbar .wrap{display:flex;align-items:center;min-height:44px}
-.backbtn,.dsh-back{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px 0 8px;border-radius:10px;border:1px solid var(--line-strong,#C3D0E8);background:var(--surface,#fff);color:var(--ink,#0A1B3D);font:600 14px var(--body,Manrope,system-ui,sans-serif);cursor:pointer}
-.backbtn:hover{border-color:var(--blue,#1450E6);color:var(--blue,#1450E6)}
-.backbtn svg,.dsh-back svg{width:18px;height:18px}
-.dsh-back{flex:none;background:transparent;border-color:#1B3470;color:#fff}
-.dsh-back:hover{border-color:#fff}
-html[data-shell] .backbar,html[data-shell-pending] .backbar{display:none!important}
-@media (max-width:600px){.dsh-back span{display:none}.dsh-back{padding:0 8px}}
+/* Back button: site header and dashboard top bar */
+.topback,.dsh-back{display:inline-flex;align-items:center;gap:6px;flex:none;height:36px;padding:0 12px 0 8px;border-radius:10px;border:1px solid rgba(141,180,255,.55);background:transparent;color:#fff;font:600 14px var(--body,Manrope,system-ui,sans-serif);cursor:pointer}
+.topback:hover,.dsh-back:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+.topback svg,.dsh-back svg{width:18px;height:18px}
+@media (max-width:600px){.topback span,.dsh-back span{display:none}.topback,.dsh-back{width:36px;padding:0;justify-content:center}}
