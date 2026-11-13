@@ -96,7 +96,7 @@ export default function SpeedTest() {
     <section className="relative isolate overflow-hidden bg-[#050B1F] text-white" aria-labelledby="sp-h">
       <style>{"#app{display:none}"}</style>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(55%_55%_at_50%_38%,rgba(29,107,255,.22),transparent_70%),radial-gradient(40%_40%_at_8%_70%,rgba(20,80,230,.18),transparent_70%)]" />
-      <div className="mx-auto grid w-full max-w-[1640px] items-center gap-4 px-4 py-4 sm:px-6 lg:py-5 xl:grid-cols-[minmax(220px,1fr)_minmax(0,2.6fr)_minmax(220px,1fr)] xl:gap-10">
+      <div className="mx-auto grid w-full max-w-[1640px] items-center gap-4 px-4 py-4 sm:px-6 lg:py-5 xl:grid-cols-[minmax(200px,0.85fr)_minmax(0,3fr)_minmax(200px,0.85fr)] xl:gap-10">
       <SideArtLeft />
       <div className="grid min-w-0 gap-4">
 
@@ -105,11 +105,7 @@ export default function SpeedTest() {
           <div className="grid gap-4 max-lg:justify-items-center max-lg:text-center lg:order-1">
             <div>
               <p className="text-[13px] font-extrabold uppercase tracking-[.16em] text-[#3D8BFF]">Wi-Fi speed test</p>
-              <h1 id="sp-h" className="mt-2 font-display font-extrabold leading-[1.08] [font-size:clamp(28px,3.4vw,46px)]">
-                How fast is your{" "}
-                <span className="relative inline-block bg-gradient-to-r from-[#2F7BFF] to-[#22D3EE] bg-clip-text text-transparent after:absolute after:-bottom-1.5 after:left-0 after:h-[3px] after:w-full after:rounded-full after:bg-gradient-to-r after:from-[#2F7BFF] after:to-[#22D3EE] after:content-['']">internet</span>{" "}right now?
-              </h1>
-              <p className="mt-3 max-w-[40ch] text-[16px] leading-relaxed text-[#B7C6E6] max-sm:hidden [@media(max-height:800px)]:lg:hidden">Measures download, upload and ping from this phone or laptop over your Wi-Fi.</p>
+              <h1 id="sp-h" className="sr-only">How fast is your internet right now?</h1>
             </div>
             <ul className="flex w-full list-none flex-col items-start gap-2 p-0 max-lg:flex-row max-lg:items-stretch lg:max-w-[260px] [@media(max-height:800px)]:lg:max-w-none [@media(max-height:800px)]:lg:flex-row [@media(max-height:800px)]:lg:flex-wrap">
               <Pill Icon={Timer}>About 30 seconds</Pill><Pill Icon={Tag}>Free to use</Pill><Pill Icon={Laptop}>Phone or laptop</Pill>
