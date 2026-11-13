@@ -160,3 +160,26 @@ html[data-shell] .dash{padding-top:22px}
 html[data-shell] .backrow,html[data-shell-pending] .backrow{position:absolute;top:var(--dsh-top);right:0;left:var(--dsh-side);height:auto}
 html[data-shell] .backrow .wrap{max-width:none;margin:0;padding:12px 28px 0}
 @media (max-width:600px){.pageback span{display:none}.pageback{width:36px;padding:0;justify-content:center}}
+
+/* Care plan page (logged out) */
+.care-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:28px;align-items:center;margin:8px 0 28px}
+.care-copy h1{font-size:clamp(30px,4.4vw,46px);margin:6px 0 10px}
+.care-copy p{max-width:46ch}
+.care-copy .row{margin-top:18px;gap:10px;flex-wrap:wrap}
+.care-copy .btn{display:inline-flex;align-items:center;gap:8px}
+.care-visual{display:grid;place-items:center}
+.care-art{width:100%;max-width:340px;height:auto}
+.care-steps{margin-bottom:18px}
+.care-steps{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.cstep{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:grid;gap:6px;align-content:start;position:relative;transition:transform .2s ease,box-shadow .2s ease}
+.cstep:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.cstep-ico{width:46px;height:46px;border-radius:14px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;margin-bottom:6px}
+.cstep .n{position:absolute;top:18px;right:20px;font-family:var(--mono);font-weight:600;font-size:13px;color:var(--sky)}
+.cstep h3{font-size:18px}
+.cstep p{color:var(--muted);font-size:15px}
+.care-feats h3{margin-bottom:14px}
+.care-feats ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.care-feats li{display:grid;justify-items:center;gap:8px;text-align:center;font-weight:600;font-size:14px;padding:14px 8px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.care-feats li span{width:40px;height:40px;border-radius:12px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center}
+@media (max-width:900px){.care-hero{grid-template-columns:minmax(0,1fr)}.care-visual{order:-1}.care-art{max-width:240px}.care-steps{grid-template-columns:minmax(0,1fr)!important}.care-feats ul{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){.cstep{transition:none}.cstep:hover{transform:none}}

@@ -1541,9 +1541,26 @@ async function renderRouter() {
   const u = me();
   const head = (title, sub) => `<div class="dhead"><div><span class="eyebrow">Care plan · through GenieACS</span><h1>${title}</h1><p class="muted" style="max-width:64ch;margin-top:6px">${sub}</p></div><div class="row"><button class="btn btn-ghost" data-go="speed" type="button">Wi-Fi speed test</button></div></div>`;
   if (!u || u.role === "dsa") {
-    app.innerHTML = `<div class="wrap dash">${head("Connect Bhai Care plan", "Customers, installers and admin see live modem status here once the modem is linked to GenieACS at installation.")}
-      <div class="split"><div class="card"><h3>How it works</h3><ol class="trsteps" style="margin-top:12px"><li><b>Installation</b><span>The TIP technician sets the modem's ACS address (their own GenieACS or Connect Bhai's) and enters its serial number.</span></li><li><b>Modem reports every 5 minutes</b><span>Through GenieACS, the standard modem management system ISPs use.</span></li><li><b>Live status &amp; control</b><span>Online / Offline, fiber signal, restart, Wi-Fi name and password change, and a line speed test.</span></li></ol></div>
-      <div class="card stack"><h3>${u ? "Not available for DSA accounts" : "Log in to see your modem"}</h3><p class="muted">${u ? "Modem status is shown to the customer, the installing TIP and admin." : "Log in with your WhatsApp number. In this demo, try 9876500001 (customer), 9876500201 (TIP) or 9876500999 (admin) with OTP 123456."}</p>${u ? "" : `<button class="btn btn-primary" data-act="login" type="button">Log in with WhatsApp</button>`}</div></div></div>`;
+    const ico = (d, n = 22) => `<svg viewBox="0 0 24 24" width="${n}" height="${n}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    const I = {
+      wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+      activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>', gauge: '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+      wifi: '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/>',
+      restart: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>', lock: '<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+      signal: '<path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16"/>', pencil: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+      shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>'
+    };
+    const art = `<svg class="care-art" viewBox="0 0 320 220" role="img" aria-hidden="true" focusable="false"><circle cx="160" cy="116" r="96" style="fill:var(--blue-soft)"/><path d="M96 82c36-34 92-34 128 0M118 104c24-22 60-22 84 0" fill="none" style="stroke:var(--sky);stroke-width:7;stroke-linecap:round"/><rect x="62" y="132" width="196" height="46" rx="14" style="fill:var(--blue)"/><circle cx="92" cy="155" r="6" style="fill:var(--ok)"/><circle cx="114" cy="155" r="6" style="fill:#fff"/><circle cx="136" cy="155" r="6" style="fill:#fff"/><rect x="190" y="150" width="50" height="10" rx="5" style="fill:#fff" opacity=".35"/><path d="M92 132V104M228 132V104" style="stroke:var(--blue);stroke-width:7;stroke-linecap:round"/><circle cx="252" cy="62" r="22" style="fill:var(--ok)"/><path d="m241 62 8 8 14-16" fill="none" style="stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round"/></svg>`;
+    const steps = [["01", I.wrench, "We set it up", "Your TIP technician links your modem to GenieACS at installation."], ["02", I.activity, "It reports in", "Your modem checks in every 5 minutes, automatically."], ["03", I.gauge, "You stay in control", "See it live, restart it and change your Wi-Fi from your dashboard."]];
+    const feats = [[I.wifi, "Online / Offline"], [I.signal, "Fiber signal"], [I.restart, "Restart modem"], [I.pencil, "Wi-Fi name"], [I.lock, "Wi-Fi password"], [I.gauge, "Line speed test"]];
+    app.innerHTML = `<div class="wrap dash care-page">
+      <section class="care-hero"><div class="care-copy"><span class="eyebrow">Care plan · through GenieACS</span><h1>Connect Bhai Care plan</h1>
+        <p class="muted">Keep an eye on your home modem and fix common problems yourself.</p>
+        <div class="row">${u ? "" : `<button class="btn btn-primary" data-act="login" type="button">${ico(I.shield, 18)} Log in to see your modem</button>`}<button class="btn btn-ghost" data-go="speed" type="button">${ico(I.gauge, 18)} Wi-Fi speed test</button></div>
+        ${u ? `<p class="muted small" style="margin-top:12px">Modem status is shown to the customer, the installing TIP and admin, so it is not available for DSA accounts.</p>` : ""}</div>
+        <div class="care-visual">${art}</div></section>
+      <div class="steps3 care-steps">${steps.map(([n, ic, t, d]) => `<div class="cstep"><span class="cstep-ico">${ico(ic)}</span><span class="n">${n}</span><h3>${t}</h3><p>${d}</p></div>`).join("")}</div>
+      <section class="card care-feats"><h3>What you can do</h3><ul>${feats.map(([ic, t]) => `<li><span>${ico(ic, 20)}</span>${t}</li>`).join("")}</ul></section></div>`;
     return;
   }
   const many = u.role !== "customer", f = S.routerFilter || "all";
