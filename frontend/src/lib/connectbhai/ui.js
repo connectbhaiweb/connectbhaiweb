@@ -314,6 +314,7 @@ async function renderHome() {
       <div class="step"><span class="n">01 / Compare</span><h3>Search your PIN code</h3><p>See only the plans that are actually offered in your area, with speed, price, data and OTT/TV benefits.</p></div>
       <div class="step"><span class="n">02 / Choose</span><h3>Request a connection</h3><p>Pick a plan and share your details. You get a request number immediately.</p></div>
       <div class="step"><span class="n">03 / Connect</span><h3>Track installation</h3><p>An assigned TIP calls you, books the installation and updates every step in your dashboard.</p></div>
+      <div class="step"><span class="n">04 / Care</span><h3>Stay looked after</h3><p>Check your modem status, restart it and change your Wi-Fi from your dashboard, and raise a ticket whenever you need help.</p></div>
     </div>
   </div></section>
   ${citiesSection()}
