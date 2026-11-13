@@ -71,7 +71,6 @@ const GUARD_TIMEOUT_MS = 30000;
 async function guard(btn, fn, timeoutMs = GUARD_TIMEOUT_MS) {
   if (btn) { btn.disabled = true; btn.dataset.t = btn.textContent; btn.textContent = "Please wait…"; }
   try {
-    if (LIVE && typeof navigator !== "undefined" && navigator.onLine === false) throw new AppError("You appear to be offline. Check your internet connection and try again.");
     let timer; const slow = new Promise((_, rej) => { timer = setTimeout(() => rej(new AppError("This is taking too long. Check your internet and try again.")), timeoutMs); });
     try { return await Promise.race([fn(), slow]); } finally { clearTimeout(timer); }
   } catch (e) { toast(errMsg(e), true); throw e; }
