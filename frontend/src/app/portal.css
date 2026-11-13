@@ -270,3 +270,53 @@
 .cp-acts small{flex-basis:100%;font-size:12px;line-height:1.3}
 .cp-ok{color:#14794A}.cp-err{color:#B42318}
 .pt-note{margin:0 0 14px;padding:10px 14px;border-radius:12px;background:#EAF1FF;color:#1E2A4A;font-size:14px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+
+/* Care plan list: device action buttons */
+.cp-table .pt-tr{grid-template-columns:150fr 96fr 80fr 140fr 88fr 150fr 120fr 60fr 70fr minmax(250px,250fr)}
+.cp-table .pt-tr{min-width:1260px}
+.cp-actbox{display:grid;gap:8px;min-width:0}
+.cp-btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.cp-sure{grid-column:1/-1;display:flex;gap:6px}
+.cp-sure .cp-danger{flex:1}
+.cp-act{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 10px;border-radius:10px;border:1.5px solid #C9D6F5;background:#fff;color:#0A2A78;font:700 13px var(--body,Manrope,system-ui,sans-serif);cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,color .15s,transform .15s}
+.cp-act svg{width:16px;height:16px;flex:none}
+.cp-act:hover:not(:disabled){background:#EEF3FF;border-color:#1450E6;color:#1450E6;transform:translateY(-1px)}
+.cp-act:disabled{opacity:.45;cursor:not-allowed}
+.cp-act.cp-warn:hover:not(:disabled){background:#FFF4E0;border-color:#E08A00;color:#9A5800}
+.cp-act.cp-danger{background:#B42318;border-color:#B42318;color:#fff}
+.cp-act.cp-danger:hover:not(:disabled){background:#912018;border-color:#912018;color:#fff}
+.cp-act.cp-go{background:#1450E6;border-color:#1450E6;color:#fff}
+.cp-act.cp-go:hover:not(:disabled){background:#0F40BD;border-color:#0F40BD;color:#fff}
+.cp-act.is-on{background:#E8EFFF;border-color:#1450E6;color:#1450E6}
+.cp-wifi{display:grid;gap:8px;padding:10px;border-radius:12px;background:#F4F7FF;border:1px solid #D6E0F5}
+.cp-wifi label{display:grid;gap:3px;font-size:12px;font-weight:700;color:#53617F}
+.cp-wifi input{height:34px;padding:0 10px;border-radius:8px;border:1.5px solid #C9D6F5;background:#fff;font:600 13px var(--body,Manrope,system-ui,sans-serif);color:#0A1B3D;min-width:0}
+.cp-wifi input:focus{outline:none;border-color:#1450E6}
+.cp-wifi-acts{display:flex;gap:6px}
+.cp-wifi-acts .cp-act{flex:1}
+.cp-msg{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;line-height:1.3;background:#F4F7FF}
+.cp-msg svg{width:14px;height:14px;flex:none}
+.cp-msg.cp-ok{background:#E2F5EA;color:#14794A}.cp-msg.cp-err{background:#FDE8E6;color:#B42318}.cp-msg.cp-sn{background:#F1F3F8;color:#53617F;font-weight:600}
+@media (prefers-reduced-motion:reduce){.cp-prog-spin{animation:none}.cp-act{transition:none}}
+@media (max-width:900px){.cp-table .pt-tr{min-width:0}}
+
+/* Care plan list: step-by-step progress box (same steps the customer sees) */
+.cp-formerr{color:#B42318;font-weight:700;font-size:12px}
+.cp-prog{padding:12px 14px;border:1px solid #D6E0F5;background:#F4F7FF;border-radius:14px;display:grid;gap:8px}
+.cp-prog.is-ok{background:#F0FBF4;border-color:#BFE6CC}
+.cp-prog.is-bad{background:#FFF4F2;border-color:#F3C6BE}
+.cp-prog-h{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+.cp-prog-t{font-variant-numeric:tabular-nums;color:#5B6B8F;font-size:13px;font-weight:700}
+.cp-prog-x{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:8px;background:transparent;color:#53617F;cursor:pointer}
+.cp-prog-x:hover{background:rgba(10,27,61,.08)}
+.cp-prog-x svg{width:14px;height:14px}
+.cp-prog ul{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.cp-prog li{display:flex;gap:9px;align-items:center;font-size:12.5px;color:#6B7893;line-height:1.3}
+.cp-prog li.ok{color:#15803D}.cp-prog li.cur{color:#10234F;font-weight:700}.cp-prog li.bad{color:#B91C1C;font-weight:700}
+.cp-prog-d{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:11px;font-weight:700}
+.cp-prog li.ok .cp-prog-d{background:#16A34A;border-color:#16A34A;color:#fff}
+.cp-prog li.bad .cp-prog-d{background:#DC2626;border-color:#DC2626;color:#fff}
+.cp-prog-d svg{width:12px;height:12px}
+.cp-prog-spin{width:11px;height:11px;border:2px solid #1450E6;border-top-color:transparent;border-radius:50%;animation:cp-rot .8s linear infinite}
+@keyframes cp-rot{to{transform:rotate(360deg)}}
+.cp-prog-n{margin:0;font-size:12.5px;color:#4A5876;line-height:1.4}

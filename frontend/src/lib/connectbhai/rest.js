@@ -522,6 +522,10 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
         return { id: S(t.id), booking_id: S(bookingId), kind: "router", status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: !!t.simulated, created_at: t.created_at }; });
     },
     /* QA 12/13: refresh and router test by device id (the dashboard Care plan list has no bookings loaded) */
+    /* Recent commands of one modem by device id (Care plan list progress box) */
+    async deviceActsById(id) { const x = await get("/care-plan/devices/" + id); return (x.actions || []).slice(0, 6).map(a => ({ id: S(a.id), action: a.action === "change_wifi" ? "wifi" : a.action, status: a.status || "done", error: a.error || null, created_at: a.created_at })); },
+    /* Restart or change Wi-Fi by device id (the Care plan list). Same endpoint the customer screen uses. */
+    async deviceActById(id, action, params) { await post(`/care-plan/devices/${id}/actions`, { action, ...(params ? { params } : {}) }); return true; },
     async deviceRefresh(id) { const r = await post(`/care-plan/devices/${id}/refresh`); return mapDevice(r.device || r); },
     async deviceRouterTest(id) { const t = await waitSpeedTest(id, await post(`/care-plan/devices/${id}/speed-test`)); return { status: "done", download_mbps: num(t.download_mbps), upload_mbps: num(t.upload_mbps), ping_ms: t.ping_ms, is_simulated: !!t.simulated }; },
     /* real modems for the React Care plan screens (one page of up to 100, in that screen's shape) */
