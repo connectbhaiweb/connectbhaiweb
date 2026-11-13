@@ -227,10 +227,10 @@ function CpModal({ title, sub, onClose, children }) {
 function ActBtn({ Icon, label, off, why, running, tone = "", onClick, on }) {
   const [tip, setTip] = useState(null);
   const show = e => { const r = e.currentTarget.getBoundingClientRect(); setTip({ x: r.left + r.width / 2, y: r.top }); };
-  const text = off && why ? `${label}: ${why}` : label;
+  const text = off && why ? `${label}: ${why}` : running ? "Request in progress · click to view" : label;
   return (
     <>
-      <button type="button" className={`cp-act ${tone} ${on ? "is-on" : ""}`} disabled={off || running} aria-label={label} onClick={onClick}
+      <button type="button" className={`cp-act ${tone} ${on ? "is-on" : ""}`} disabled={off} aria-label={label} onClick={onClick}
         onMouseEnter={show} onMouseLeave={() => setTip(null)} onFocus={show} onBlur={() => setTip(null)}><Icon aria-hidden="true" /><span>{label}</span></button>
       {tip && createPortal(<span className="cp-tip" role="tooltip" style={{ left: tip.x, top: tip.y }}>{text}</span>, document.body)}
     </>
@@ -244,6 +244,7 @@ function DeviceActs({ d, onDone }) {
   const running = !!job && job.state === "running";
   const linked = d.linked !== false, online = d.status === "online", ready = linked && d.active !== false && online;
   const why = !linked ? "Not linked to Gene yet" : d.active === false ? "Care plan is not active" : !online ? "Modem must be online" : "";
+  const go = fn => (running ? setPanel("progress") : fn());   // a request is running: open its status instead of starting another
   const patch = p => alive.current && setJob(j => (j ? { ...j, ...p } : j));
   const start = (kind, note) => { setPanel("progress"); setFormErr(""); setJob({ kind, state: "running", step: 1, t0: Date.now(), note: note || "" }); };
 
@@ -279,10 +280,10 @@ function DeviceActs({ d, onDone }) {
   return (
     <span className="cp-actbox">
       <span className="cp-btns">
-        <ActBtn Icon={RefreshCw} label="Refresh" off={!linked} why={why} running={running} onClick={() => run("refresh")} />
-        <ActBtn Icon={Gauge} label="Router test" off={!ready} why={why} running={running} onClick={() => run("test")} />
-        <ActBtn Icon={Power} label="Restart" off={!ready} why={why} running={running} tone="cp-warn" onClick={() => setPanel("confirm")} />
-        <ActBtn Icon={Wifi} label="Wi-Fi" off={!ready} why={why} running={running} onClick={() => setPanel("wifi")} />
+        <ActBtn Icon={RefreshCw} label="Refresh" off={!linked} why={why} running={running} onClick={() => go(() => run("refresh"))} />
+        <ActBtn Icon={Gauge} label="Router test" off={!ready} why={why} running={running} onClick={() => go(() => run("test"))} />
+        <ActBtn Icon={Power} label="Restart" off={!ready} why={why} running={running} tone="cp-warn" onClick={() => go(() => setPanel("confirm"))} />
+        <ActBtn Icon={Wifi} label="Wi-Fi" off={!ready} why={why} running={running} onClick={() => go(() => setPanel("wifi"))} />
       </span>
       {panel && <CpModal title={panel === "confirm" ? "Restart modem?" : panel === "wifi" ? "Change Wi-Fi name / password" : ({ refresh: "Refreshing status", test: "Router speed test", reboot: "Restarting the modem", wifi: "Changing the Wi-Fi" })[job ? job.kind : "refresh"]}
         sub={`${d.customer.name} · ${d.model || "Modem"} ${d.serialNumber || ""}`} onClose={() => { setPanel(null); if (!running) setJob(null); }}>
@@ -303,7 +304,7 @@ function DeviceActs({ d, onDone }) {
         )}
         {panel === "progress" && job && <Progress job={job} onClose={() => { setPanel(null); setJob(null); }} />}
       </CpModal>}
-      {!panel && job ? <button type="button" className={`cp-chip ${job.state === "done" ? "is-ok" : job.state === "failed" || job.state === "timeout" ? "is-bad" : ""}`} onClick={() => setPanel("progress")}>{job.state === "running" ? "In progress" : job.state === "done" ? "Done" : "Failed"} · View status</button> : null}
+      {!panel && job ? <button type="button" className={`cp-chip ${job.state === "done" ? "is-ok" : job.state === "failed" || job.state === "timeout" ? "is-bad" : "is-run"}`} onClick={() => setPanel("progress")}><i aria-hidden="true" />{({ refresh: "Refresh", test: "Router test", reboot: "Restart", wifi: "Wi-Fi change" })[job.kind]} · {job.state === "running" ? "in progress" : job.state === "done" ? "done" : "failed"}<b>View status</b></button> : null}
       {!panel && !job && why ? <small className="cp-msg cp-sn">{why}</small> : null}
     </span>
   );
