@@ -1,4 +1,5 @@
 "use client";
+import { SideArtLeft, SideArtRight } from "./SideArt";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowRight, Activity, Check, Clock, Download, Gamepad2, Laptop, MonitorPlay, Tag, Timer, Upload, Video } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -95,7 +96,9 @@ export default function SpeedTest() {
     <section className="relative isolate overflow-hidden bg-[#050B1F] text-white" aria-labelledby="sp-h">
       <style>{"#app{display:none}"}</style>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(55%_55%_at_50%_38%,rgba(29,107,255,.22),transparent_70%),radial-gradient(40%_40%_at_8%_70%,rgba(20,80,230,.18),transparent_70%)]" />
-      <div className="wrap grid gap-4 py-4 lg:gap-4 lg:py-5">
+      <div className="mx-auto grid w-full max-w-[1640px] items-center gap-4 px-4 py-4 sm:px-6 lg:py-5 xl:grid-cols-[minmax(150px,0.55fr)_minmax(0,3.4fr)_minmax(150px,0.55fr)] xl:gap-6">
+      <SideArtLeft />
+      <div className="grid min-w-0 gap-4">
 
         <div className="grid items-center gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.15fr)_minmax(0,.8fr)] lg:gap-6">
           {/* left: copy + start */}
@@ -172,6 +175,8 @@ export default function SpeedTest() {
           </ul>
         </Card>
         {!user && <p className="text-center text-[13px] text-[#8CA0C8] lg:hidden"><button type="button" data-act="login" className="border-0 bg-transparent p-0 font-bold text-sky-300 underline underline-offset-2">Log in</button> to save results and report slow speed.</p>}
+      </div>
+      <SideArtRight />
       </div>
     </section>
   );
