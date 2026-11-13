@@ -210,22 +210,31 @@ function Progress({ job, onClose }) {
   );
 }
 
-function CpModal({ title, sub, locked, onClose, children }) {
+function CpModal({ title, sub, onClose, children }) {
   useEffect(() => {
-    const k = e => { if (e.key === "Escape" && !locked) onClose(); };
+    const k = e => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", k); return () => document.removeEventListener("keydown", k);
-  }, [locked, onClose]);
+  }, [onClose]);
   return createPortal(
-    <div className="cp-modal" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !locked) onClose(); }}>
+    <div className="cp-modal" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="cp-dlg" role="dialog" aria-modal="true" aria-label={title}>
-        <div className="cp-dlg-h"><div><h3>{title}</h3><small>{sub}</small></div>{!locked && <button type="button" className="cp-prog-x" onClick={onClose} aria-label="Close"><X aria-hidden="true" /></button>}</div>
+        <div className="cp-dlg-h"><div><h3>{title}</h3><small>{sub}</small></div><button type="button" className="cp-prog-x" onClick={onClose} aria-label="Close"><X aria-hidden="true" /></button></div>
         {children}
       </div>
     </div>, document.body);
 }
 
 function ActBtn({ Icon, label, off, why, running, tone = "", onClick, on }) {
-  return <button type="button" className={`cp-act ${tone} ${on ? "is-on" : ""}`} disabled={off || running} title={off && why ? `${label}: ${why}` : label} aria-label={label} onClick={onClick}><Icon aria-hidden="true" /><span>{label}</span></button>;
+  const [tip, setTip] = useState(null);
+  const show = e => { const r = e.currentTarget.getBoundingClientRect(); setTip({ x: r.left + r.width / 2, y: r.top }); };
+  const text = off && why ? `${label}: ${why}` : label;
+  return (
+    <>
+      <button type="button" className={`cp-act ${tone} ${on ? "is-on" : ""}`} disabled={off || running} aria-label={label} onClick={onClick}
+        onMouseEnter={show} onMouseLeave={() => setTip(null)} onFocus={show} onBlur={() => setTip(null)}><Icon aria-hidden="true" /><span>{label}</span></button>
+      {tip && createPortal(<span className="cp-tip" role="tooltip" style={{ left: tip.x, top: tip.y }}>{text}</span>, document.body)}
+    </>
+  );
 }
 
 function DeviceActs({ d, onDone }) {
@@ -276,7 +285,7 @@ function DeviceActs({ d, onDone }) {
         <ActBtn Icon={Wifi} label="Wi-Fi" off={!ready} why={why} running={running} onClick={() => setPanel("wifi")} />
       </span>
       {panel && <CpModal title={panel === "confirm" ? "Restart modem?" : panel === "wifi" ? "Change Wi-Fi name / password" : ({ refresh: "Refreshing status", test: "Router speed test", reboot: "Restarting the modem", wifi: "Changing the Wi-Fi" })[job ? job.kind : "refresh"]}
-        sub={`${d.customer.name} · ${d.model || "Modem"} ${d.serialNumber || ""}`} locked={running} onClose={() => { setPanel(null); if (!running) setJob(null); }}>
+        sub={`${d.customer.name} · ${d.model || "Modem"} ${d.serialNumber || ""}`} onClose={() => { setPanel(null); if (!running) setJob(null); }}>
         {panel === "confirm" && (
           <>
             <p className="cp-mp">Internet and Wi-Fi at the customer&apos;s home will be off for about 2 minutes while the modem restarts. Phones and laptops reconnect by themselves.</p>
@@ -294,7 +303,8 @@ function DeviceActs({ d, onDone }) {
         )}
         {panel === "progress" && job && <Progress job={job} onClose={() => { setPanel(null); setJob(null); }} />}
       </CpModal>}
-      {!panel && why ? <small className="cp-msg cp-sn">{why}</small> : null}
+      {!panel && job ? <button type="button" className={`cp-chip ${job.state === "done" ? "is-ok" : job.state === "failed" || job.state === "timeout" ? "is-bad" : ""}`} onClick={() => setPanel("progress")}>{job.state === "running" ? "In progress" : job.state === "done" ? "Done" : "Failed"} · View status</button> : null}
+      {!panel && !job && why ? <small className="cp-msg cp-sn">{why}</small> : null}
     </span>
   );
 }

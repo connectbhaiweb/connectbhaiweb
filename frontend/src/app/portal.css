@@ -353,3 +353,10 @@
 .cp-dlg .cp-prog li{font-size:14px}
 .cp-dlg .cp-wifi{padding:0;background:transparent;border:0}
 .cp-dlg .cp-wifi input{height:40px;font-size:14px}
+
+/* instant tooltip + reopen-status chip */
+.cp-tip{position:fixed;z-index:300;transform:translate(-50%,calc(-100% - 8px));padding:5px 9px;border-radius:8px;background:#0A1B3D;color:#fff;font:700 12px var(--body,Manrope,system-ui,sans-serif);white-space:nowrap;pointer-events:none;box-shadow:0 8px 20px -8px rgba(7,21,57,.6)}
+.cp-tip::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0A1B3D}
+.cp-chip{justify-self:start;height:26px;padding:0 10px;border-radius:999px;border:1px solid #BFD2FF;background:#E8EFFF;color:#1450E6;font:700 12px var(--body,Manrope,system-ui,sans-serif);cursor:pointer}
+.cp-chip.is-ok{background:#E2F5EA;border-color:#BFE6CC;color:#14794A}
+.cp-chip.is-bad{background:#FDE8E6;border-color:#F3C6BE;color:#B42318}
