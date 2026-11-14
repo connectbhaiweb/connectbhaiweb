@@ -365,12 +365,22 @@ async function renderHome() {
       ${field("pa-doc-aadhaar", "Aadhaar card (photo or PDF)", `<input id="pa-doc-aadhaar" name="doc_aadhaar" type="file" accept=".jpg,.jpeg,.png,.pdf">`)}
       ${field("pa-doc-pan", "PAN card", `<input id="pa-doc-pan" name="doc_pan" type="file" accept=".jpg,.jpeg,.png,.pdf">`)}
       ${field("pa-doc-bank", "Bank proof (cancelled cheque or passbook page)", `<input id="pa-doc-bank" name="doc_bank" type="file" accept=".jpg,.jpeg,.png,.pdf">`)}` : ""}
-      <p class="notice info" id="pa-fee">The registration fee (plus GST) is paid online when you submit this form.</p>
-      <button class="btn btn-primary" type="submit">Submit and pay registration fee</button>
+      <p class="notice info" id="pa-fee">${PA_DSA_NOTE}</p>
+      <button class="btn btn-primary" type="submit" id="pa-submit">Submit application</button>
     </form>
   </div></section>`;
   if (S.results) renderResults();
-  API.getSettings().then(st => { const el = document.getElementById("pa-fee"); if (el && st) el.innerHTML = `TIP registration fee, paid online when you submit: <b>${inr(st.registration_fee_tip)}</b> plus ${st.gst_percent || 18}% GST (UPI, card, net banking or wallet). <b>DSA registration is free</b>: a DSA earns a commission on every installed lead.`; }).catch(() => { });
+  API.getSettings().then(st => { if (st) { paTipNote = `TIP registration fee, paid online when you submit: <b>${inr(st.registration_fee_tip)}</b> plus ${st.gst_percent || 18}% GST (UPI, card, net banking or wallet). <b>DSA registration is free</b>: a DSA earns a commission on every installed lead.`; syncPartnerType(); } }).catch(() => { });
+}
+/* DSA registration is free: a DSA sees no fee or payment wording. Only a TIP sees the registration fee note and the pay button. */
+const PA_DSA_NOTE = `<b>DSA registration is free.</b> A DSA earns a commission on every installed lead.`;
+let paTipNote = "The registration fee (plus GST) is paid online when you submit this form.";
+function syncPartnerType() {
+  const t = document.getElementById("pa-type"), n = document.getElementById("pa-fee"), b = document.getElementById("pa-submit");
+  if (!t || !n || !b) return;
+  const tip = t.value === "tip";
+  n.innerHTML = tip ? paTipNote : PA_DSA_NOTE;
+  b.textContent = tip ? "Submit and pay registration fee" : "Submit application";
 }
 
 /* ---------- products on the customer site ---------- */
@@ -732,7 +742,7 @@ async function renderDSA() {
   if (tab === "commission") body = `<div class="kpis"><div class="kpi"><span>Pending approval</span><b>${inr(C.pending)}</b></div><div class="kpi"><span>Approved</span><b>${inr(C.approved)}</b><small>awaiting payment</small></div><div class="kpi"><span>Paid</span><b>${inr(C.paid)}</b></div><div class="kpi"><span>Installs</span><b>${st.commission_count}</b></div></div>
     ${serverTable("dsa-comm", { role: "dsa", kind: "commissions", label: "Search earnings", empty: "No commissions yet. Commissions are created when an installation is completed.", html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Booking</th><th>Customer</th><th>Plan</th><th>Installed</th><th class="r">Amount</th><th>Status</th></tr></thead><tbody>${rows.map(c => `<tr><td class="mono">${esc(c.booking.ref_code)}</td><td>${esc(c.booking.lead ? c.booking.lead.name : "")}</td><td>${esc(c.booking.plan ? c.booking.plan.name : "")}</td><td>${fdate(c.booking.installed_at || c.created_at)}</td><td class="r num">${inr(c.amount)}</td><td>${commPill(c.status)}</td></tr>`).join("")}</tbody></table></div>` })}`;
   if (tab === "payments") body = chargeList(charges, "Nothing due to Connect Bhai.");
-  if (partner.status !== "active" && !["payments", "chat"].includes(tab)) body = activationCard(partner, charges);
+  if (partner.status !== "active" && !["payments", "chat"].includes(tab)) body = activationCard(partner, charges, true);
   if (tab === "chat") body = await chatTab();
   app.innerHTML = dashShell(esc(partner.name), "DSA portal · " + esc(partner.firm || ""), [["home", "Dashboard"], ["leads", "Leads & follow-ups", open], ["installs", "Installation status", st.bookings.scheduled + st.bookings.installed + st.bookings.cancelled], ["commission", "My earnings", st.commission_count], ["chat", "Chat", await unreadCount()]], tab, body, partner.status === "active" ? `<button class="btn btn-primary" data-act="dsa-add" type="button">Add lead</button>` : "", partnerPre(partner));
 }
@@ -1074,8 +1084,11 @@ function customerPayCard(leads) {
     <div class="methods" aria-label="Payment methods"><span>UPI · GPay, PhonePe, Paytm, BHIM</span><span>Debit / credit card</span><span>Net banking</span><span>Wallets</span></div>
     <div class="row"><button class="btn btn-primary" type="submit">Continue to pay</button><span class="muted small">Secure checkout by Razorpay</span></div></form>`;
 }
-function activationCard(p, cs) {
-  const fee = cs.find(c => c.kind === "registration_fee" && ["due", "failed"].includes(c.status));
+function activationCard(p, cs, dsa) {
+  const fee = dsa ? null : cs.find(c => c.kind === "registration_fee" && ["due", "failed"].includes(c.status));   // a DSA never pays a registration fee
+  if (dsa && p.status !== "suspended") return `<div class="card stack" style="max-width:640px;border-left:4px solid var(--blue)"><span class="eyebrow">Activate your account</span>
+    <h2 style="font-size:24px">Your application is under review.</h2>
+    <p class="muted">Admin is verifying your KYC and agreement. You'll get a WhatsApp message when approved. DSA registration is free.</p></div>`;
   if (p.status === "suspended") return `<div class="empty"><b>Your account is suspended.</b><p class="muted">Please contact Connect Bhai admin.</p></div>`;
   return `<div class="card stack" style="max-width:640px;border-left:4px solid var(--blue)"><span class="eyebrow">Activate your account</span>
     <h2 style="font-size:24px">${p.approved_at ? "You're approved. Pay the registration fee to start getting leads." : "Your application is under review."}</h2>
@@ -1905,6 +1918,7 @@ function startKycUpload(input) {
 }
 const onChange = e => {
   if (e.target.type === "file" && KYC_INPUTS[e.target.name] && e.target.closest("form[data-form=partner-apply]")) { startKycUpload(e.target); return; }
+  if (e.target.id === "pa-type") { syncPartnerType(); return; }
   if (e.target.id === "city-pick") { setCity(e.target.value); return; }
   if (e.target.id === "wl-filter") { S.wlCity = e.target.value; render(); return; }
   if (e.target.id === "lc-city") { const z = document.querySelector('[data-f="lc-zone"]'); if (z) z.hidden = e.target.value !== "indore"; return; }
@@ -2028,7 +2042,7 @@ const forms = {
         }
         const r = await API.applyPartner(d);
         f.reset(); f.querySelectorAll("[data-up]").forEach(n => { n.textContent = ""; }); f.querySelectorAll("input[type=file]").forEach(i => { i._up = null; });
-        if (r && r.charge) openAppFee(r.charge, d, r.existing);
+        if (r && r.charge && d.type === "tip") openAppFee(r.charge, d, r.existing);   // payment step is for a TIP only; a DSA never sees a payment window
         else openModal(`<div style="text-align:center;display:grid;gap:10px;justify-items:center;padding:8px 0"><span class="avatar" style="width:56px;height:56px;font-size:24px;background:var(--ok)">✓</span><h2 style="padding:0">Registration received</h2><p class="muted">Admin will verify your details and contact you on WhatsApp.</p><button class="btn btn-primary" data-act="close-modal" type="button">Done</button></div>`);
       } catch (err) {
         $("#modal").hidden = true; document.body.style.overflow = "";   // back to the form, nothing typed is lost
