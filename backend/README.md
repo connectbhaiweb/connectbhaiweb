@@ -39,6 +39,7 @@ e2e refuses to run against any database not ending in `_test`.
 
 ## Business rules enforced in code
 - DSA only brings leads. Sees only own leads (read-only status), earns a flat `dsa_payout_per_lead` **only when installed**, one per lead.
+- **A lead is never assigned to a DSA**, by an admin or by auto-assign. `PATCH /leads/:id/assign` takes only `tip_user_id` (a `dsa_user_id` is a 400), and an admin cannot create a lead on behalf of a DSA. A lead has a DSA only when that DSA created it (`brought_by_user_id`), and that never changes. Covered by `test/leads.e2e-spec.ts`.
 - TIP pays onboarding (at registration) + install fee (per install) + Care Plan (per lead) — all with GST (CGST+SGST for state 23, else IGST). Connect Bhai's internal TIP is exempt from the install fee.
 - Installation completes in one DB transaction (lead, booking, DSA payout, TIP charge, Care Plan device).
 - Care Plan: one Razorpay payment covers many leads; the webhook flips `leads.care_plan` for all of them; GenieACS polls only active devices.

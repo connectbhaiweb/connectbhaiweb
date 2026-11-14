@@ -81,7 +81,7 @@ export class ReportsController {
     const leads = Object.fromEntries(leadStatus.map((s) => [s.status, s._count._all]));
     const tickets = Object.fromEntries(ticketStatus.map((s) => [s.status, s._count._all]));
     const [unassigned, leads_month] = await Promise.all([
-      u.role === 'admin' ? this.prisma.lead.count({ where: { status: 'new', brought_by_user_id: null, tip_user_id: null } }) : Promise.resolve(0),
+      u.role === 'admin' ? this.prisma.lead.count({ where: { status: 'new', tip_user_id: null } }) : Promise.resolve(0),
       this.prisma.lead.count({ where: { AND: [scope, { created_at: { gte: monthStart } }] } }),
     ]);
     const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));

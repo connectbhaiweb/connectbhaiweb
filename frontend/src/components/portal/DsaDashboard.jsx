@@ -45,7 +45,7 @@ function Home({ data, s, partner }) {
     <>
       <PortalHead title="Agent portal" sub="Manage your leads, installations and earnings from Connect Bhai." pins={partner.service_pincodes} />
       <div className="pt-kpis">
-        <Kpi tone="blue" Icon={Users} label="Leads from Connect Bhai" value={s.given.length} sub={`${s.givenMonth} this month`} up />
+        <Kpi tone="blue" Icon={Users} label="Your leads" value={s.given.length} sub={`${s.givenMonth} this month`} up />
         <Kpi tone="green" Icon={CircleCheck} label="Installed" value={s.inst.length} sub={`${s.instMonth} this month · ${s.conv}% conversion`} up />
         <Kpi tone="amber" Icon={Coins} label="Total earned" value={inr(s.comm.all)} sub={`${inr(partner.commission_per_install)} per installation`} />
         <Kpi tone="purple" Icon={Wallet} label="Paid to you" value={inr(s.comm.paid)} sub={`${inr(s.comm.approved)} approved · ${inr(s.comm.pending)} awaiting`} />

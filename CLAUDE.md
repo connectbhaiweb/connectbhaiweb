@@ -51,8 +51,10 @@ npx expo install <pkg>      # ALWAYS, never npm/yarn add
 - Tailwind only scans `components/ui`, `components/magicui`, `components/speed`, `app/ui-kit`.
 
 ## Lead assignment & status (do not break)
-- `PATCH /leads/:id/assign` (admin): `dsa_user_id` (null clears) and/or `tip_user_id`. DSA lives in `brought_by_user_id` (drives DSA dashboard, reports, install payout). DSA locked once a booking is scheduled; TIP locked while a booking is open; installed leads locked. New DSA gets `dsa_lead_assigned`.
-- "Assigned" is a **UI-only** status: `rest.js` shows a server `new` lead that has a DSA or TIP as `assigned`. List filters: `status=new&unassigned=1` (New) / `status=new&assigned=1` (Assigned). The API has no `assigned` status.
+- **A lead is never assigned to a DSA, by hand or automatically.** `PATCH /leads/:id/assign` (admin) takes only `tip_user_id` (a `dsa_user_id` is refused with 400), and admin cannot attribute a lead to a DSA when creating it (`brought_by_user_id` is refused). Auto-assign picks a TIP by PIN code only.
+- A DSA only has the leads **they add themselves**: `brought_by_user_id` is set when the DSA creates the lead and never changes. It drives the DSA dashboard, reports and the install payout. Website, admin and customer leads have no DSA.
+- TIP locked while a booking is open; installed leads locked. Booking: the lead carries its latest booking (`bookings[0]`), and a Booked lead shows **Install** to the TIP (installs straight from scheduled).
+- "Assigned" is a **UI-only** status: `rest.js` shows a server `new` lead that has a **TIP** as `assigned`. List filters: `status=new&unassigned=1` (no TIP) / `status=new&assigned=1` (has a TIP). The API has no `assigned` status.
 
 ## Admin edit / delete (any status)
 Admin can edit and delete leads and DSA/TIP partners in **any** status: `PATCH|DELETE /leads/:id`, `PATCH|DELETE /users/:id` (`leads.service.adminUpdate/adminDelete`, `users.service.updatePartner/deletePartner`). Deletes are one transaction: a lead takes its bookings, payout, modem and chat with it (invoices stay, unlinked); a partner's leads stay (DSA/TIP cleared) while their bookings, payouts, charges, tickets and messages go. Connect Bhai's internal TIP cannot be deleted. The status machine and the assign locks above are **not** relaxed. The partner Edit dialog saves name, firm, mobile, email, address, PIN only (per-install amount and lead target are global settings).
@@ -71,3 +73,4 @@ Routes in `src/app/` (`_layout.tsx` = navigators); non-route code in `src/compon
 5. Keep existing naming, flow and architecture.
 6. Before done: frontend `npm run lint`; backend `typecheck` + `test`; mobile lint + `tsc --noEmit`.
 7. Update this file when a change makes it outdated.
+8. **Never assign a lead to a DSA** (manual or auto), and never add a DSA field to the assign API or the Assign dialog. A DSA only has the leads they add themselves. Assignment is to a TIP only (see "Lead assignment & status"). Don't weaken or remove the tests that enforce it in `backend/test/leads.e2e-spec.ts`.

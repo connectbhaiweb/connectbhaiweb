@@ -12,8 +12,6 @@ export class CreateLeadDto {
   @IsOptional() @Type(() => Number) @IsInt() plan_id?: number;
   @IsOptional() @IsIn(['website', 'callback']) source?: 'website' | 'callback';
   @IsOptional() @IsString() @MaxLength(1000) notes?: string;
-  /** admin only: attribute the lead to a DSA */
-  @IsOptional() @Type(() => Number) @IsInt() brought_by_user_id?: number;
 }
 /** Admin edit of a lead's details, allowed in every lead status. Status, DSA and TIP keep their own endpoints. */
 export class UpdateLeadDto {
@@ -60,8 +58,8 @@ export class LeadStatusDto {
   @IsOptional() @IsString() @MaxLength(255) lost_reason?: string;
 }
 /** Admin assignment. Send at least one field. dsa_user_id: a DSA id, or null to remove the DSA. */
+/** Assign a lead to a TIP. There is no DSA field on purpose: a lead is never assigned to a DSA. */
 export class AssignDto {
-  @IsOptional() @Type(() => Number) @IsInt() dsa_user_id?: number | null;
-  @IsOptional() @Type(() => Number) @IsInt() tip_user_id?: number;
+  @Type(() => Number) @IsInt() tip_user_id: number;
 }
 export class NoteDto { @IsString() @MinLength(1) @MaxLength(500) note: string; }

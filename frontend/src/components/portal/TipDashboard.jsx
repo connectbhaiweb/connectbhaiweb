@@ -147,8 +147,8 @@ function Leads({ stats, partner }) {
                 <CallWa phone={l.phone} name={l.name} text={`Namaste ${l.name}, this is about your Connect Bhai request ${l.ref_code}`} />
                 <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="lead" data-id={l.id}>Update</button>
                 {l.status === "installed" && (l.care_plan ? <Chip s="care" label="Care plan on" tone="green" /> : <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="care-plan-buy" data-id={l.id}>Add Care plan</button>)}
-                {["assigned", "contacted", "follow_up"].includes(l.status) && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="book" data-id={l.id}>Schedule</button>}
-                {l.status === "booked" && l.booking && l.booking.id && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="booking-status" data-id={String(l.booking.id)}>Update installation</button>}
+                {["assigned", "contacted", "follow_up"].includes(l.status) && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="book" data-id={l.id}>Schedule booking</button>}
+                {l.status === "booked" && l.booking && l.booking.id && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="booking-status" data-id={String(l.booking.id)}>Install</button>}
                 {l.status === "installed" && <button type="button" className="cu-btn cu-btn-soft pt-sm" data-go="tip" data-go-tab="careplan">Manage modem</button>}
               </span>
             </div>

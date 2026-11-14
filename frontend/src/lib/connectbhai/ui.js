@@ -644,7 +644,7 @@ function leadRow(l, role) {
     ${contactBtns({ phone: l.phone, email: l.email }, { thread: "lead:" + l.id, text: "Namaste " + l.name + ", this is about your Connect Bhai request " + l.ref_code })}
     ${role === "dsa" ? contactLine("Installer", l.tip) : contactLine("Agent", l.dsa)}
     <div class="row"><button class="btn btn-soft btn-sm" data-act="lead" data-id="${l.id}" type="button">Open &amp; update</button>
-      ${role === "tip" && open && !noInstall ? `<button class="btn btn-primary btn-sm" data-act="book" data-id="${l.id}" type="button">Schedule installation</button>` : ""}
+      ${role === "tip" && open && !noInstall ? `<button class="btn btn-primary btn-sm" data-act="book" data-id="${l.id}" type="button">Schedule booking</button>` : ""}
       ${role === "dsa" && open && noInstall ? `<button class="btn btn-primary btn-sm" data-act="activate-sim" data-id="${l.id}" type="button">${l.product === "sim" ? "Mark SIM activated" : "Mark pack activated"}</button>` : ""}</div></div>`;
 }
 function commissionList(cs) {
@@ -695,7 +695,7 @@ function promiseCard(s, admin) {
       <div class="row" style="align-items:baseline;gap:8px"><span class="big">${s.thisMonth}</span><span class="muted" style="font-weight:700">of ${s.target} leads delivered${admin ? "" : " to you"}</span></div>
       <div class="prog ${met ? "ok" : ""}" aria-label="${pct}% of promised leads"><i style="width:${pct}%"></i></div>
       <span class="small ${met ? "" : "muted"}" style="${met ? "color:var(--ok);font-weight:800" : ""}">${met ? "Promise met this month." : `${s.target - s.thisMonth} more to deliver · ${s.daysLeft} day${s.daysLeft === 1 ? "" : "s"} left in the month`}</span></div>
-    <div class="stack" style="gap:6px"><span class="muted small">Every website and callback request from ${admin ? "this DSA/TIP's" : "your"} PIN codes (${esc(s.p.service_pincodes || "—")}) is assigned automatically. ${s.isT ? "Each installed customer adds monthly billing to your business." : "Each installation earns you " + inr(s.p.commission_per_install) + "."}</span>
+    <div class="stack" style="gap:6px"><span class="muted small">${s.isT ? `Every website and callback request from ${admin ? "this TIP's" : "your"} PIN codes (${esc(s.p.service_pincodes || "—")}) is assigned to the TIP automatically. Each installed customer adds monthly billing to your business.` : `A DSA is never assigned leads: ${admin ? "this DSA has" : "you have"} only the customers ${admin ? "they add" : "you add"} ${admin ? "themselves" : "yourself"}. Each installation earns ${admin ? "them" : "you"} ` + inr(s.p.commission_per_install) + "."}</span>
       <span class="small">Conversion so far <b>${s.conv}%</b> · open leads <b>${s.open}</b></span></div></div>`;
 }
 function partnerDash(s) {
@@ -703,7 +703,7 @@ function partnerDash(s) {
   const kpis = s.isT
     ? `<div class="kpi"><span>Leads from Connect Bhai</span><b>${s.given.length}</b><small>${s.thisMonth} this month</small></div><div class="kpi"><span>Customers installed</span><b>${s.inst.length}</b><small>${s.installsMonth} this month · ${s.conv}% conversion</small></div>
        <div class="kpi"><span>Monthly billing added</span><b>${inr(s.billing)}</b><small>${inr(s.billing * 12)} a year from these customers</small></div><div class="kpi"><span>Your est. monthly income</span><b>${s.share ? inr(estMonthly) : "—"}</b><small>${s.share ? s.share + "% share of rental" : "Share % to be set by admin"}</small></div>`
-    : `<div class="kpi"><span>Leads from Connect Bhai</span><b>${s.given.length}</b><small>${s.thisMonth} this month${s.own.length ? " · " + s.own.length + " added by you" : ""}</small></div><div class="kpi"><span>Installed</span><b>${s.won}</b><small>${s.installsMonth} this month · ${s.conv}% conversion</small></div>
+    : `<div class="kpi"><span>Your leads</span><b>${s.given.length}</b><small>${s.thisMonth} this month</small></div><div class="kpi"><span>Installed</span><b>${s.won}</b><small>${s.installsMonth} this month · ${s.conv}% conversion</small></div>
        <div class="kpi"><span>Total earned</span><b>${inr(totalComm)}</b><small>${inr(p.commission_per_install)} per installation</small></div><div class="kpi"><span>Paid to you</span><b>${inr(s.comm.paid)}</b><small>${inr(s.comm.approved)} approved · ${inr(s.comm.pending)} awaiting approval</small></div>`;
   const money = s.isT
     ? `<div class="card"><h3>Monthly billing from Connect Bhai customers</h3><p class="muted small" style="margin-bottom:10px">Total monthly rental of all customers you installed from Connect Bhai leads, month by month.</p>${colChart(s.keys, [{ name: "Monthly billing", color: "var(--ok)", values: s.by.map(x => x.billing) }].concat(s.share ? [{ name: "Your est. income (" + s.share + "%)", color: "var(--blue)", values: s.by.map(x => Math.round(x.billing * s.share / 100)) }] : []), inrK)}</div>`
@@ -736,7 +736,7 @@ async function renderDSA() {
     <div class="chips" style="margin-bottom:14px">${[["open", "Open"], ["due", "Follow-up due"], ["assigned", "New to call"], ["contacted", "Contacted"], ["booked", "Booked"], ["installed", "Installed"], ["lost", "Lost"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="dsa-filter" data-v="${k}" aria-pressed="${filt === k}">${l}</button>`).join("")}</div>
     ${serverTable("dsa-leads", {
     role: "dsa", kind: "leads", filters: () => ({ status: S.dsaFilter || "open" }), label: "Search leads", html: rows => `<div class="list">${rows.map(l => leadRow(l, "dsa")).join("")}</div>`,
-    empty: `No leads here yet. Website requests from your PIN codes (${partner.service_pincodes || "none set"}) are assigned to you automatically. You can also add customers you meet in the field.`
+    empty: `No leads here yet. Add the customers you meet in the field, and you earn when they are installed.`
   })}`;
   if (tab === "installs") body = serverTable("dsa-installs", { role: "dsa", kind: "bookings", label: "Search installations", empty: "No installations yet.", html: rows => `<div class="list">${rows.map(b => `<div class="item"><div class="ih"><h3>${esc(b.lead.name)}</h3>${bookPill(b.status)}<span class="spacer"></span><span class="mono muted">${esc(b.ref_code)}</span></div><div class="meta"><span><b>${esc(fmtPh(b.lead.phone))}</b></span><span>${planLine(b.plan)}</span><span>Scheduled <b>${fdate(b.scheduled_date)}</b></span>${b.tip ? `<span>TIP <b>${esc(b.tip.name)}</b></span>` : ""}</div>${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}${contactLine("Installer", b.tip)}</div>`).join("")}</div>` });
   if (tab === "commission") body = `<div class="kpis"><div class="kpi"><span>Pending approval</span><b>${inr(C.pending)}</b></div><div class="kpi"><span>Approved</span><b>${inr(C.approved)}</b><small>awaiting payment</small></div><div class="kpi"><span>Paid</span><b>${inr(C.paid)}</b></div><div class="kpi"><span>Installs</span><b>${st.commission_count}</b></div></div>
@@ -796,14 +796,14 @@ async function openLead(id) {
       ${field("ls-note", "Note", `<textarea id="ls-note" name="note" placeholder="What did the customer say?"></textarea>`)}
       <button class="btn btn-primary" type="submit">Save update</button></form>`
       : `<p class="notice info">${l.status === "booked" ? "Booked. Installation progress is updated by the TIP." : l.status === "installed" ? "Installed. No further lead updates needed." : "Waiting for admin assignment."}</p>`}
-    ${u.role === "tip" && open && !noInstall ? `<button class="btn btn-soft btn-block" style="margin-top:10px" data-act="book" data-id="${l.id}" type="button">Schedule installation</button>` : ""}
+    ${u.role === "tip" && open && !noInstall ? `<button class="btn btn-soft btn-block" style="margin-top:10px" data-act="book" data-id="${l.id}" type="button">Schedule booking</button>` : ""}
     <h3 style="font-size:16px;margin:18px 0 10px">History</h3>
     <div class="timeline">${l.events.slice().reverse().map(e => `<div><b>${e.to_status ? LEAD[e.to_status] : "Update"}</b>${e.note ? " · " + esc(e.note) : ""}<small>${fdt(e.created_at)}</small></div>`).join("")}</div>`);
 }
 function openBook(id) {
-  openModal(`<h2>Schedule installation</h2><form class="stack" data-form="book" data-id="${id}" novalidate style="margin-top:12px">
+  openModal(`<h2>Schedule booking</h2><form class="stack" data-form="book" data-id="${id}" novalidate style="margin-top:12px">
     ${field("bk-date", "Installation date", `<input id="bk-date" name="date" type="date" min="${todayISO()}" value="${addDays(1)}">`)}
-    <button class="btn btn-primary" type="submit">Create booking</button></form>`);
+    <button class="btn btn-primary" type="submit">Schedule booking</button></form>`);
 }
 /* Every page of a list, 100 rows at a time. Only for pickers that really need all choices (active DSAs / TIPs); never for tables. */
 async function allPages(kind, f) {
@@ -812,7 +812,7 @@ async function allPages(kind, f) {
 async function openBookingStatus(id) {
   const b = cachedRow("bookings", id) || (API.getBooking ? await API.getBooking(id) : (me().role === "admin" ? await API.adminBookings() : await API.partnerBookings()).find(x => x.id === id));
   if (!b) { toast("Booking not found.", true); return; }
-  const next = BOOK_NEXT[b.status];
+  const next = REST && b.status === "scheduled" ? ["installed", "in_progress", "cancelled"] : BOOK_NEXT[b.status];   // the server completes a booking straight from scheduled; "in progress" only messages the customer
   openModal(`<h2>Update installation</h2><p class="muted small" style="margin:2px 0 12px"><span class="mono">${esc(b.ref_code)}</span> · ${esc(b.lead.name)} · ${bookPill(b.status)}</p>
    <form class="stack" data-form="booking-status" data-id="${id}" novalidate>
     ${field("bs-status", "New status", `<select id="bs-status" name="status">${next.map(s => `<option value="${s}">${BOOK[s]}</option>`).join("")}</select>`)}
@@ -858,13 +858,13 @@ async function renderAdmin() {
         <td><button class="btn btn-ghost btn-sm" data-act="zone-filter" data-v="${zf === r.pincode ? "all" : r.pincode}" type="button">${zf === r.pincode ? "Show all leads" : "Show these leads"}</button></td></tr>`).join("")}</tbody></table></div>
       ${pins.length > 4 ? `<div><button class="linkbtn small" data-act="zone-all" type="button">${S.zoneAll ? "Show top 4 areas only" : `Show the top ${pins.length} areas`}</button></div>` : ""}</div>`;
     const L = d.leads;
-    body = `<div class="card row" style="margin-bottom:14px;padding:14px 16px"><div style="min-width:0;flex:1 1 260px"><b>Auto-assign new leads by PIN code is ${auto ? "ON" : "OFF"}</b><p class="muted small">${auto ? "Each new request goes to the active DSA serving that PIN code (fewest open leads first) and to the TIP covering it. You can still reassign any lead." : "Every new request waits here for you to assign it."}</p></div><button class="btn ${auto ? "btn-ghost" : "btn-primary"} btn-sm" data-act="auto-assign" data-v="${auto ? 0 : 1}" type="button">Turn ${auto ? "off" : "on"}</button></div>
+    body = `<div class="card row" style="margin-bottom:14px;padding:14px 16px"><div style="min-width:0;flex:1 1 260px"><b>Auto-assign new leads by PIN code is ${auto ? "ON" : "OFF"}</b><p class="muted small">${auto ? "Each new request goes to the TIP covering that PIN code. A lead is never assigned to a DSA: a DSA only has the leads they add themselves. You can still reassign any lead to another TIP." : "Every new request waits here for you to assign it."}</p></div><button class="btn ${auto ? "btn-ghost" : "btn-primary"} btn-sm" data-act="auto-assign" data-v="${auto ? 0 : 1}" type="button">Turn ${auto ? "off" : "on"}</button></div>
     ${zoneHtml}<div class="row small" style="margin-bottom:10px;gap:8px"><b>Area</b><select class="sel" id="zone-pick" aria-label="Filter leads by area"><option value="all">All areas (${d.leads_total})</option>${pins.map(r => `<option value="${esc(r.pincode)}" ${zf === r.pincode ? "selected" : ""}>${esc(r.pincode)}${pinName(r.pincode) ? " · " + esc(pinName(r.pincode)) : ""} · ${r.leads}</option>`).join("")}</select>${zf !== "all" ? `<span class="muted">Showing leads in ${esc(zf)}${pinName(zf) ? " · " + esc(pinName(zf)) : ""}</span>` : ""}</div>
     <div class="chips" style="margin-bottom:14px">${["all", ...Object.keys(LEAD).filter(k => !(REST && k === "assigned"))].map(k => `<button type="button" class="chip" data-act="admin-lead-filter" data-v="${k}" aria-pressed="${f === k}">${k === "all" ? "All" : LEAD[k]}${zf === "all" ? ` (${k === "all" ? d.leads_total : L[k] || 0})` : ""}</button>`).join("")}</div>
     ${serverTable("adm-leads", {
       role: "admin", kind: "leads", label: "Search leads", empty: "No leads here.", filters: () => ({ status: S.adminLeadFilter || "all", pincode: (S.zoneFilter || "all") === "all" ? undefined : S.zoneFilter }), html: rows => `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Ref</th><th>Customer</th><th>PIN</th><th>Area</th><th>Plan</th><th>Status</th><th>DSA</th><th>TIP</th><th></th></tr></thead><tbody>
     ${rows.map(l => `<tr><td class="mono" style="white-space:nowrap">${esc(l.ref_code)}<br><span class="muted">${fdate(l.created_at)}</span></td><td><b>${esc(l.name)}</b><br><span class="muted">${esc(fmtPh(l.phone))}</span>${l.email ? `<br><span class="muted small">${esc(l.email)}</span>` : ""}${contactBtns({ phone: l.phone, email: l.email }, { thread: "lead:" + l.id })}</td><td><b class="mono">${esc(l.pincode)}</b></td><td>${esc(l.area || pinName(l.pincode) || "—")}</td><td>${l.plan ? esc(l.plan.provider.name) + "<br><span class='muted'>" + esc(l.plan.name) + "</span>" : "<span class='muted'>Callback</span>"}</td><td>${leadPill(l.status, l.product)}<br>${productChip(l)}</td><td>${esc((l.dsa && l.dsa.name) || "—")}</td><td>${esc((l.tip && l.tip.name) || "—")}</td>
-      <td><div class="row" style="flex-wrap:nowrap">${!["installed", "lost"].includes(l.status) ? `<button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">${l.dsa || l.tip ? "Reassign" : "Assign"}</button>` : ""}<button class="btn btn-ghost btn-sm" data-act="lead" data-id="${l.id}" type="button">Open</button>${REST ? `<button class="btn btn-ghost btn-sm" data-act="edit-lead" data-id="${l.id}" type="button">Edit</button><button class="btn btn-danger btn-sm" data-act="delete-lead" data-id="${l.id}" data-ref="${esc(l.ref_code)}" data-name="${esc(l.name)}" type="button">Delete</button>` : ""}${l.tip && ["assigned", "contacted", "follow_up"].includes(l.status) ? `<button class="btn btn-ghost btn-sm" data-act="book" data-id="${l.id}" type="button">Book</button>` : ""}${l.booking && ["scheduled", "in_progress"].includes(l.booking.status) ? `<button class="btn btn-ghost btn-sm" data-act="booking-status" data-id="${l.booking.id}" type="button">Install</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`
+      <td><div class="row" style="flex-wrap:nowrap">${!["installed", "lost"].includes(l.status) ? `<button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">${l.tip ? "Reassign" : "Assign"}</button>` : ""}<button class="btn btn-ghost btn-sm" data-act="lead" data-id="${l.id}" type="button">Open</button>${REST ? `<button class="btn btn-ghost btn-sm" data-act="edit-lead" data-id="${l.id}" type="button">Edit</button><button class="btn btn-danger btn-sm" data-act="delete-lead" data-id="${l.id}" data-ref="${esc(l.ref_code)}" data-name="${esc(l.name)}" type="button">Delete</button>` : ""}${l.tip && ["assigned", "contacted", "follow_up"].includes(l.status) ? `<button class="btn btn-ghost btn-sm" data-act="book" data-id="${l.id}" type="button">Book</button>` : ""}${l.booking && ["scheduled", "in_progress"].includes(l.booking.status) ? `<button class="btn btn-ghost btn-sm" data-act="booking-status" data-id="${l.booking.id}" type="button">Install</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div>`
     })}`;
   }
   if (tab === "partners") {
@@ -937,15 +937,14 @@ async function adminReports() {
     <p class="muted small" style="margin-top:10px">${d.installs_total} installations completed, ${d.installs_pending} pending. Reports are calculated by the server from the same database as every portal.</p>`;
 }
 async function openAssign(id) {
-  const [lead, dsas, tips, locs] = await Promise.all([cachedRow("leads", id) || (API.getLead ? API.getLead(id) : API.adminLeads().then(a => a.find(x => x.id === id))), allPages("partners", { type: "dsa", status: "active" }), allPages("partners", { type: "tip", status: "active" }), API.adminLocations()]);
-  const l = lead, partners = [...dsas, ...tips];
+  const [lead, tips, locs] = await Promise.all([cachedRow("leads", id) || (API.getLead ? API.getLead(id) : API.adminLeads().then(a => a.find(x => x.id === id))), allPages("partners", { type: "tip", status: "active" }), API.adminLocations()]);   // a lead is assigned to a TIP only, never to a DSA
+  const l = lead, partners = tips;
   const act = t => partners.filter(p => p.type === t && p.status === "active");
   const covTip = (() => { const c = locs.filter(x => x.pincode === l.pincode).flatMap(x => x.coverage).find(c => c.tip && (!l.plan || c.provider_id === l.plan.provider_id)); return c ? c.tip_partner_id : ""; })();
-  const sugDsa = (act("dsa").find(p => (p.service_pincodes || "").includes(l.pincode)) || {}).id || "";
   const opt = (list, cur, sug) => `<option value="">— None —</option>` + list.map(p => `<option value="${p.id}" ${(cur || sug) === p.id ? "selected" : ""}>${esc(p.name)}${p.id === sug ? " (serves " + esc(l.pincode) + ")" : ""}</option>`).join("");
   openModal(`<h2>Assign lead</h2><p class="muted small" style="margin:2px 0 12px"><span class="mono">${esc(l.ref_code)}</span> · ${esc(l.name)} · PIN ${esc(l.pincode)}</p>
     <p class="small" style="margin-bottom:12px">${planLine(l.plan)}</p>
-    <form class="stack" data-form="assign" data-id="${id}" data-cur-dsa="${esc(l.assigned_dsa_id || "")}" novalidate>
+    <form class="stack" data-form="assign" data-id="${id}" novalidate>
       ${field("as-tip", "TIP (installer)", `<select id="as-tip" name="tip">${opt(act("tip"), l.assigned_tip_id, covTip)}</select>`, "Suggested from coverage for this PIN and provider")}
       <button class="btn btn-primary" type="submit">Assign lead</button></form>`);
 }
@@ -1167,7 +1166,7 @@ async function adminSettings() {
       <button class="btn btn-primary" type="submit">Save settings</button></form>
     <div class="card stack"><h3>Lead assignment</h3>
       <div class="row" style="align-items:flex-start;gap:12px"><div style="min-width:0;flex:1 1 220px"><b>Auto-assign new leads by PIN code is ${auto ? "ON" : "OFF"}</b>
-        <p class="muted small">${auto ? "Each new request goes to the active DSA serving that PIN code (fewest open leads first) and to the TIP covering it. You can still reassign any lead." : "Every new request waits in Leads for you to assign it."}</p></div>
+        <p class="muted small">${auto ? "Each new request goes to the TIP covering that PIN code. A lead is never assigned to a DSA: a DSA only has the leads they add themselves. You can still reassign any lead to another TIP." : "Every new request waits in Leads for you to assign it."}</p></div>
         <button class="btn ${auto ? "btn-ghost" : "btn-primary"} btn-sm" data-act="auto-assign" data-v="${auto ? 0 : 1}" type="button">Turn ${auto ? "off" : "on"}</button></div></div></div>`;
 }
 async function adminBilling() {
@@ -1859,7 +1858,7 @@ const actions = {
     catch (e) { out.textContent = errMsg(e); }
   },
   "auto-assign": async b => { await guard(b, () => API.setAutoAssign(b.dataset.v === "1")); toast("Auto-assign turned " + (b.dataset.v === "1" ? "on." : "off.")); render(); },
-  "dsa-add": () => openModal(`<h2>Add a lead</h2><p class="muted" style="margin:4px 0 12px">For a customer you met in the field. The lead is assigned to you, and to the TIP covering that PIN code.</p>
+  "dsa-add": () => openModal(`<h2>Add a lead</h2><p class="muted" style="margin:4px 0 12px">For a customer you met in the field. The lead is recorded as yours, and goes to the TIP covering that PIN code.</p>
     <form class="stack" data-form="dsa-add" novalidate><div class="grid2">
       ${field("dl-name", "Customer name", `<input id="dl-name" name="name">`)}${field("dl-phone", "Customer mobile", `<input id="dl-phone" name="phone" inputmode="numeric" maxlength="16">`)}
       ${field("dl-pin", "PIN code", `<input id="dl-pin" name="pincode" inputmode="numeric" maxlength="6">`)}${field("dl-area", "Area / colony", `<input id="dl-area" name="area">`)}</div>
@@ -2165,7 +2164,7 @@ const forms = {
     await guard(btn, () => API.saveAcs(f.dataset.id, d)); closeModal(); toast("Gene setup saved."); render();
   },
   "ticket-status": async (f, btn) => { const s = val(f, "status"), n = val(f, "note"); if (!setErr(f, ["resolved", "closed"].includes(s) && n.length < 3 ? { "ts-note": "Tell the customer what was done." } : {})) return; await guard(btn, () => API.updateTicket(f.dataset.id, s, n)); closeModal(); toast("Ticket updated."); render(); },
-  assign: async (f, btn) => { const dsa = f.dataset.curDsa || "", tip = val(f, "tip"); if (!setErr(f, !tip ? { "as-tip": "Choose a TIP (installer)." } : {})) return; await guard(btn, () => API.assignLead(f.dataset.id, dsa, tip)); closeModal(); toast("Lead assigned."); render(); },
+  assign: async (f, btn) => { const tip = val(f, "tip"); if (!setErr(f, !tip ? { "as-tip": "Choose a TIP (installer)." } : {})) return; await guard(btn, () => API.assignLead(f.dataset.id, tip)); closeModal(); toast("Lead assigned."); render(); },
   partner: async (f, btn) => {
     const d = { id: f.dataset.id, type: val(f, "type"), name: val(f, "name"), firm: val(f, "firm"), phone: val(f, "phone"), email: val(f, "email"), commission_per_install: val(f, "commission_per_install"), service_pincodes: val(f, "service_pincodes"), kyc_verified: val(f, "kyc_verified"), lead_target: val(f, "lead_target"), address: val(f, "address"), pincode: val(f, "pincode") }, e = {};
     if (d.name.length < 2) e["pt-name"] = "Enter the name."; if (!isPhone(d.phone)) e["pt-phone"] = "Enter a valid 10-digit mobile."; if (!(Number(d.commission_per_install) >= 0)) e["pt-comm"] = "Enter 0 or more."; if (d.pincode && !isPin(d.pincode)) e["pt-pin"] = "Enter a valid 6-digit PIN code.";

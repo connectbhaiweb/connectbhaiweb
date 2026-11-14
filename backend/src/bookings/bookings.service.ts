@@ -16,6 +16,8 @@ import { BookingQuery, CompleteBookingDto, CreateBookingDto, UpdateBookingDto } 
 /** What the background job needs after an installation is marked complete (ids and numbers only: it is stored in the job table). */
 interface InstallationDone { lead_id: number; tip_user_id: number; connection_id?: string | null; commission: { dsa_user_id: number; amount: number } | null; charge: { total_amount: number } | null }
 
+const BOOKING_VIEW = { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, customer_user_id: true, brought_by_user_id: true, address: true, pincode: true, status: true, care_plan: true, plan: { select: { id: true, plan_code: true, name: true, price: true, speed_mbps: true, install_charge: true, category: { select: { id: true, name: true, type: true, logo_url: true } } } } } }, tip: { select: { id: true, name: true, partner_code: true, phone: true } } } satisfies Prisma.BookingInclude;
+
 @Injectable()
 export class BookingsService {
   constructor(
@@ -97,6 +99,13 @@ export class BookingsService {
     return true;
   }
 
+  /** One booking, in the same shape as a list row (what the Install dialog needs). */
+  async one(id: number, u: AuthUser) {
+    const b = await this.prisma.booking.findFirst({ where: { id, lead: leadScope(u) }, include: BOOKING_VIEW });
+    if (!b) throw new NotFoundException('Booking not found');
+    return b;
+  }
+
   async list(q: BookingQuery, u: AuthUser) {
     const where: Prisma.BookingWhereInput = { status: q.status as any, lead_id: q.lead_id, lead: q.q?.trim() ? { AND: [leadScope(u), await leadTextWhere(this.prisma, q.q)] } : leadScope(u) };
     if (q.device) {
@@ -105,7 +114,7 @@ export class BookingsService {
     }
     if (q.scheduled_from || q.scheduled_to) where.scheduled_at = { ...(q.scheduled_from ? { gte: new Date(q.scheduled_from) } : {}), ...(q.scheduled_to ? { lt: new Date(q.scheduled_to) } : {}) };
     const [items, total] = await Promise.all([
-      this.prisma.booking.findMany({ where, orderBy: q.scheduled_from || q.scheduled_to ? [{ scheduled_at: 'asc' }, { id: 'desc' }] : { id: 'desc' }, include: { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, customer_user_id: true, brought_by_user_id: true, address: true, pincode: true, status: true, care_plan: true, plan: { select: { id: true, plan_code: true, name: true, price: true, speed_mbps: true, install_charge: true, category: { select: { id: true, name: true, type: true, logo_url: true } } } } } }, tip: { select: { id: true, name: true, partner_code: true, phone: true } } }, ...pageArgs(q) }),
+      this.prisma.booking.findMany({ where, orderBy: q.scheduled_from || q.scheduled_to ? [{ scheduled_at: 'asc' }, { id: 'desc' }] : { id: 'desc' }, include: BOOKING_VIEW, ...pageArgs(q) }),
       this.prisma.booking.count({ where }),
     ]);
     return paged(items, total, q);

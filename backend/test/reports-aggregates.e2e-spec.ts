@@ -52,9 +52,9 @@ describe('dashboard aggregates and paging params', () => {
   });
 
   describe('leads query params', () => {
-    it('unassigned=1 returns only leads with no DSA and no TIP', async () => {
+    it('unassigned=1 returns only leads with no TIP (a lead is never assigned to a DSA)', async () => {
       const r = await get('/leads?unassigned=1&limit=200').expect(200);
-      for (const l of r.body.items) { expect(l.brought_by_user_id ?? null).toBeNull(); expect(l.tip_user_id ?? null).toBeNull(); }
+      for (const l of r.body.items) expect(l.tip_user_id ?? null).toBeNull();
       expect((await get('/leads?unassigned=maybe')).status).toBe(400);
     });
     it('sort=followup orders by follow-up date, earliest first', async () => {

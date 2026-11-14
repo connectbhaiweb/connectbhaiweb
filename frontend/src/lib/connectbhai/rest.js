@@ -111,9 +111,10 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   const assignNote = n => /^dsa removed/.test(n || "") ? { to: null, note: "Agent removed" } : /^dsa_user_id=/.test(n || "") ? { to: "assigned", note: "Agent assigned" } : { to: "assigned", note: "Installer assigned" };
   const mapLead = l => {
     if (!l) return l;
-    const b = l.booking || null;
+    const bk = Array.isArray(l.bookings) && l.bookings[0] ? l.bookings[0] : null;   // the latest booking, sent with every lead
+    const b = bk ? { id: S(bk.id), status: BS[bk.status] || bk.status, scheduled_date: bk.scheduled_at ? String(bk.scheduled_at).slice(0, 10) : null, installed_at: bk.completed_at, connection_ref: bk.connection_id } : (l.booking || null);
     return { id: S(l.id), ref_code: l.ref_code, customer_id: S(l.customer_user_id), name: l.customer_name, phone: l.customer_phone, email: l.customer_email || "", pincode: l.pincode, area: l.area ? l.area.name : null, area_id: l.area ? S(l.area.id) : null, address: l.address,
-      plan_id: S(l.plan_id), plan: l.plan ? mapPlan({ ...l.plan, category: l.plan.category }) : null, preferred_date: null, source: l.source, product: l.plan && l.plan.category && ["ott"].includes(l.plan.category.type) ? "ott" : "broadband", status: l.status === "new" && (l.brought_by_user_id || l.tip_user_id) ? "assigned" : (LS[l.status] || l.status),   // the API has no "assigned" status: a new lead with a DSA or TIP is shown as Assigned
+      plan_id: S(l.plan_id), plan: l.plan ? mapPlan({ ...l.plan, category: l.plan.category }) : null, preferred_date: null, source: l.source, product: l.plan && l.plan.category && ["ott"].includes(l.plan.category.type) ? "ott" : "broadband", status: l.status === "new" && l.tip_user_id ? "assigned" : (LS[l.status] || l.status),   // the API has no "assigned" status: a new lead with a TIP is shown as Assigned (a lead is never assigned to a DSA)
       assigned_dsa_id: S(l.brought_by_user_id), assigned_tip_id: S(l.tip_user_id), dsa: pc(l.dsa), tip: pc(l.tip), next_follow_up: l.followup_at ? String(l.followup_at).slice(0, 10) : null, lost_reason: l.lost_reason, notes: l.notes,
       care_plan: !!l.care_plan, consent: true, created_at: l.created_at, updated_at: l.updated_at, installed_at: l.installed_at, booking: b };
   };
@@ -263,7 +264,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       if (status === "follow_up" && !next) fail("Choose a follow-up date.");
       await patch(`/leads/${id}/status`, { status: LSBACK[status] || status, note: note || undefined, followup_at: next ? new Date(next + "T09:00:00").toISOString() : undefined, lost_reason: status === "lost" ? (note || undefined) : undefined }); return true;
     },
-    async assignLead(id, dsa, tip) { need("admin"); await patch(`/leads/${id}/assign`, { dsa_user_id: dsa ? Number(dsa) : null, tip_user_id: tip ? Number(tip) : undefined }); return true; },   // dsa "" = no DSA (clears it); unchanged DSA is a no-op on the server
+    async assignLead(id, tip) { need("admin"); await patch(`/leads/${id}/assign`, { tip_user_id: Number(tip) }); return true; },   // a lead is assigned to a TIP only, never to a DSA   // dsa "" = no DSA (clears it); unchanged DSA is a no-op on the server
     async dsaAddLead(f) {
       need("dsa"); if (!f.consent) fail("Confirm the customer agreed to be contacted.");
       const l = await post("/leads", { customer_name: f.name.trim(), customer_phone: f.phone, address: f.address || undefined, pincode: f.pincode, plan_id: N(f.plan_id), notes: f.area ? "Area: " + f.area : undefined });

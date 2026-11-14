@@ -1,4 +1,4 @@
-import { actors, bearer, createCtx, Ctx, makeCustomer, P, rzpSig, uniquePhone } from './helpers';
+import { actors, bearer, createCtx, Ctx, makeCustomer, P, rzpSig, tokenFor, uniquePhone } from './helpers';
 
 const partner = (role: 'dsa' | 'tip', over: object = {}) => ({
   role, name: 'Ravi Kumar', phone: uniquePhone(), address: '12 MG Road, Indore', pincode: '452001',
@@ -159,7 +159,9 @@ describe('partner registration & approval', () => {
       const dsa = await c.http().post(`${P}/partners/register`).send(partner('dsa')).expect(201);
       const id = dsa.body.user.id;
       await c.prisma.user.update({ where: { id }, data: { partner_status: 'approved', approved_at: new Date() } });
-      const lead = await c.http().post(`${P}/leads`).set(bearer(a.admin)).send({ customer_name: 'Kept Lead', customer_phone: uniquePhone(), pincode: '452010', brought_by_user_id: id }).expect(201);
+      const dsaToken = await tokenFor(c, 'dsa', dsa.body.user.phone);   // the DSA adds the lead himself: only a DSA's own leads carry that DSA
+      const lead = await c.http().post(`${P}/leads`).set(bearer(dsaToken)).send({ customer_name: 'Kept Lead', customer_phone: uniquePhone(), pincode: '452010' }).expect(201);
+      expect(Number(lead.body.brought_by_user_id)).toBe(id);
       await c.http().delete(`${P}/users/${id}`).set(bearer(a.admin)).expect(200);
       expect(await c.prisma.user.findUnique({ where: { id } })).toBeNull();
       expect((await c.prisma.lead.findUniqueOrThrow({ where: { id: lead.body.id } })).brought_by_user_id).toBeNull();
