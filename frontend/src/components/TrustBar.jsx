@@ -3,9 +3,9 @@ import { SUPPORT_PHONE_E164, SUPPORT_PHONE_TEXT } from "@/lib/contact";
 
 /* Thin strip above the header: four promises on the left, the support number on the right (tap to call on phones). */
 const ITEMS = [
-  [ShieldCheck, "Verified Providers"],
+  [ShieldCheck, "Trusted Providers"],
   [Scale, "Unbiased Comparison"],
-  [Clock, "Quick Installation"],
+  [Clock, "Fast Installation"],
   [Headphones, "Free Expert Assistance"],
 ];
 export default function TrustBar() {

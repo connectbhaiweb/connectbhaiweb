@@ -34,7 +34,7 @@ const BLURB: Record<Tab, [string, string]> = {
 const CATS = ['All', 'Plans', 'Booking & payment', 'Installation', 'Router & speed'];
 const FAQ: [string, string, string][] = [
   ['Plans', 'How can I compare plans by pincode?', 'Enter your 6-digit pincode or area on the home page. We show only the plans and TIPs that serve your address, and you can compare up to 3 plans side by side.'],
-  ['Plans', 'Are only verified providers shown?', 'Partners (DSAs and BSNL TIPs) are verified by our admin team before any lead is assigned to them, and plans are reviewed before they go live. Plans marked as sample data are placeholders until verified tariffs are added.'],
+  ['Plans', 'Are only trusted providers shown?', 'Partners (DSAs and BSNL TIPs) are verified by our admin team before any lead is assigned to them, and plans are reviewed before they go live. Plans marked as sample data are placeholders until verified tariffs are added.'],
   ['Router & speed', 'Can I run a speed test before choosing?', 'Yes. The Wi-Fi speed test is free, takes about 30 seconds and works on your phone or laptop. Log in if you want to save the result or report slow speed to support.'],
   ['Booking & payment', 'How do I pay the booking amount?', 'Requesting a connection is free for customers. When a payment is due, you get a WhatsApp message with the amount and can pay online by UPI, card or net banking. Your payments are also listed under Payments in your dashboard.'],
   ['Installation', 'How long does installation take?', 'After you request a connection, an assigned TIP calls you and books a time. Every step (assigned, contacted, booked, installed) is updated in your dashboard, so you always see where it stands. Exact timing depends on your area and the TIP.'],
