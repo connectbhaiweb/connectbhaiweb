@@ -4,6 +4,7 @@ import Link from "next/link";
 import Logo from "./Logo";
 import { subscribe, getSnapshot, getServerSnapshot } from "@/lib/connectbhai/runtime";
 import { ROLE_HOME } from "@/lib/connectbhai/shared";
+import { BUSINESS_ADDRESS, BUSINESS_AREAS, BUSINESS_HOURS_TEXT, SOCIAL_FACEBOOK, SOCIAL_INSTAGRAM } from "@/lib/contact";
 
 export default function Footer() {
   const { user } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
@@ -16,7 +17,7 @@ export default function Footer() {
               <Logo height={40} />
             </Link>
             <p style={{ marginTop: 8 }}>
-              Compare. Choose. Connect. Care. A broadband marketplace for Madhya Pradesh, live in Indore, connecting customers with BSNL TIPs, Direct Selling Agents and local internet providers.
+              Compare BSNL, Jio, Airtel and local ISP fiber, SIM, TV &amp; OTT plans by PIN code in Indore. Book connection &amp; get Connect Bhai Care.
             </p>
           </div>
           <div>
@@ -34,8 +35,11 @@ export default function Footer() {
           <div>
             <h4>Contact</h4>
             <ul>
-              <li>Indore, Madhya Pradesh</li>
+              <li>{BUSINESS_ADDRESS}</li>
+              <li>{BUSINESS_HOURS_TEXT}</li>
+              <li>Area served: {BUSINESS_AREAS.slice(0, -1).join(", ")} &amp; {BUSINESS_AREAS[BUSINESS_AREAS.length - 1]}</li>
               <li>www.connectbhai.com</li>
+              <li><a href={SOCIAL_FACEBOOK} target="_blank" rel="noopener noreferrer">Facebook</a> · <a href={SOCIAL_INSTAGRAM} target="_blank" rel="noopener noreferrer">Instagram</a></li>
               <li className="small">
                 Plans shown here are sample data until verified tariffs are added. Connect Bhai is an independent marketplace and does not claim live integration with any ISP.
               </li>
