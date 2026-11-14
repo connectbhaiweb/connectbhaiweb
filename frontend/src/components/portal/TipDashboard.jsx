@@ -46,10 +46,10 @@ function Home({ data, s, months, setMonths }) {
     <>
       <PortalHead title="TIP portal" sub="Manage installations, update plans and track your performance with Connect Bhai." pins={partner.service_pincodes} />
       <div className="pt-kpis">
-        <Kpi tone="blue" Icon={Users} label="Leads from Connect Bhai" value={s.total} sub={`${s.givenMonth} this month`} up />
-        <Kpi tone="green" Icon={CircleCheck} label="Customers installed" value={s.inst} sub={`${s.instMonth} this month · ${s.conv}% conversion`} up />
-        <Kpi tone="amber" Icon={Coins} label="Monthly billing added" value={inr(s.billing)} sub={`${inr(s.billing * 12)} a year`} />
-        <Kpi tone="purple" Icon={Wallet} label="Your est. monthly income" value={share ? inr(s.billing * share / 100) : "—"} sub={share ? `${share}% share` : "Share % to be set by admin"} />
+        <Kpi tone="blue" Icon={Users} label="Leads from Connect Bhai" value={s.total} sub={`${s.givenMonth} this month`} up href="/tip/leads" filter={["cb-tip-filter", "all"]} />
+        <Kpi tone="green" Icon={CircleCheck} label="Customers installed" value={s.inst} sub={`${s.instMonth} this month · ${s.conv}% conversion`} up href="/tip/leads" filter={["cb-tip-filter", "installed"]} />
+        <Kpi tone="amber" Icon={Coins} label="Monthly billing added" value={inr(s.billing)} sub={`${inr(s.billing * 12)} a year`} href="/tip/payments" />
+        <Kpi tone="purple" Icon={Wallet} label="Your est. monthly income" value={share ? inr(s.billing * share / 100) : "—"} sub={share ? `${share}% share` : "Share % to be set by admin"} href="/tip/payments" />
       </div>
       <div className="pt-row pt-row-tip1">
         <Card title="Leads delivered and installed" Icon={ChartColumn} className="pt-chartcard" action={<Period value={months} onChange={setMonths} />}>

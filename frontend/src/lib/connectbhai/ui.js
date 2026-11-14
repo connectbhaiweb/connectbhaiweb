@@ -866,6 +866,7 @@ async function renderAdmin() {
       <div class="list" style="margin-top:10px">${pendingP.length ? pendingP.map(p => `<div class="item"><div class="ih"><h3>${esc(p.name)}</h3>${pill(p.type.toUpperCase(), "p-blue")}</div><div class="meta"><span>${esc(p.firm || "")}</span><span><b>${esc(fmtPh(p.phone))}</b></span>${p.email ? `<span>${esc(p.email)}</span>` : ""}<span>PINs ${esc(p.service_pincodes || "—")}</span>${p.fee_paid_at ? pill("Fee paid", "p-ok") : pill("Fee not paid", "p-warn")}</div><div class="row"><button class="btn btn-soft btn-sm" data-act="edit-partner" data-id="${p.id}" type="button">Review</button></div></div>`).join("") : `<p class="muted">No pending applications.</p>`}</div></div></div>`;
   }
   if (tab === "leads") {
+    try { const t = sessionStorage.getItem("cb-admin-filter"); if (t) { sessionStorage.removeItem("cb-admin-filter"); S.adminLeadFilter = t; resetServerTable("adm-leads"); } } catch (e) { }   // set by an Overview card
     const f = S.adminLeadFilter || "all", zf = S.zoneFilter || "all", [d, stt] = await Promise.all([dashStats(API, "admin", { months: 1, pins: 50 }), API.getSettings()]), auto = Number(stt.auto_assign) === 1;
     const pins = d.top_pins, pinName = pin => { const x = pins.find(q => q.pincode === pin); return x && x.areas && x.areas[0] || ""; };
     const top4 = pins.slice(0, 4), maxN = Math.max(1, ...top4.map(r => r.leads));

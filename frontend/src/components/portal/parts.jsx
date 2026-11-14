@@ -16,13 +16,16 @@ export function PortalHead({ title, sub, pins }) {
   );
 }
 
-export function Kpi({ tone, Icon, label, value, sub, up }) {
-  return (
-    <div className={`pt-kpi tone-${tone}`}>
+export function Kpi({ tone, Icon, label, value, sub, up, href, filter }) {   // href: the card opens that page; filter: [sessionStorage key, value] the page reads once to pre-select its filter
+  const body = (
+    <>
       <span className="pt-kpi-ico"><Icon aria-hidden="true" /></span>
       <div className="pt-kpi-txt"><span>{label}</span><b>{value}</b>{sub ? <small className={up ? "is-up" : ""}>{up ? <i className="pt-up" aria-hidden="true" /> : null}{sub}</small> : null}</div>
-    </div>
+    </>
   );
+  if (!href) return <div className={`pt-kpi tone-${tone}`}>{body}</div>;
+  const keep = () => { if (filter) { try { sessionStorage.setItem(filter[0], filter[1]); } catch (e) { /* storage blocked: the page opens unfiltered */ } } };
+  return <Link className={`pt-kpi pt-kpi-link tone-${tone}`} href={href} onClick={keep} aria-label={`${label}: ${value}. Open`}>{body}</Link>;
 }
 
 export function Card({ title, Icon, action, className = "", children, id }) {

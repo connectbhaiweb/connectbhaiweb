@@ -29,6 +29,7 @@
 .pt-kpis-6{grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
 .pt-kpi{position:relative;display:flex;align-items:flex-start;gap:20px;min-height:125px;padding:16px 26px 16px 18px;background:#fff;border:1px solid #E6ECF7;border-radius:16px;box-shadow:0 1px 2px rgba(10,27,61,.04),0 14px 34px -24px rgba(10,27,61,.3);min-width:0;transition:box-shadow .2s,transform .2s}
 .pt-kpi::after{content:"";position:absolute;right:8px;top:16px;bottom:16px;width:5px;border-radius:4px;background:var(--t-bar,transparent)}
+.pt-kpi-link{color:inherit;text-decoration:none;cursor:pointer}.pt-kpi-link:focus-visible{outline:2px solid var(--t-fg,#164FC8);outline-offset:2px}
 @media (hover:hover){.pt-kpi:hover{transform:translateY(-2px);box-shadow:0 1px 2px rgba(10,27,61,.05),0 18px 38px -22px rgba(10,27,61,.38)}}
 .pt-kpi-ico{width:58px;height:58px;border-radius:14px;background:var(--t-bg);color:var(--t-fg);display:grid;place-items:center}
 .pt-kpi-ico svg{width:32px;height:32px;stroke-width:1.9}

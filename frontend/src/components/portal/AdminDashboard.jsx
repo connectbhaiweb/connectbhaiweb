@@ -38,12 +38,12 @@ export default function AdminDashboard({ tab }) {
       <Counts c={counts} />
       <PortalHead title="Admin portal" sub="Control panel for leads, DSAs, TIPs, installations, plans and business operations." />
       <div className="pt-kpis pt-kpis-6">
-        <Kpi tone="red" Icon={Users} label="Unassigned leads" value={stats.unassigned} sub="Need assignment" />
-        <Kpi tone="amber" Icon={CalendarDays} label="Installs pending" value={stats.installs_pending} />
-        <Kpi tone="blue" Icon={Ticket} label="Open tickets" value={stats.open_tickets} />
-        <Kpi tone="purple" Icon={Coins} label="Payouts to approve" value={inr(stats.commission.pending)} />
-        <Kpi tone="blue" Icon={Store} label="Active DSAs & TIPs" value={activePartners} />
-        <Kpi tone="green" Icon={CircleCheck} label="Customers installed this month" value={stats.installs_month} />
+        <Kpi tone="red" Icon={Users} label="Unassigned leads" value={stats.unassigned} sub="Need assignment" href="/admin/leads" filter={["cb-admin-filter", "new"]} />
+        <Kpi tone="amber" Icon={CalendarDays} label="Installs pending" value={stats.installs_pending} href="/admin/leads" filter={["cb-admin-filter", "booked"]} />
+        <Kpi tone="blue" Icon={Ticket} label="Open tickets" value={stats.open_tickets} href="/admin/chat" />
+        <Kpi tone="purple" Icon={Coins} label="Payouts to approve" value={inr(stats.commission.pending)} href="/admin/commissions" />
+        <Kpi tone="blue" Icon={Store} label="Active DSAs & TIPs" value={activePartners} href="/admin/partners" />
+        <Kpi tone="green" Icon={CircleCheck} label="Customers installed this month" value={stats.installs_month} href="/admin/customers" />
       </div>
       <div className="pt-row pt-row-adm1">
         <Card title="Leads waiting for assignment" Icon={Users} action={<More href="/admin/leads">View all leads</More>}>
