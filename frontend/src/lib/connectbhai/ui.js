@@ -351,7 +351,7 @@ async function renderHome() {
       </div>
       ${field("pa-email", "Email", `<input id="pa-email" name="email" type="email" autocomplete="email">`)}
       ${field("pa-city", "Your city", `<select id="pa-city" name="city_id">${cityOptions(S.city, true)}</select>`, "DSAs and TIPs can register before we launch in their city.")}
-      ${field("pa-pins", "PIN codes you serve", `<input id="pa-pins" name="pincodes" placeholder="452010, 452016">`, "Separate with commas")}
+      ${field("pa-pins", "PIN codes you serve", `<input id="pa-pins" name="pincodes" placeholder="Enter PIN codes, e.g. 452010, 452016">`, "Separate with commas")}
       ${REST ? `<h3 style="margin:14px 0 4px">KYC and bank details</h3>
       ${field("pa-addr", "Address", `<input id="pa-addr" name="address" autocomplete="street-address">`)}
       ${field("pa-pin1", "Your PIN code", `<input id="pa-pin1" name="pincode" inputmode="numeric" maxlength="6">`)}
@@ -391,7 +391,7 @@ function searchBody() {
   if (S.city && cityList().length && !cityLive(S.city)) return soonBody();
   const pins = (S.pins || []).filter(p => !p.city_id || !S.city || p.city_id === S.city);
   const pinUI = (title, sub) => `<h2>${title}</h2><p class="muted small" style="margin-top:2px">${sub}</p>
-    <div class="pinrow"><input id="pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" placeholder="452010" value="${esc(S.pin)}" aria-label="PIN code"><button class="btn btn-primary" type="submit">Search</button></div>
+    <div class="pinrow"><input id="pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" value="${esc(S.pin)}" aria-label="PIN code" placeholder="Enter your PIN code"><button class="btn btn-primary" type="submit">Search</button></div>
     <div class="pinacts"><button class="linkbtn small" data-act="use-location" type="button">Use my current location</button><button class="resetbtn" data-act="reset-pin" type="button" aria-label="Reset PIN code search"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Reset</button></div>
     <p class="ferr" id="pin-err" style="margin-top:6px"></p>
     <div class="chips" style="margin-top:6px">${pins.map(p => `<button type="button" class="chip" data-act="pick-pin" data-pin="${p.pin}" aria-pressed="${S.pin === p.pin}">${p.pin} · ${esc(p.area)}</button>`).join("")}</div>`;
@@ -529,7 +529,7 @@ function openRequest(planId) {
      <div class="grid2">
        ${field("rq-name", "Full name", `<input id="rq-name" name="name" autocomplete="name" value="${esc(u && u.role === "customer" ? u.full_name : "")}">`)}
        ${field("rq-phone", "Mobile number", `<input id="rq-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="tel-national" value="${esc(u && u.role === "customer" ? u.phone || "" : "")}">`)}
-       ${field("rq-pin", "PIN code", `<input id="rq-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(S.pin)}">`)}
+       ${field("rq-pin", "PIN code", `<input id="rq-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(S.pin)}" placeholder="Enter your PIN code">`)}
        ${field("rq-area", "Area / colony", `<input id="rq-area" name="area" value="${esc(S.areas[0] || "")}">`)}
      </div>
      ${field("rq-email", "Email (optional)", `<input id="rq-email" name="email" type="email" autocomplete="email" value="${esc(u && u.role === "customer" ? u.email || "" : "")}">`, "Your agent, installer and admin can see it to send bills and updates.")}
@@ -562,7 +562,7 @@ function openSimBooking(p) {
      </div>
      <div id="sm-prefwrap">${field("sm-pref", "Preferred number ending (optional)", `<input id="sm-pref" name="number_preference" inputmode="numeric" maxlength="4" placeholder="e.g. 786">`, "Subject to availability. BSNL customers can also choose a number on BSNL's own portal.")}</div>
      <div class="grid2">
-       ${field("rq-pin", "Delivery PIN code", `<input id="rq-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(S.pin)}">`)}
+       ${field("rq-pin", "Delivery PIN code", `<input id="rq-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(S.pin)}" placeholder="Enter your PIN code">`)}
        ${field("sm-slot", "Delivery time", `<select id="sm-slot" name="delivery_slot"><option>Morning (9–12)</option><option>Afternoon (12–4)</option><option>Evening (4–8)</option></select>`)}
      </div>
      ${field("rq-addr", "Delivery address", `<input id="rq-addr" name="address" autocomplete="street-address" placeholder="House no., street, landmark">`)}
@@ -988,9 +988,9 @@ async function openPartner(id) {
     ${field("pt-email", "Email", `<input id="pt-email" name="email" type="email" value="${esc(p.email || "")}">`)}
     ${REST ? "" : field("pt-comm", "Per-install amount (₹)", `<input id="pt-comm" name="commission_per_install" type="number" min="0" step="50" value="${esc(p.commission_per_install || 0)}">`, "DSA: payout Connect Bhai pays. TIP: platform fee the TIP pays (+GST).")}
     ${REST ? "" : field("pt-target", "Leads promised per month", `<input id="pt-target" name="lead_target" type="number" min="0" step="1" value="${esc(p.lead_target || "")}" placeholder="Default">`, "Shown on the DSA's dashboard as Connect Bhai's monthly lead promise. Empty = default from Settings.")}</div>
-    ${REST && id ? `<div class="grid2">${field("pt-addr", "Address", `<input id="pt-addr" name="address" value="${esc(p.address || "")}" maxlength="255">`)}${field("pt-pin", "PIN code", `<input id="pt-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(p.pincode || "")}">`)}</div>
-    ${p.type === "dsa" ? field("pt-pins", "Service PIN codes", `<input id="pt-pins" name="service_pincodes" value="${esc(p.service_pincodes || "")}" placeholder="452010, 452016">`, "New leads in these PIN codes go to this DSA. When several DSAs serve a PIN code, the one with the fewest open leads gets the next lead.") : ""}
-    <p class="muted small">Works in any status: pending, active or suspended. Status is changed with Approve / Suspend / Activate. Per installation, ${p.type === "dsa" ? "a DSA earns" : "a TIP pays"} <b>${inr(p.commission_per_install)}</b>${p.type === "dsa" ? "" : " + GST"}. This amount and the monthly lead promise are the same for every ${p.type === "dsa" ? "DSA" : "TIP"} and are set in Settings.</p>` : field("pt-pins", "Service PIN codes", `<input id="pt-pins" name="service_pincodes" value="${esc(p.service_pincodes || "")}">`)}
+    ${REST && id ? `<div class="grid2">${field("pt-addr", "Address", `<input id="pt-addr" name="address" value="${esc(p.address || "")}" maxlength="255">`)}${field("pt-pin", "PIN code", `<input id="pt-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(p.pincode || "")}" placeholder="Enter your PIN code">`)}</div>
+    ${p.type === "dsa" ? field("pt-pins", "Service PIN codes", `<input id="pt-pins" name="service_pincodes" value="${esc(p.service_pincodes || "")}" placeholder="Enter PIN codes, e.g. 452010, 452016">`, "New leads in these PIN codes go to this DSA. When several DSAs serve a PIN code, the one with the fewest open leads gets the next lead.") : ""}
+    <p class="muted small">Works in any status: pending, active or suspended. Status is changed with Approve / Suspend / Activate. Per installation, ${p.type === "dsa" ? "a DSA earns" : "a TIP pays"} <b>${inr(p.commission_per_install)}</b>${p.type === "dsa" ? "" : " + GST"}. This amount and the monthly lead promise are the same for every ${p.type === "dsa" ? "DSA" : "TIP"} and are set in Settings.</p>` : field("pt-pins", "Service PIN codes", `<input id="pt-pins" name="service_pincodes" value="${esc(p.service_pincodes || "")}" placeholder="Enter PIN codes, e.g. 452010, 452016">`)}
     ${id && (p.aadhaar_last4 || p.pan_last4 || p.bank_name || p.upi_id) ? `<div class="facts" style="margin:4px 0"><div><span>Aadhaar</span><b>${p.aadhaar_last4 ? "•••• " + esc(p.aadhaar_last4) : "—"}</b></div><div><span>PAN</span><b>${p.pan_last4 ? "••••• " + esc(p.pan_last4) : "—"}</b></div><div><span>Bank</span><b>${esc(p.bank_name || "—")}</b></div><div><span>Account</span><b>${p.bank_account_last4 ? "•••• " + esc(p.bank_account_last4) : "—"}</b></div><div><span>IFSC</span><b class="mono">${esc(p.bank_ifsc || "—")}</b></div><div><span>UPI</span><b>${esc(p.upi_id || "—")}</b></div></div>` : ""}
     ${REST && id ? "" : `<label class="check"><input type="checkbox" name="kyc_verified" ${p.kyc_verified ? "checked" : ""}> KYC and agreement verified</label>`}
     ${REST && id ? `<div class="stack" id="pt-docs"><h3 style="margin:6px 0 0">KYC documents</h3><span class="muted small">Loading…</span></div>` : ""}
@@ -1170,7 +1170,7 @@ function openCreateUser() {
       ${field("cu-phone", "Mobile number (username)", `<input id="cu-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="off">`)}
       ${field("cu-email", "Email", `<input id="cu-email" name="email" type="email" autocomplete="off">`)}
       ${field("cu-firm", "Firm / shop name", `<input id="cu-firm" name="firm">`)}
-      ${field("cu-pins", "Service PIN codes", `<input id="cu-pins" name="pincodes" placeholder="452010, 452016">`)}</div>
+      ${field("cu-pins", "Service PIN codes", `<input id="cu-pins" name="pincodes" placeholder="Enter PIN codes, e.g. 452010, 452016">`)}</div>
       <p class="muted small" id="cu-note">For a new DSA or TIP, an account is also created (active, registration fee waived). If the DSA or TIP already exists with this mobile, the login is linked to it.</p>
       <button class="btn btn-primary" type="submit">Create login and send on WhatsApp</button></form>`);
 }
@@ -1300,7 +1300,7 @@ function soonBody() {
   return `<h2>Launching soon in ${esc(name)}</h2><p class="muted small" style="margin-top:2px">Connect Bhai is live in Indore today and is coming to ${esc(name)} next. Leave your number and we'll message you on WhatsApp the day we start here.</p>
     <div class="grid2" style="margin-top:12px">${field("wl-name", "Your name", `<input id="wl-name" name="wl_name" autocomplete="name" value="${esc(u && u.role === "customer" ? u.full_name || "" : "")}">`)}
     ${field("wl-phone", "WhatsApp number", `<input id="wl-phone" name="wl_phone" inputmode="numeric" maxlength="16" autocomplete="tel-national" value="${esc(u && u.role === "customer" ? u.phone || "" : "")}">`)}</div>
-    ${field("wl-pin", "PIN code (optional)", `<input id="wl-pin" name="wl_pin" inputmode="numeric" maxlength="6">`, "Helps us plan which areas to start with.")}
+    ${field("wl-pin", "PIN code (optional)", `<input id="wl-pin" name="wl_pin" inputmode="numeric" maxlength="6" placeholder="Enter your PIN code">`, "Helps us plan which areas to start with.")}
     <div class="field" data-f="wl-consent" style="margin-top:4px"><label class="check"><input type="checkbox" name="wl_consent" id="wl-consent"> Message me on WhatsApp when Connect Bhai launches in ${esc(name)}.</label><span class="ferr" id="wl-consent-err"></span></div>
     <button class="btn btn-primary btn-block" type="submit" style="margin-top:10px">Notify me at launch</button>
     <p class="muted small" style="margin-top:8px">Interested in <b>${esc(PRODUCT_NAME[S.product] || "Fiber broadband")}</b>. Change it with the tabs above.</p>`;
@@ -1837,7 +1837,7 @@ const actions = {
     openModal(`<h2>Edit lead</h2><p class="muted small" style="margin:2px 0 12px"><span class="mono">${esc(l.ref_code)}</span> · ${leadPill(l.status, l.product)} · works in any status. Status, DSA and TIP change with their own buttons.</p>
       <form class="stack" data-form="lead-edit" data-id="${esc(l.id)}" data-pin="${esc(l.pincode)}" novalidate>
         <div class="grid2">${field("le-name", "Customer name", `<input id="le-name" name="name" value="${esc(l.name || "")}">`)}${field("le-phone", "Mobile", `<input id="le-phone" name="phone" inputmode="numeric" maxlength="16" value="${esc(l.phone || "")}">`)}
-        ${field("le-email", "Email", `<input id="le-email" name="email" type="email" value="${esc(l.email || "")}">`)}${field("le-pin", "PIN code", `<input id="le-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(l.pincode || "")}">`)}</div>
+        ${field("le-email", "Email", `<input id="le-email" name="email" type="email" value="${esc(l.email || "")}">`)}${field("le-pin", "PIN code", `<input id="le-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(l.pincode || "")}" placeholder="Enter your PIN code">`)}</div>
         ${areas.length ? field("le-area", "Area", `<select id="le-area" name="area_id"><option value="">— None —</option>${areas.map(a => `<option value="${esc(a.id)}" ${String(a.id) === String(l.area_id) ? "selected" : ""}>${esc(a.area)}</option>`).join("")}</select>`, "Changing the PIN code clears the area.") : ""}
         ${field("le-addr", "Address", `<input id="le-addr" name="address" value="${esc(l.address || "")}" maxlength="255">`)}
         ${field("le-notes", "Notes", `<textarea id="le-notes" name="notes" maxlength="1000">${esc(l.notes || "")}</textarea>`)}
@@ -1858,7 +1858,7 @@ const actions = {
   "add-location": () => {
     S.areaRows = [];
     openModal(`<h2>Add PIN / area</h2><p class="muted" style="margin:4px 0 12px">Type the PIN code and the area name yourself. Nothing is looked up or filled in for you.</p>
-    <form class="stack" data-form="location" novalidate>${field("lc-pin", "PIN code", `<input id="lc-pin" name="pincode" inputmode="numeric" maxlength="6" autocomplete="off">`)}
+    <form class="stack" data-form="location" novalidate>${field("lc-pin", "PIN code", `<input id="lc-pin" name="pincode" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="Enter your PIN code">`)}
     ${field("lc-area", "Area name", `<input id="lc-area" name="area" maxlength="120" autocomplete="off">`, "One area at a time. Add the same PIN again for another area.")}
     ${field("lc-city", "City", `<select id="lc-city" name="city_id">${cityOptions("indore", true)}</select>`, "Add PIN codes of a city before you launch it.")}
     <button class="btn btn-primary" type="submit">Add area</button></form>
@@ -1892,7 +1892,7 @@ const actions = {
   "dsa-add": () => openModal(`<h2>Add a lead</h2><p class="muted" style="margin:4px 0 12px">For a customer you met in the field. The lead is recorded as yours. You call, follow up and book it, then assign the TIP who installs it.</p>
     <form class="stack" data-form="dsa-add" novalidate><div class="grid2">
       ${field("dl-name", "Customer name", `<input id="dl-name" name="name">`)}${field("dl-phone", "Customer mobile", `<input id="dl-phone" name="phone" inputmode="numeric" maxlength="16">`)}
-      ${field("dl-pin", "PIN code", `<input id="dl-pin" name="pincode" inputmode="numeric" maxlength="6">`)}${field("dl-area", "Area / colony", `<input id="dl-area" name="area">`)}</div>
+      ${field("dl-pin", "PIN code", `<input id="dl-pin" name="pincode" inputmode="numeric" maxlength="6" placeholder="Enter your PIN code">`)}${field("dl-area", "Area / colony", `<input id="dl-area" name="area">`)}</div>
       ${field("dl-addr", "Address", `<input id="dl-addr" name="address">`)}
       ${field("dl-plan", "Plan (optional)", `<select id="dl-plan" name="plan_id"><option value="">Enter PIN code to load plans</option></select>`)}
       <div class="field" data-f="dl-consent"><label class="check"><input type="checkbox" name="consent"> The customer agreed to be contacted by Connect Bhai and its DSAs and TIPs.</label><span class="ferr" id="dl-consent-err"></span></div>

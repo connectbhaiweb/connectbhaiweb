@@ -26,3 +26,22 @@ html[data-shell] #app .btn-primary{background:#1043C8;border-color:#1043C8}
 html[data-shell] #app :is(.btn,.linkbtn,a,input,select,textarea):focus-visible{outline:3px solid #8DB4FF;outline-offset:2px}
 @media (max-width:767px){html[data-shell] #app .wrap{padding:14px 12px 20px}html[data-shell] #app .kpis{gap:10px}}
 @media (prefers-reduced-motion:reduce){html[data-shell] #app :is(.card,.item,.kpi){transition:none}}
+
+/* ---- phones: legacy tables become cards too (cells get data-l from ResponsiveTables.jsx) ---- */
+@media (max-width:700px){
+  .tbl-wrap{overflow:visible;border:0;background:none}
+  table.tbl,table.tbl tbody,table.tbl tr,table.tbl td{display:block;width:100%;min-width:0!important}
+  table.tbl thead{display:none}
+  table.tbl tr{margin-bottom:10px;padding:12px;border:1px solid var(--line,#E6ECF7);border-radius:12px;background:#fff}
+  table.tbl td{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0!important;border:0!important;text-align:right;white-space:normal;overflow-wrap:anywhere}
+  table.tbl td::before{content:attr(data-l);flex:none;max-width:42%;text-align:left;font-size:12.5px;font-weight:600;color:#53617F}
+  table.tbl td .cv{flex:1 1 0;min-width:0}
+  table.tbl td .cv .row{justify-content:flex-end}
+  table.tbl td:first-child{justify-content:flex-start;text-align:left}
+  table.tbl td:first-child .cv,table.tbl td:last-child .cv{text-align:left}
+  table.tbl td:last-child .cv .row{justify-content:flex-start}
+  table.tbl td:first-child::before{display:none}
+  table.tbl td:last-child{flex-wrap:wrap;justify-content:flex-start;gap:8px;text-align:left}
+  table.tbl td:last-child::before{display:none}
+  table.tbl td .row{flex-wrap:wrap!important}
+}

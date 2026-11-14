@@ -841,3 +841,12 @@ footer button.linkbtn:hover,footer a:hover{color:#4FD6B0;text-decoration:underli
 .legal ul{margin:8px 0 0;padding-left:22px}
 .legal li{margin:6px 0}
 h1:focus,h1:focus-visible{outline:none}
+
+/* ---- header never wraps: nav labels and buttons stay on one line, the user name and role chip drop out first when space is short ---- */
+.top .wrap{gap:12px}
+.topnav{flex:0 1 auto;min-width:0;margin-left:8px}
+.topnav button,.top .acts .btn,.top .acts .acts-who,.top .who,.top .rolechip{white-space:nowrap}
+.top .acts{flex:none}
+@media (max-width:1360px){.top .who .nm{display:none}}
+@media (max-width:1180px){.topnav button{padding:10px 10px}.top .who .rolechip{display:none}}
+@media (max-width:1020px){.topnav button{padding:10px 8px;font-size:14px}}

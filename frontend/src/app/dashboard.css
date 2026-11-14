@@ -301,3 +301,24 @@ footer .footer-care:hover{color:#FDE68A!important}
 /* The floating Back pill got its own strip above the page head, so it no longer covers the Fetch / Add lead buttons at the top right */
 html[data-shell] :is(#app,.dsh-page),html[data-shell-pending] :is(#app,.dsh-page){padding-top:calc(var(--dsh-top) + 46px)}
 html[data-shell] #app .dsh-page,html[data-shell-pending] #app .dsh-page{padding-top:0}
+
+/* ---- language toggle in the top bar: compact on phones so the bar never overflows ---- */
+@media (max-width:560px){
+  .dsh-top .lang-toggle{margin-right:0;height:30px;padding:2px}
+  .dsh-top .lang-toggle span{min-width:26px;height:24px;padding:0 4px;font-size:11.5px}
+  .dsh-top .dsh-right{gap:7px}
+  .dsh-top .dsh-msearch,.dsh-top .dsh-wa,.dsh-top .dsh-bell{width:36px;height:36px}
+  .dsh-top .dsh-avatar{width:36px;height:36px}
+}
+@media (max-width:420px){
+  .dsh-top{gap:6px;padding-inline:10px}
+  .dsh-top .dsh-logo .logo-img{height:28px!important}
+  .dsh-top .dsh-right{gap:5px}
+}
+@media (max-width:380px){
+  .dsh-top .dsh-logo .logo-img{height:24px!important}
+  .dsh-top .dsh-msearch,.dsh-top .dsh-wa,.dsh-top .dsh-bell,.dsh-top .dsh-avatar{width:32px;height:32px}
+  .dsh-top .dsh-wa svg{width:20px;height:20px}.dsh-top .dsh-bell svg{width:22px;height:22px}
+  .dsh-top .lang-toggle{height:28px}.dsh-top .lang-toggle span{min-width:24px;height:22px;font-size:11px}
+  .dsh-top .dsh-right{gap:4px}
+}
