@@ -2,7 +2,7 @@
 export const ROLE_HOME = { customer: "my", dsa: "dsa", tip: "tip", admin: "admin" };
 export const ROLE_NAME = { customer: "Customer", dsa: "DSA", tip: "TIP", admin: "Administrator" };
 export const ROLE_NAV_LABEL = { customer: "My dashboard", dsa: "DSA portal", tip: "TIP portal", admin: "Admin portal" };
-export const VIEWS = ["home", "speed", "router", "my", "dsa", "tip", "admin"];
+export const VIEWS = ["home", "speed", "care", "my", "dsa", "tip", "admin"];
 
 export const initials = s => String(s || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
 

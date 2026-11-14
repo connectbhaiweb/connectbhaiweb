@@ -18,7 +18,7 @@ export default function Header() {
     const onKey = e => { if (e.key === "Escape") { setOpenAt(null); document.getElementById("menu-toggle")?.focus(); } };
     document.addEventListener("keydown", onKey); return () => document.removeEventListener("keydown", onKey);
   }, [open]);
-  const nav = [["home", "Plans"], ["router", "Care plan"], ["speed", "Speed test"]];
+  const nav = [["home", "Plans"], ["care", "Care plan"], ["speed", "Speed test"]];
   if (user) nav.push([ROLE_HOME[user.role], ROLE_NAV_LABEL[user.role]]);
 
   return (

@@ -24,7 +24,7 @@ export default function Footer() {
             <ul>
               <li><button className="linkbtn" data-go="home" data-scroll="search" type="button">Search by PIN code</button></li>
               <li><button className="linkbtn" data-go="speed" type="button">Wi-Fi speed test</button></li>
-              <li><button className="linkbtn footer-care" data-go="router" type="button">Care plan</button></li>
+              <li><button className="linkbtn footer-care" data-go="care" type="button">Care plan</button></li>
               <li><button className="linkbtn" data-go="home" data-scroll="faq" type="button">FAQ</button></li>
               <li><button className="linkbtn" data-go="home" data-scroll="get-app" type="button">Get the app</button></li>
               {user && <li><button className="linkbtn" data-go={ROLE_HOME[user.role] || "my"} type="button">My dashboard</button></li>}
