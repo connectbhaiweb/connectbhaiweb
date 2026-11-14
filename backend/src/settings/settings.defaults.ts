@@ -11,5 +11,5 @@ export const SETTING_DEFS: Record<string, { default: string; description: string
   tip_job_earning: { default: '0', description: 'Amount shown in the "job completed" WhatsApp to the TIP (rupees per installed job)' },
   gst_percent: { default: '18', description: 'GST on all TIP charges' },
   lead_target_default: { default: '20', description: 'Leads Connect Bhai promises each DSA / TIP per month' },
-  auto_assign: { default: '1', description: '1/true = assign new leads to a TIP by pincode automatically' },
+  auto_assign: { default: '1', description: '1/true = assign new leads to a DSA by pincode automatically (the DSA serving the PIN code with the fewest open leads)' },
 };

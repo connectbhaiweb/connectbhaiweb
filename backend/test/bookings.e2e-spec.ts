@@ -17,19 +17,33 @@ describe('bookings & installation money flow', () => {
     await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: l.id, scheduled_at: inDays(-3) }).expect(400);
     await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: l.id, scheduled_at: 'tomorrow' }).expect(400);
     await c.http().post(`${P}/bookings`).set(bearer(a.doulat)).send({ lead_id: l.id, scheduled_at: inDays(1) }).expect(404); // not their lead
-    await c.http().post(`${P}/bookings`).set(bearer(a.dsa1)).send({ lead_id: l.id, scheduled_at: inDays(1) }).expect(403);
+    await c.http().post(`${P}/bookings`).set(bearer(a.dsa2)).send({ lead_id: l.id, scheduled_at: inDays(1) }).expect(404); // another DSA: not their lead
     await c.http().post(`${P}/bookings`).send({ lead_id: l.id, scheduled_at: inDays(1) }).expect(401);
     await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: 999999, scheduled_at: inDays(1) }).expect(404);
     const lost = await newLead(c, a, { tip: 'dream' });
     await c.http().patch(`${P}/leads/${lost.id}/status`).set(bearer(a.dream)).send({ status: 'cancelled' }).expect(200);
     await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: lost.id, scheduled_at: inDays(1) }).expect(400);
   });
-  it('a lead without a TIP cannot be booked', async () => {
+  it('a lead nobody is assigned to (no DSA, no TIP) cannot be booked', async () => {
     await c.http().put(`${P}/settings/auto_assign`).set(bearer(a.admin)).send({ value: '0' }).expect(200);
-    const l = await newLead(c, a);
+    const l = await newLead(c, a, { by: 'web' });
     await c.http().put(`${P}/settings/auto_assign`).set(bearer(a.admin)).send({ value: '1' }).expect(200);
     expect(l.tip_user_id).toBeNull();
+    expect(l.brought_by_user_id).toBeNull();
     await c.http().post(`${P}/bookings`).set(bearer(a.admin)).send({ lead_id: l.id, scheduled_at: inDays(1) }).expect(400);
+  });
+  it('a DSA can book, reschedule and cancel their own lead, but not install it', async () => {
+    const l = await newLead(c, a, { by: 'dsa1' });
+    const b = (await c.http().post(`${P}/bookings`).set(bearer(a.dsa1)).send({ lead_id: l.id, scheduled_at: inDays(2) }).expect(201)).body;
+    expect(b.tip_user_id).toBeNull();
+    await c.http().patch(`${P}/bookings/${b.id}`).set(bearer(a.dsa2)).send({ scheduled_at: inDays(3) }).expect(404);      // not their lead
+    await c.http().patch(`${P}/bookings/${b.id}`).set(bearer(a.dsa1)).send({ scheduled_at: inDays(3) }).expect(200);      // reschedule
+    await c.http().post(`${P}/bookings/${b.id}/start`).set(bearer(a.dsa1)).expect(403);                                   // installing is the TIP's job
+    await c.http().post(`${P}/bookings/${b.id}/complete`).set(bearer(a.dsa1)).send({ connection_id: 'X1' }).expect(403);
+    await c.http().patch(`${P}/bookings/${b.id}`).set(bearer(a.dsa1)).send({ status: 'cancelled' }).expect(200);          // cancel: back to follow-up
+    expect((await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dsa1)).expect(200)).body.status).toBe('followup');
+    const again = (await c.http().post(`${P}/bookings`).set(bearer(a.dsa1)).send({ lead_id: l.id, scheduled_at: inDays(4) }).expect(201)).body;   // and book again
+    expect(again.id).not.toBe(b.id);
   });
 
   it('reschedule and cancel (cancel returns the lead to follow-up)', async () => {
@@ -68,7 +82,7 @@ describe('bookings & installation money flow', () => {
     await c.http().patch(`${P}/leads/${l.id}/status`).set(bearer(a.dream)).send({ status: 'cancelled' }).expect(400);
   });
   it('website lead (no DSA) creates no payout; internal TIP pays no install fee', async () => {
-    const l = await newLead(c, a, { by: 'web', tip: 'internal' });
+    const l = await newLead(c, a, { by: 'web', noDsa: true, tip: 'internal' });   // a lead no DSA brought
     const { result } = await install(c, a.internal, l.id);
     expect(result.commission).toBeNull();
     expect(result.charge).toBeNull();

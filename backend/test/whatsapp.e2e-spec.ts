@@ -18,6 +18,36 @@ describe('WhatsApp messages at each step', () => {
     expect((n.payload as any).executive).toBeTruthy();
   });
 
+  it('a new request is auto-assigned: the DSA is told; a DSA\'s own lead tells nobody; admin assigning a DSA tells the new DSA', async () => {
+    const toDsa = (id: number, ref: string) => c.prisma.notification.findMany({ where: { user_id: id, template: 'dsa_lead_assigned' } }).then((r) => r.filter((n) => (n.payload as any).ref_code === ref));
+    const web = await newLead(c, a, { by: 'web' });                       // auto-assigned to dsa1 (serves 452010)
+    const [n] = await toDsa(a.ids.dsa1, web.ref_code);
+    expect(n).toBeTruthy();
+    expect(n.payload).toMatchObject({ customer: 'Lead Person', customer_phone: web.customer_phone, ref_code: web.ref_code });
+    expect((n.payload as any).product).toBeTruthy();
+    const own = await newLead(c, a, { by: 'dsa1' });                      // the DSA added it: nothing to tell them
+    expect(await toDsa(a.ids.dsa1, own.ref_code)).toHaveLength(0);
+    await c.http().patch(`${P}/leads/${own.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa2 }).expect(200);
+    expect(await toDsa(a.ids.dsa2, own.ref_code)).toHaveLength(1);        // handed to dsa2 by admin: dsa2 is told
+  });
+
+  it('a TIP assigned to a booked lead: the TIP gets the job, the customer hears "installation in progress" once, a new TIP gets the job', async () => {
+    const lead = await newLead(c, a, { by: 'dsa1' });
+    const b = await c.http().post(`${P}/bookings`).set(bearer(a.dsa1)).send({ lead_id: lead.id, scheduled_at: inDays(1) }).expect(201);
+    const job = (tipId: number) => c.prisma.notification.findMany({ where: { user_id: tipId, template: 'tip_job_assigned' } }).then((r) => r.filter((n) => (n.payload as any).ref_code === lead.ref_code));
+    expect(await sent(lead.customer_phone, 'installation_in_progress')).toHaveLength(0);   // no TIP yet: nobody to name
+    expect(await job(a.ids.dream)).toHaveLength(0);
+    await c.http().patch(`${P}/leads/${lead.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(200);
+    expect(await job(a.ids.dream)).toHaveLength(1);
+    const progress = await sent(lead.customer_phone, 'installation_in_progress');
+    expect(progress).toHaveLength(1);
+    expect((progress[0].payload as any).technician).toBeTruthy();
+    await c.http().patch(`${P}/leads/${lead.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat }).expect(200);
+    expect(await job(a.ids.doulat)).toHaveLength(1);                      // the new TIP is told
+    expect(await sent(lead.customer_phone, 'installation_in_progress')).toHaveLength(1);   // the customer is not told twice
+    expect(b.body.id).toBeTruthy();
+  });
+
   it('follow-up status sends "lead_followup" to the customer', async () => {
     const lead = await newLead(c, a, { tip: 'dream' });
     await c.http().patch(`${P}/leads/${lead.id}/status`).set(bearer(a.admin)).send({ status: 'followup', followup_at: inDays(1) }).expect(200);

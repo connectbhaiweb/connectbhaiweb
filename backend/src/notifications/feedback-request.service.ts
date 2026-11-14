@@ -35,7 +35,7 @@ export class FeedbackRequestService implements OnModuleInit, OnModuleDestroy {
     for (const b of bookings) {
       // record first, so a crash or a second server can never ask the same customer twice
       await this.prisma.leadEvent.create({ data: { lead_id: b.lead.id, actor_user_id: null, event_type: EVENT } });
-      await this.notify.send({ user_id: b.lead.customer_user_id, phone: b.lead.customer_phone, template: 'installation_feedback', payload: { name: b.lead.customer_name, product: productName(b.lead.plan), technician: b.tip.name, ref_code: b.lead.ref_code } });
+      await this.notify.send({ user_id: b.lead.customer_user_id, phone: b.lead.customer_phone, template: 'installation_feedback', payload: { name: b.lead.customer_name, product: productName(b.lead.plan), technician: b.tip?.name ?? 'Connect Bhai', ref_code: b.lead.ref_code } });
     }
     if (bookings.length) this.logger.log(`feedback requested from ${bookings.length} customers`);
     return bookings.length;

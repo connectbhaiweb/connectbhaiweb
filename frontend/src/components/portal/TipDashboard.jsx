@@ -129,9 +129,9 @@ function Leads({ stats, partner }) {
   const p = usePaged("tip", "leads", { status: f });
   return (
     <>
-      <PortalHead title="Leads" sub="Requests from your PIN codes, your installations (Booked) and your customers (Installed), in one place." pins={partner.service_pincodes} />
+      <PortalHead title="Leads" sub="Your installations (Booked) and your customers (Installed). A DSA calls and books each lead; once it is booked and assigned to you, you install it." pins={partner.service_pincodes} />
       {f === "installed" && <p className="pt-note">Enter the ONT serial when you complete an installation and keep the modem linked to Gene, so the customer stays on the Care plan. <button type="button" className="pt-link" data-go="tip" data-go-tab="careplan">Manage modems</button></p>}
-      <div className="pt-filters" role="group" aria-label="Filter leads">{F.map(([k, l, n]) => <button key={k} type="button" aria-pressed={f === k} onClick={() => setF(k)}>{l}<span>{n}</span></button>)}</div>
+      <div className="pt-filters" role="group" aria-label="Filter leads">{F.filter(([k, , n]) => !["assigned", "contacted", "follow_up"].includes(k) || n > 0 || f === k).map(([k, l, n]) => <button key={k} type="button" aria-pressed={f === k} onClick={() => setF(k)}>{l}<span>{n}</span></button>)}</div>
       <Card title={`${F.find(x => x[0] === f)[1]} leads (${p.total})`} Icon={Users}>
         <PagedBar p={p} label="Search leads" />
         <div className="pt-table pt-t-leads" role="table" aria-label="Leads" data-server>
@@ -146,8 +146,8 @@ function Leads({ stats, partner }) {
               <span role="cell">{fDate(l.created_at)}</span>
               <span role="cell" className="pt-acts">
                 <CallWa phone={l.phone} name={l.name} text={`Namaste ${l.name}, this is about your Connect Bhai request ${l.ref_code}`} />
-                <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="lead" data-id={l.id}>Update</button>
-                {l.status === "installed" && (l.care_plan ? <Chip s="care" label="Care plan on" tone="green" /> : <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="care-plan-buy" data-id={l.id}>Add Care plan</button>)}
+                <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="lead" data-id={l.id}>{["assigned", "contacted", "follow_up"].includes(l.status) ? "Update" : "Details"}</button>
+                {l.status === "installed" && !l.care_plan && <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="care-plan-buy" data-id={l.id}>Add Care plan</button>}   {/* when it is active, the Care plan column says so */}
                 {["assigned", "contacted", "follow_up"].includes(l.status) && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="book" data-id={l.id}>Schedule booking</button>}
                 {l.status === "booked" && l.booking && l.booking.id && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="booking-status" data-id={String(l.booking.id)}>Install</button>}
                 {l.status === "installed" && <button type="button" className="cu-btn cu-btn-soft pt-sm" data-go="tip" data-go-tab="careplan">Manage modem</button>}

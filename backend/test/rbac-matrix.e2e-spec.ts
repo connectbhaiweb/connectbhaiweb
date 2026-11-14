@@ -27,8 +27,8 @@ const routes: [string, string, Role[]][] = [
   ['POST', '/plans', ['admin']], ['PATCH', `/plans/${X}`, ['admin']], ['PUT', `/plans/${X}/ott-apps`, ['admin']], ['PUT', '/pincodes/452010/plans', ['admin']],
   // leads, bookings
   ['GET', '/leads', ALL], ['GET', `/leads/${X}`, ALL], ['GET', `/leads/${X}/events`, ALL], ['POST', `/leads/${X}/notes`, ALL],
-  ['PATCH', `/leads/${X}/status`, ['admin', 'tip', 'customer']], ['PATCH', `/leads/${X}/assign`, ['admin']],
-  ['GET', '/bookings', ALL], ['POST', '/bookings', ['admin', 'tip']], ['PATCH', `/bookings/${X}`, ['admin', 'tip']], ['POST', `/bookings/${X}/complete`, ['admin', 'tip']],
+  ['PATCH', `/leads/${X}/status`, ['admin', 'dsa', 'tip', 'customer']], ['PATCH', `/leads/${X}/assign`, ['admin', 'dsa']], ['GET', `/leads/${X}/tip-options`, ['admin', 'dsa']],
+  ['GET', '/bookings', ALL], ['POST', '/bookings', ['admin', 'dsa', 'tip']], ['PATCH', `/bookings/${X}`, ['admin', 'dsa', 'tip']], ['POST', `/bookings/${X}/complete`, ['admin', 'tip']],
   // money
   ['GET', '/charges', ['admin', 'tip', 'customer']], ['GET', `/charges/${X}`, ['admin', 'tip', 'customer']], ['POST', '/charges', ['admin']], ['POST', '/charges/customer', ['customer']], ['POST', '/charges/care-plan', ['tip']],
   ['POST', `/charges/${X}/offline`, ['admin']], ['POST', `/charges/${X}/waive`, ['admin']], ['POST', `/charges/${X}/cancel`, ['admin']],

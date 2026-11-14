@@ -2,7 +2,7 @@
 // Field names are snake_case on purpose: they match the DB columns and the API JSON.
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["relationJoins"]   // lets list queries fetch their related rows in ONE SQL statement (relationLoadStrategy: 'join')
+  previewFeatures = ["relationJoins"] // lets list queries fetch their related rows in ONE SQL statement (relationLoadStrategy: 'join')
 }
 
 datasource db {
@@ -15,6 +15,7 @@ enum CityStatus {
   soon
   hidden
 }
+
 enum PlanType {
   fiber
   airfiber
@@ -22,29 +23,34 @@ enum PlanType {
   ott
   sim
 }
+
 enum UserRole {
   customer
   dsa
   tip
   admin
 }
+
 enum PartnerStatus {
   pending
   approved
   rejected
   suspended
 }
+
 enum OtpPurpose {
   login
   signup
   reset
 }
+
 enum LeadSource {
   website
   callback
   dsa
   admin
 }
+
 enum LeadStatus {
   new
   contacted
@@ -54,24 +60,28 @@ enum LeadStatus {
   lost
   cancelled
 }
+
 enum BookingStatus {
   scheduled
   completed
   rescheduled
   cancelled
 }
+
 enum CommissionStatus {
   pending
   approved
   paid
   cancelled
 }
+
 enum PayMode {
   upi
   bank
   cash
   other
 }
+
 enum ChargeKind {
   tip_onboarding
   tip_install_fee
@@ -79,6 +89,7 @@ enum ChargeKind {
   customer_payment
   other
 }
+
 enum ChargeStatus {
   pending
   paid
@@ -87,10 +98,12 @@ enum ChargeStatus {
   cancelled
   refunded
 }
+
 enum ChargePayMode {
   razorpay
   offline
 }
+
 enum TicketCategory {
   no_internet
   slow_speed
@@ -98,45 +111,53 @@ enum TicketCategory {
   shifting
   other
 }
+
 enum TicketPriority {
   low
   normal
   high
 }
+
 enum TicketStatus {
   open
   in_progress
   resolved
   closed
 }
+
 enum ThreadType {
   lead
   support
   ticket
 }
+
 enum DeviceActionType {
   reboot
   change_wifi
   factory_reset
   refresh
 }
+
 enum DeviceActionStatus {
   queued
   sent
   done
   failed
 }
+
 enum NotifChannel {
   whatsapp
   sms
   in_app
 }
+
 enum JobStatus {
   pending
   running
   done
   failed
 }
+
 enum NotifStatus {
   queued
   sent
@@ -146,13 +167,29 @@ enum NotifStatus {
 
 // ---------------- 1. Location ----------------
 model City {
-  id     BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
-  name   String     @unique(map: "uq_city_name") @db.VarChar(80)
-  status CityStatus @default(soon)
-  areas     Area[]
-  users     User[]
-  waitlist  Waitlist[]
+  id       BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  name     String     @unique(map: "uq_city_name") @db.VarChar(80)
+  status   CityStatus @default(soon)
+  areas    Area[]
+  users    User[]
+  waitlist Waitlist[]
+
   @@map("cities")
+}
+
+/**
+ * The PIN codes a DSA serves: new leads in these PIN codes are assigned to the DSA with the fewest open leads.
+ */
+model DsaPincodeMapping {
+  id          BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  pincode     String  @db.Char(6)
+  dsa_user_id BigInt  @db.UnsignedBigInt
+  is_active   Boolean @default(true)
+  dsa         User    @relation(fields: [dsa_user_id], references: [id])
+
+  @@unique([pincode, dsa_user_id], map: "uq_dsa_pincode")
+  @@index([dsa_user_id], map: "ix_dsa")
+  @@map("dsa_pincode_mapping")
 }
 
 model Area {
@@ -160,8 +197,9 @@ model Area {
   city_id BigInt @db.UnsignedBigInt
   name    String @db.VarChar(120)
   pincode String @db.Char(6)
-  city City   @relation(fields: [city_id], references: [id])
-  leads Lead[]
+  city    City   @relation(fields: [city_id], references: [id])
+  leads   Lead[]
+
   @@unique([city_id, name, pincode], map: "uq_area")
   @@index([pincode], map: "ix_pincode")
   @@map("areas")
@@ -172,7 +210,8 @@ model TipPincodeMapping {
   pincode     String  @db.Char(6)
   tip_user_id BigInt  @db.UnsignedBigInt
   is_active   Boolean @default(true)
-  tip User @relation(fields: [tip_user_id], references: [id])
+  tip         User    @relation(fields: [tip_user_id], references: [id])
+
   @@unique([pincode, tip_user_id], map: "uq_tip_pincode")
   @@index([tip_user_id], map: "ix_tip")
   @@map("tip_pincode_mapping")
@@ -186,51 +225,55 @@ model PlanCategory {
   logo_url   String?  @db.VarChar(255)
   sort_order Int      @default(0)
   is_active  Boolean  @default(true)
-  plans Plan[]
+  plans      Plan[]
+
   @@unique([name, type], map: "uq_cat")
   @@map("plan_categories")
 }
 
 model Plan {
-  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  plan_code      String   @unique(map: "uq_plan_code") @db.VarChar(40)
-  category_id    BigInt   @db.UnsignedBigInt
-  name           String   @db.VarChar(160)
+  id             BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  plan_code      String               @unique(map: "uq_plan_code") @db.VarChar(40)
+  category_id    BigInt               @db.UnsignedBigInt
+  name           String               @db.VarChar(160)
   speed_mbps     Int?
-  data_limit     String?  @db.VarChar(40)
+  data_limit     String?              @db.VarChar(40)
   validity_days  Int?
-  price          Decimal  @db.Decimal(10, 2)
-  install_charge Decimal  @default(0) @db.Decimal(10, 2)
-  router_charge  Decimal  @default(0) @db.Decimal(10, 2)
-  needs_install  Boolean  @default(true)
-  has_tv         Boolean  @default(false)
+  price          Decimal              @db.Decimal(10, 2)
+  install_charge Decimal              @default(0) @db.Decimal(10, 2)
+  router_charge  Decimal              @default(0) @db.Decimal(10, 2)
+  needs_install  Boolean              @default(true)
+  has_tv         Boolean              @default(false)
   tv_channels    Int?
   benefits       Json?
-  is_active      Boolean  @default(true)
-  created_at     DateTime @default(now()) @db.DateTime(3)
-  updated_at     DateTime @default(now()) @updatedAt @db.DateTime(3)
-  category PlanCategory   @relation(fields: [category_id], references: [id])
-  otts     PlanOttApp[]
-  pincodes PincodePlanMapping[]
-  leads    Lead[]
+  is_active      Boolean              @default(true)
+  created_at     DateTime             @default(now()) @db.DateTime(3)
+  updated_at     DateTime             @default(now()) @updatedAt @db.DateTime(3)
+  category       PlanCategory         @relation(fields: [category_id], references: [id])
+  otts           PlanOttApp[]
+  pincodes       PincodePlanMapping[]
+  leads          Lead[]
+
   @@index([category_id], map: "ix_plan_cat")
   @@map("plans")
 }
 
 model OttApp {
-  id        BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
-  name      String  @unique(map: "uq_ott") @db.VarChar(80)
-  logo_url  String? @db.VarChar(255)
-  is_active Boolean @default(true)
-  plans PlanOttApp[]
+  id        BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  name      String       @unique(map: "uq_ott") @db.VarChar(80)
+  logo_url  String?      @db.VarChar(255)
+  is_active Boolean      @default(true)
+  plans     PlanOttApp[]
+
   @@map("ott_apps")
 }
 
 model PlanOttApp {
   plan_id    BigInt @db.UnsignedBigInt
   ott_app_id BigInt @db.UnsignedBigInt
-  plan Plan   @relation(fields: [plan_id], references: [id], onDelete: Cascade)
-  ott  OttApp @relation(fields: [ott_app_id], references: [id], onDelete: Cascade)
+  plan       Plan   @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  ott        OttApp @relation(fields: [ott_app_id], references: [id], onDelete: Cascade)
+
   @@id([plan_id, ott_app_id])
   @@index([ott_app_id], map: "ix_ott")
   @@map("plan_ott_apps")
@@ -240,7 +283,8 @@ model PincodePlanMapping {
   pincode      String  @db.Char(6)
   plan_id      BigInt  @db.UnsignedBigInt
   is_available Boolean @default(true)
-  plan Plan @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  plan         Plan    @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+
   @@id([pincode, plan_id])
   @@index([plan_id], map: "ix_plan")
   @@map("pincode_plan_mapping")
@@ -259,41 +303,42 @@ model User {
   address       String?  @db.VarChar(255)
   pincode       String?  @db.Char(6)
 
-  business_name      String?  @db.VarChar(160)
-  gst_number         String?  @db.VarChar(20)
-  gst_state_code     String?  @db.Char(2)
-  aadhaar_enc        Bytes?   @db.VarBinary(255)
-  aadhaar_last4      String?  @db.Char(4)
-  pan_enc            Bytes?   @db.VarBinary(255)
-  pan_last4          String?  @db.Char(4)
-  bank_name          String?  @db.VarChar(120)
-  bank_account_enc   Bytes?   @db.VarBinary(255)
-  bank_account_last4 String?  @db.Char(4)
-  bank_ifsc          String?  @db.VarChar(15)
-  upi_id             String?  @db.VarChar(80)
+  business_name      String? @db.VarChar(160)
+  gst_number         String? @db.VarChar(20)
+  gst_state_code     String? @db.Char(2)
+  aadhaar_enc        Bytes?  @db.VarBinary(255)
+  aadhaar_last4      String? @db.Char(4)
+  pan_enc            Bytes?  @db.VarBinary(255)
+  pan_last4          String? @db.Char(4)
+  bank_name          String? @db.VarChar(120)
+  bank_account_enc   Bytes?  @db.VarBinary(255)
+  bank_account_last4 String? @db.Char(4)
+  bank_ifsc          String? @db.VarChar(15)
+  upi_id             String? @db.VarChar(80)
   docs               Json?
 
   partner_status PartnerStatus?
-  approved_by    BigInt?  @db.UnsignedBigInt
-  approved_at    DateTime? @db.DateTime(3)
-  is_internal    Boolean  @default(false)
+  approved_by    BigInt?        @db.UnsignedBigInt
+  approved_at    DateTime?      @db.DateTime(3)
+  is_internal    Boolean        @default(false)
 
   is_active     Boolean   @default(true)
   last_login_at DateTime? @db.DateTime(3)
   created_at    DateTime  @default(now()) @db.DateTime(3)
   updated_at    DateTime  @default(now()) @updatedAt @db.DateTime(3)
 
-  city City? @relation(fields: [city_id], references: [id])
+  city              City?               @relation(fields: [city_id], references: [id])
   tip_pincodes      TipPincodeMapping[]
-  leads_as_customer Lead[]   @relation("LeadCustomer")
-  leads_brought     Lead[]   @relation("LeadDsa")
-  leads_assigned    Lead[]   @relation("LeadTip")
+  dsa_pincodes      DsaPincodeMapping[]
+  leads_as_customer Lead[]              @relation("LeadCustomer")
+  leads_brought     Lead[]              @relation("LeadDsa")
+  leads_assigned    Lead[]              @relation("LeadTip")
   lead_events       LeadEvent[]
   bookings          Booking[]
-  commissions       Commission[] @relation("CommissionDsa")
-  charges           Charge[] @relation("ChargePayer")
-  tickets_raised    Ticket[] @relation("TicketRaisedBy")
-  tickets_assigned  Ticket[] @relation("TicketAssignedTo")
+  commissions       Commission[]        @relation("CommissionDsa")
+  charges           Charge[]            @relation("ChargePayer")
+  tickets_raised    Ticket[]            @relation("TicketRaisedBy")
+  tickets_assigned  Ticket[]            @relation("TicketAssignedTo")
   chat_messages     ChatMessage[]
   chat_reads        ChatRead[]
   care_devices      CarePlanDevice[]
@@ -315,6 +360,7 @@ model OtpCode {
   expires_at DateTime   @db.DateTime(3)
   used_at    DateTime?  @db.DateTime(3)
   created_at DateTime   @default(now()) @db.DateTime(3)
+
   @@index([phone, created_at], map: "ix_otp_phone")
   @@map("otp_codes")
 }
@@ -344,18 +390,18 @@ model Lead {
   created_at         DateTime   @default(now()) @db.DateTime(3)
   updated_at         DateTime   @default(now()) @updatedAt @db.DateTime(3)
 
-  customer User? @relation("LeadCustomer", fields: [customer_user_id], references: [id])
-  area     Area? @relation(fields: [area_id], references: [id])
-  plan     Plan? @relation(fields: [plan_id], references: [id])
-  dsa      User? @relation("LeadDsa", fields: [brought_by_user_id], references: [id])
-  tip      User? @relation("LeadTip", fields: [tip_user_id], references: [id])
-  events      LeadEvent[]
-  bookings    Booking[]
-  commission  Commission?
-  charges     Charge[]
+  customer     User?           @relation("LeadCustomer", fields: [customer_user_id], references: [id])
+  area         Area?           @relation(fields: [area_id], references: [id])
+  plan         Plan?           @relation(fields: [plan_id], references: [id])
+  dsa          User?           @relation("LeadDsa", fields: [brought_by_user_id], references: [id])
+  tip          User?           @relation("LeadTip", fields: [tip_user_id], references: [id])
+  events       LeadEvent[]
+  bookings     Booking[]
+  commission   Commission?
+  charges      Charge[]
   charge_leads ChargeLead[]
-  tickets     Ticket[]
-  care_device CarePlanDevice?
+  tickets      Ticket[]
+  care_device  CarePlanDevice?
 
   @@index([tip_user_id, status], map: "ix_lead_tip")
   @@index([brought_by_user_id, status], map: "ix_lead_dsa")
@@ -376,8 +422,9 @@ model LeadEvent {
   to_status     String?  @db.VarChar(20)
   note          String?  @db.VarChar(500)
   created_at    DateTime @default(now()) @db.DateTime(3)
-  lead  Lead  @relation(fields: [lead_id], references: [id], onDelete: Cascade)
-  actor User? @relation(fields: [actor_user_id], references: [id])
+  lead          Lead     @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  actor         User?    @relation(fields: [actor_user_id], references: [id])
+
   @@index([lead_id, created_at], map: "ix_le_lead")
   @@map("lead_events")
 }
@@ -385,7 +432,7 @@ model LeadEvent {
 model Booking {
   id            BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
   lead_id       BigInt        @db.UnsignedBigInt
-  tip_user_id   BigInt        @db.UnsignedBigInt
+  tip_user_id   BigInt?       @db.UnsignedBigInt // empty until a TIP is assigned to the booked lead
   scheduled_at  DateTime      @db.DateTime(3)
   status        BookingStatus @default(scheduled)
   completed_at  DateTime?     @db.DateTime(3)
@@ -395,9 +442,10 @@ model Booking {
   notes         String?       @db.VarChar(500)
   created_at    DateTime      @default(now()) @db.DateTime(3)
   updated_at    DateTime      @default(now()) @updatedAt @db.DateTime(3)
-  lead Lead @relation(fields: [lead_id], references: [id])
-  tip  User @relation(fields: [tip_user_id], references: [id])
-  commissions Commission[]
+  lead          Lead          @relation(fields: [lead_id], references: [id])
+  tip           User?         @relation(fields: [tip_user_id], references: [id], onDelete: Restrict)
+  commissions   Commission[]
+
   @@index([lead_id], map: "ix_bk_lead")
   @@index([tip_user_id, status], map: "ix_bk_tip")
   @@index([status, scheduled_at], map: "ix_bk_status")
@@ -420,19 +468,20 @@ model Commission {
   paid_by        BigInt?          @db.UnsignedBigInt
   notes          String?          @db.VarChar(255)
   created_at     DateTime         @default(now()) @db.DateTime(3)
-  dsa     User     @relation("CommissionDsa", fields: [dsa_user_id], references: [id])
-  lead    Lead     @relation(fields: [lead_id], references: [id])
-  booking Booking? @relation(fields: [booking_id], references: [id])
+  dsa            User             @relation("CommissionDsa", fields: [dsa_user_id], references: [id])
+  lead           Lead             @relation(fields: [lead_id], references: [id])
+  booking        Booking?         @relation(fields: [booking_id], references: [id])
+
   @@index([dsa_user_id, status], map: "ix_comm_dsa")
   @@map("commissions")
 }
 
 model Charge {
-  id          BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
-  kind        ChargeKind
-  payer_user_id BigInt   @db.UnsignedBigInt
-  lead_id     BigInt?    @db.UnsignedBigInt
-  description String?    @db.VarChar(255)
+  id            BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  kind          ChargeKind
+  payer_user_id BigInt     @db.UnsignedBigInt
+  lead_id       BigInt?    @db.UnsignedBigInt
+  description   String?    @db.VarChar(255)
 
   base_amount  Decimal @db.Decimal(12, 2)
   gst_percent  Decimal @default(18.00) @db.Decimal(5, 2)
@@ -460,9 +509,10 @@ model Charge {
   created_at DateTime @default(now()) @db.DateTime(3)
   updated_at DateTime @default(now()) @updatedAt @db.DateTime(3)
 
-  payer User  @relation("ChargePayer", fields: [payer_user_id], references: [id])
-  lead  Lead? @relation(fields: [lead_id], references: [id])
+  payer        User         @relation("ChargePayer", fields: [payer_user_id], references: [id])
+  lead         Lead?        @relation(fields: [lead_id], references: [id])
   charge_leads ChargeLead[]
+
   @@index([payer_user_id, kind, status], map: "ix_ch_payer")
   @@index([status, kind, created_at], map: "ix_ch_status")
   @@map("charges")
@@ -473,8 +523,9 @@ model ChargeLead {
   charge_id   BigInt  @db.UnsignedBigInt
   lead_id     BigInt  @unique(map: "uq_cl_lead") @db.UnsignedBigInt
   base_amount Decimal @db.Decimal(12, 2)
-  charge Charge @relation(fields: [charge_id], references: [id], onDelete: Cascade)
-  lead   Lead   @relation(fields: [lead_id], references: [id])
+  charge      Charge  @relation(fields: [charge_id], references: [id], onDelete: Cascade)
+  lead        Lead    @relation(fields: [lead_id], references: [id])
+
   @@unique([charge_id, lead_id], map: "uq_cl_charge_lead")
   @@map("charge_leads")
 }
@@ -494,9 +545,10 @@ model Ticket {
   resolved_at DateTime?      @db.DateTime(3)
   created_at  DateTime       @default(now()) @db.DateTime(3)
   updated_at  DateTime       @default(now()) @updatedAt @db.DateTime(3)
-  lead     Lead? @relation(fields: [lead_id], references: [id])
-  raiser   User  @relation("TicketRaisedBy", fields: [raised_by], references: [id])
-  assignee User? @relation("TicketAssignedTo", fields: [assigned_to], references: [id])
+  lead        Lead?          @relation(fields: [lead_id], references: [id])
+  raiser      User           @relation("TicketRaisedBy", fields: [raised_by], references: [id])
+  assignee    User?          @relation("TicketAssignedTo", fields: [assigned_to], references: [id])
+
   @@index([raised_by, status], map: "ix_tk_raised")
   @@index([assigned_to, status], map: "ix_tk_assigned")
   @@map("tickets")
@@ -510,7 +562,8 @@ model ChatMessage {
   body           String?    @db.Text
   attachment_url String?    @db.VarChar(255)
   created_at     DateTime   @default(now()) @db.DateTime(3)
-  sender User @relation(fields: [sender_user_id], references: [id])
+  sender         User       @relation(fields: [sender_user_id], references: [id])
+
   @@index([thread_type, thread_id, created_at], map: "ix_chat_thread")
   @@map("chat_messages")
 }
@@ -521,33 +574,35 @@ model ChatRead {
   thread_id            BigInt     @db.UnsignedBigInt
   last_read_message_id BigInt     @default(0) @db.UnsignedBigInt
   updated_at           DateTime   @default(now()) @updatedAt @db.DateTime(3)
-  user User @relation(fields: [user_id], references: [id])
+  user                 User       @relation(fields: [user_id], references: [id])
+
   @@id([user_id, thread_type, thread_id])
   @@map("chat_reads")
 }
 
 // ---------------- 7. Modem (Care Plan) ----------------
 model CarePlanDevice {
-  id                 BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  lead_id            BigInt    @unique(map: "uq_cpd_lead") @db.UnsignedBigInt
-  tip_user_id        BigInt    @db.UnsignedBigInt
-  genieacs_device_id String?   @db.VarChar(120)
-  serial_number      String?   @unique(map: "uq_cpd_serial") @db.VarChar(60)
-  mac_address        String?   @db.VarChar(20)
-  model              String?   @db.VarChar(80)
-  is_active          Boolean   @default(true)
+  id                 BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id            BigInt         @unique(map: "uq_cpd_lead") @db.UnsignedBigInt
+  tip_user_id        BigInt         @db.UnsignedBigInt
+  genieacs_device_id String?        @db.VarChar(120)
+  serial_number      String?        @unique(map: "uq_cpd_serial") @db.VarChar(60)
+  mac_address        String?        @db.VarChar(20)
+  model              String?        @db.VarChar(80)
+  is_active          Boolean        @default(true)
   online             Boolean?
-  last_seen_at       DateTime? @db.DateTime(3)
-  rx_power_dbm       Decimal?  @db.Decimal(5, 2)
-  wifi_ssid          String?   @db.VarChar(64)
+  last_seen_at       DateTime?      @db.DateTime(3)
+  rx_power_dbm       Decimal?       @db.Decimal(5, 2)
+  wifi_ssid          String?        @db.VarChar(64)
   connected_clients  Int?
   last_status        Json?
-  created_at         DateTime  @default(now()) @db.DateTime(3)
-  updated_at         DateTime  @default(now()) @updatedAt @db.DateTime(3)
-  lead Lead @relation(fields: [lead_id], references: [id])
-  tip  User @relation(fields: [tip_user_id], references: [id])
-  actions     DeviceAction[]
-  speed_tests SpeedTest[]
+  created_at         DateTime       @default(now()) @db.DateTime(3)
+  updated_at         DateTime       @default(now()) @updatedAt @db.DateTime(3)
+  lead               Lead           @relation(fields: [lead_id], references: [id])
+  tip                User           @relation(fields: [tip_user_id], references: [id])
+  actions            DeviceAction[]
+  speed_tests        SpeedTest[]
+
   @@index([tip_user_id], map: "ix_cpd_tip")
   @@map("care_plan_devices")
 }
@@ -562,8 +617,9 @@ model DeviceAction {
   error               String?            @db.VarChar(255)
   created_at          DateTime           @default(now()) @db.DateTime(3)
   completed_at        DateTime?          @db.DateTime(3)
-  device    CarePlanDevice @relation(fields: [care_plan_device_id], references: [id], onDelete: Cascade)
-  requester User           @relation(fields: [requested_by], references: [id])
+  device              CarePlanDevice     @relation(fields: [care_plan_device_id], references: [id], onDelete: Cascade)
+  requester           User               @relation(fields: [requested_by], references: [id])
+
   @@index([care_plan_device_id, created_at], map: "ix_da_dev")
   @@map("device_actions")
 }
@@ -575,15 +631,16 @@ enum SpeedTestStatus {
 }
 
 model SpeedTest {
-  id                  BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  care_plan_device_id BigInt   @db.UnsignedBigInt
-  download_mbps       Decimal? @db.Decimal(8, 2)
-  upload_mbps         Decimal? @db.Decimal(8, 2)
-  ping_ms             Decimal? @db.Decimal(8, 2)
-  tested_at           DateTime @default(now()) @db.DateTime(3)
-  status              SpeedTestStatus @default(done)   // running while the modem is still being asked; the background job fills the numbers in
-  error               String?  @db.VarChar(255)
-  device CarePlanDevice @relation(fields: [care_plan_device_id], references: [id], onDelete: Cascade)
+  id                  BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  care_plan_device_id BigInt          @db.UnsignedBigInt
+  download_mbps       Decimal?        @db.Decimal(8, 2)
+  upload_mbps         Decimal?        @db.Decimal(8, 2)
+  ping_ms             Decimal?        @db.Decimal(8, 2)
+  tested_at           DateTime        @default(now()) @db.DateTime(3)
+  status              SpeedTestStatus @default(done) // running while the modem is still being asked; the background job fills the numbers in
+  error               String?         @db.VarChar(255)
+  device              CarePlanDevice  @relation(fields: [care_plan_device_id], references: [id], onDelete: Cascade)
+
   @@index([care_plan_device_id, tested_at], map: "ix_st_dev")
   @@map("speed_tests")
 }
@@ -596,7 +653,8 @@ model Waitlist {
   phone       String    @db.VarChar(15)
   notified_at DateTime? @db.DateTime(3)
   created_at  DateTime  @default(now()) @db.DateTime(3)
-  city City @relation(fields: [city_id], references: [id])
+  city        City      @relation(fields: [city_id], references: [id])
+
   @@unique([city_id, phone], map: "uq_wait")
   @@map("waitlist")
 }
@@ -613,7 +671,8 @@ model Notification {
   error           String?      @db.VarChar(255)
   read_at         DateTime?    @db.DateTime(3)
   created_at      DateTime     @default(now()) @db.DateTime(3)
-  user User? @relation(fields: [user_id], references: [id])
+  user            User?        @relation(fields: [user_id], references: [id])
+
   @@index([user_id, created_at], map: "ix_nt_user")
   @@index([template, user_id], map: "ix_nt_tpl_user")
   @@map("notifications")
@@ -625,6 +684,7 @@ model AppSetting {
   description String?  @db.VarChar(255)
   updated_by  BigInt?  @db.UnsignedBigInt
   updated_at  DateTime @default(now()) @updatedAt @db.DateTime(3)
+
   @@map("app_settings")
 }
 
@@ -643,6 +703,7 @@ model BackgroundJob {
   last_error   String?   @db.VarChar(255)
   created_at   DateTime  @default(now()) @db.DateTime(3)
   finished_at  DateTime? @db.DateTime(3)
+
   @@index([status, run_at, priority], map: "ix_job_ready")
   @@index([status, locked_at], map: "ix_job_locked")
   @@map("background_jobs")

@@ -33,19 +33,27 @@ export class BookingsService {
     if (!b) throw new NotFoundException('Booking not found');
     return b;
   }
-  private assertCanManage(b: { tip_user_id: bigint }, u: AuthUser) {
-    if (u.role !== 'admin' && !(u.role === 'tip' && Number(b.tip_user_id) === u.id)) throw new ForbiddenException('Only the assigned TIP or admin can manage this booking');
+  /**
+   * Admin always; the assigned TIP; and, for the booking itself (reschedule / cancel), the lead's DSA.
+   * Installing (start / complete) is the assigned TIP's job, or admin's.
+   */
+  private assertCanManage(b: { tip_user_id: bigint | null; lead: { brought_by_user_id: bigint | null } }, u: AuthUser, as: 'install' | 'booking' = 'install') {
+    if (u.role === 'admin') return;
+    if (u.role === 'tip' && b.tip_user_id != null && Number(b.tip_user_id) === u.id) return;
+    if (as === 'booking' && u.role === 'dsa' && b.lead.brought_by_user_id != null && Number(b.lead.brought_by_user_id) === u.id) return;
+    throw new ForbiddenException(as === 'install' ? 'Only the assigned TIP or admin can do the installation' : "Only the lead's DSA, the assigned TIP or admin can manage this booking");
   }
 
   async create(d: CreateBookingDto, u: AuthUser) {
     const when = new Date(d.scheduled_at);
     if (when.getTime() < Date.now() - 60_000) throw new BadRequestException('scheduled_at must be in the future');
     const lead = await this.leads.getScoped(d.lead_id, u);
-    if (!lead.tip_user_id) throw new BadRequestException('Assign a TIP to this lead first');
+    if (!lead.brought_by_user_id && !lead.tip_user_id) throw new BadRequestException('Assign a DSA to this lead first');
     if (u.role === 'tip' && Number(lead.tip_user_id) !== u.id) throw new ForbiddenException('This lead is not assigned to you');
     if (!['new', 'contacted', 'followup'].includes(lead.status)) throw new BadRequestException(`A ${lead.status} lead cannot be booked`);
     return this.prisma.$transaction(async (tx) => {
-      const b = await tx.booking.create({ data: { lead_id: lead.id, tip_user_id: lead.tip_user_id!, scheduled_at: when, notes: d.notes } });
+      // the DSA books first: the TIP is assigned to the booked lead afterwards (a lead that already has a TIP keeps it)
+      const b = await tx.booking.create({ data: { lead_id: lead.id, tip_user_id: lead.tip_user_id ?? null, scheduled_at: when, notes: d.notes } });
       await tx.lead.update({ where: { id: lead.id }, data: { status: 'scheduled', followup_at: null } });
       await this.leads.log(tx, lead.id, u.id, 'status_changed', { from: lead.status, to: 'scheduled', note: `installation on ${when.toISOString()}` });
       return b;
@@ -122,7 +130,7 @@ export class BookingsService {
 
   async update(id: number, d: UpdateBookingDto, u: AuthUser) {
     const b = await this.getForUser(id, u);
-    this.assertCanManage(b, u);
+    this.assertCanManage(b, u, 'booking');
     if (b.status !== 'scheduled') throw new BadRequestException(`Booking is ${b.status}`);
     if (d.status === 'cancelled') {
       return this.prisma.$transaction(async (tx) => {
@@ -152,6 +160,7 @@ export class BookingsService {
     const b = await this.getForUser(id, u);
     this.assertCanManage(b, u);
     if (b.status !== 'scheduled') throw new ConflictException(`Booking is already ${b.status}`);
+    if (!b.tip_user_id) throw new BadRequestException('Assign a TIP to this booked lead before the installation');
     const lead = b.lead;
     const payout = await this.settings.getNumber('dsa_payout_per_lead');
     const installFee = await this.settings.getNumber('tip_install_fee');
@@ -193,6 +202,7 @@ export class BookingsService {
     const b = await this.getForUser(id, u);
     this.assertCanManage(b, u);
     if (b.status !== 'scheduled') throw new BadRequestException(`Booking is ${b.status}`);
+    if (!b.tip_user_id) throw new BadRequestException('Assign a TIP to this booked lead before the installation');
     const notified = await this.tellInstallationStarted(b.lead, b.tip_user_id, u.id);
     return { started: true, notified };
   }

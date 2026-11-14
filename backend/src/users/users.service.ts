@@ -59,8 +59,10 @@ export class UsersService {
         },
       });
       const user = await tx.user.update({ where: { id: created.id }, data: { partner_code: `${code}${String(created.id).padStart(3, '0')}` } });
-      if (d.role === 'tip' && d.service_pincodes?.length) {
-        await tx.tipPincodeMapping.createMany({ data: [...new Set(d.service_pincodes)].map((pincode) => ({ pincode, tip_user_id: user.id, is_active: false })), skipDuplicates: true });
+      if (d.service_pincodes?.length) {   // switched on when the application is approved
+        const pins = [...new Set(d.service_pincodes)];
+        if (d.role === 'tip') await tx.tipPincodeMapping.createMany({ data: pins.map((pincode) => ({ pincode, tip_user_id: user.id, is_active: false })), skipDuplicates: true });
+        else await tx.dsaPincodeMapping.createMany({ data: pins.map((pincode) => ({ pincode, dsa_user_id: user.id, is_active: false })), skipDuplicates: true });
       }
       let charge: Awaited<ReturnType<ChargesService['create']>> | null = null;
       if (d.role === 'tip') {
@@ -94,6 +96,7 @@ export class UsersService {
         data: { partner_status: d.status, approved_by: d.status === 'approved' ? adminId : u.approved_by, approved_at: d.status === 'approved' ? new Date() : u.approved_at },
       });
       if (u.role === 'tip') await tx.tipPincodeMapping.updateMany({ where: { tip_user_id: id }, data: { is_active: d.status === 'approved' } });
+      if (u.role === 'dsa') await tx.dsaPincodeMapping.updateMany({ where: { dsa_user_id: id }, data: { is_active: d.status === 'approved' } });
       return x;
     });
     await this.jobs.enqueue('partner_status', { user_id: id, status: d.status, reason: d.reason });
@@ -126,8 +129,18 @@ export class UsersService {
       if (!phone) throw new BadRequestException('Enter a valid 10-digit mobile number');
       data.phone = phone;
     }
-    if (!Object.keys(data).length) return publicUser(u);
-    const updated = await this.prisma.user.update({ where: { id }, data }).catch((e) => {
+    if (d.service_pincodes !== undefined && u.role !== 'dsa') throw new BadRequestException("A TIP's PIN codes are managed with coverage, not here");
+    if (!Object.keys(data).length && d.service_pincodes === undefined) return publicUser(u);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const x = Object.keys(data).length ? await tx.user.update({ where: { id }, data }) : u;
+      if (d.service_pincodes !== undefined) {
+        // the DSA's PIN codes become exactly this list (new leads in them go to the DSA with the fewest open leads)
+        const pins = [...new Set(d.service_pincodes)];
+        await tx.dsaPincodeMapping.deleteMany({ where: { dsa_user_id: id, pincode: { notIn: pins } } });
+        if (pins.length) await tx.dsaPincodeMapping.createMany({ data: pins.map((pincode) => ({ pincode, dsa_user_id: id, is_active: u.partner_status === 'approved' })), skipDuplicates: true });
+      }
+      return x;
+    }).catch((e) => {
       if (e?.code === 'P2002') throw new ConflictException('This mobile number is already registered');
       throw e;
     });
@@ -169,6 +182,7 @@ export class UsersService {
       // money they were charged (its lines go with it), messages and sign-in data
       await tx.charge.deleteMany({ where: { payer_user_id: id } });
       await tx.tipPincodeMapping.deleteMany({ where: { tip_user_id: id } });
+      await tx.dsaPincodeMapping.deleteMany({ where: { dsa_user_id: id } });
       await tx.notification.deleteMany({ where: { OR: [{ user_id: id }, { phone: u.phone }] } });
       await tx.otpCode.deleteMany({ where: { phone: u.phone } });
       await tx.user.delete({ where: { id } });

@@ -25,10 +25,14 @@ export class LeadsController {
   @ApiBearerAuth() @Get(':id/events')
   events(@Param('id', ParseIntPipe) id: number, @CurrentUser() u: AuthUser) { return this.leads.events(id, u); }
 
-  @ApiBearerAuth() @Roles('admin', 'tip', 'customer') @Patch(':id/status')
+  @ApiBearerAuth() @Roles('admin', 'dsa', 'tip', 'customer') @Patch(':id/status')
   status(@Param('id', ParseIntPipe) id: number, @Body() d: LeadStatusDto, @CurrentUser() u: AuthUser) { return this.leads.changeStatus(id, d, u); }
 
-  @ApiBearerAuth() @Roles('admin') @Patch(':id/assign')
+  /** The TIPs this lead can be assigned to (admin and the lead's DSA). */
+  @ApiBearerAuth() @Roles('admin', 'dsa') @Get(':id/tip-options')
+  tipOptions(@Param('id', ParseIntPipe) id: number, @CurrentUser() u: AuthUser) { return this.leads.tipOptions(id, u); }
+
+  @ApiBearerAuth() @Roles('admin', 'dsa') @Patch(':id/assign')
   assign(@Param('id', ParseIntPipe) id: number, @Body() d: AssignDto, @CurrentUser() u: AuthUser) { return this.leads.assign(id, d, u); }
 
   /** Admin: edit a lead's details in any status. */

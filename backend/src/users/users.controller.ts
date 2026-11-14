@@ -31,17 +31,18 @@ export class UsersController {
       ...(q.q ? (ids ? { id: { in: ids } } : { OR: [{ name: { contains: q.q } }, { phone: { contains: q.q } }, { partner_code: { contains: q.q } }] }) : {}),
     };
     const [items, total] = await Promise.all([
-      this.prisma.user.findMany({ where, orderBy: { id: 'desc' }, omit: { password_hash: true, aadhaar_enc: true, pan_enc: true, bank_account_enc: true }, ...pageArgs(q) }),
+      this.prisma.user.findMany({ where, orderBy: { id: 'desc' }, omit: { password_hash: true, aadhaar_enc: true, pan_enc: true, bank_account_enc: true }, include: { dsa_pincodes: { select: { pincode: true }, orderBy: { pincode: 'asc' } } }, ...pageArgs(q) }),
       this.prisma.user.count({ where }),
     ]);
-    return paged(items.map((x) => publicUser(x)), total, q);
+    return paged(items.map(({ dsa_pincodes, ...x }) => publicUser(x.role === 'dsa' ? { ...x, service_pincodes: dsa_pincodes.map((p) => p.pincode) } : x)), total, q);
   }
 
   @ApiBearerAuth() @Roles('admin') @Get('users/:id')
   async one(@Param('id', ParseIntPipe) id: number) {
-    const x = await this.prisma.user.findUnique({ where: { id }, include: { tip_pincodes: true } });
+    const x = await this.prisma.user.findUnique({ where: { id }, include: { tip_pincodes: true, dsa_pincodes: { select: { pincode: true }, orderBy: { pincode: 'asc' } } } });
     if (!x) throw new NotFoundException('User not found');
-    return publicUser(x);
+    const { dsa_pincodes, ...rest } = x;
+    return publicUser(x.role === 'dsa' ? { ...rest, service_pincodes: dsa_pincodes.map((p) => p.pincode) } : rest);
   }
 
   /** Admin reviews a DSA/TIP's KYC documents. Files stay private in Cloudinary; each link works for 10 minutes. */

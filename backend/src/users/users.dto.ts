@@ -57,6 +57,8 @@ export class UpdatePartnerDto {
   @IsOptional() @IsString() @MaxLength(255) address?: string;
   /** empty string clears the PIN code */
   @IsOptional() @Matches(/^([1-9]\d{5})?$/, { message: 'pincode must be a valid 6-digit PIN' }) pincode?: string;
+  /** a DSA's service PIN codes (replaces the list). Not for a TIP: a TIP's coverage is managed separately. */
+  @IsOptional() @IsArray() @ArrayMaxSize(100) @Matches(/^[1-9]\d{5}$/, { each: true }) service_pincodes?: string[];
 }
 export class PartnerStatusDto {
   @IsIn(['approved', 'rejected', 'suspended']) status: 'approved' | 'rejected' | 'suspended';

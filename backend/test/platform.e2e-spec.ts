@@ -73,7 +73,7 @@ describe('waitlist, settings, notifications, reports', () => {
       await c.http().get(`${P}/notifications`).set(bearer(a.dsa1)).expect(403);
     });
     it('OTP and lead messages are recorded as sent (provider not configured => logged only)', async () => {
-      const n = await c.prisma.notification.findFirst({ where: { template: 'new_lead' }, orderBy: { id: 'desc' } });
+      const n = await c.prisma.notification.findFirst({ where: { template: 'lead_received' }, orderBy: { id: 'desc' } });
       expect(n?.status).toBe('sent');
     });
   });

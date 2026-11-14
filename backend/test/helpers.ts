@@ -58,20 +58,24 @@ export async function actors(c: Ctx) {
   };
 }
 
-/** A DSA creates a lead; admin assigns it to a TIP. Returns the lead body. */
-export async function newLead(c: Ctx, a: Awaited<ReturnType<typeof actors>>, o: { by?: 'dsa1' | 'dsa2' | 'web'; tip?: 'dream' | 'doulat' | 'internal' } = {}) {
+/**
+ * Creates a lead and returns its body. A DSA's own lead stays theirs; a website lead goes to the DSA serving the PIN code (auto-assign).
+ *  - tip:   puts the lead with that TIP before it is booked. That is the old-flow state (still valid for leads already with a TIP):
+ *           the TIP can contact, follow up and book it. In the new flow a TIP is assigned only after the DSA has booked the lead.
+ *  - noDsa: clears the DSA, a lead no DSA serves (it waits for admin).
+ */
+export async function newLead(c: Ctx, a: Awaited<ReturnType<typeof actors>>, o: { by?: 'dsa1' | 'dsa2' | 'web'; tip?: 'dream' | 'doulat' | 'internal'; noDsa?: boolean } = {}) {
   const by = o.by ?? 'dsa1';
   const req = c.http().post(`${P}/leads`);
   if (by !== 'web') req.set(bearer(a[by]));
   const res = await req.send({ customer_name: 'Lead Person', customer_phone: uniquePhone(), pincode: PIN, plan_id: await planId(c) });
   if (res.status !== 201) throw new Error(`lead create failed: ${res.status} ${JSON.stringify(res.body)}`);
   const lead = res.body;
-  if (o.tip) {
-    const r = await c.http().patch(`${P}/leads/${lead.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids[o.tip] });
-    if (r.status !== 200) throw new Error(`assign failed ${JSON.stringify(r.body)}`);
-    return r.body;
-  }
-  return lead;
+  if (!o.tip && !o.noDsa) return lead;
+  await c.prisma.lead.update({ where: { id: lead.id }, data: { ...(o.tip ? { tip_user_id: a.ids[o.tip] } : {}), ...(o.noDsa ? { brought_by_user_id: null } : {}) } });
+  const r = await c.http().get(`${P}/leads/${lead.id}`).set(bearer(a.admin));
+  if (r.status !== 200) throw new Error(`lead read failed ${JSON.stringify(r.body)}`);
+  return r.body;
 }
 export const planId = async (c: Ctx, code = PLAN_CODE) => Number((await c.prisma.plan.findUniqueOrThrow({ where: { plan_code: code } })).id);
 export const inDays = (d: number) => new Date(Date.now() + d * 86_400_000).toISOString();

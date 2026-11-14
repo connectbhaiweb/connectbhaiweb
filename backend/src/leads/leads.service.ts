@@ -35,26 +35,29 @@ const leadInclude = {
 
 @Injectable()
 export class LeadsService {
-  constructor(private prisma: PrismaService, private settings: SettingsService, private notify: NotificationsService, private jobs: JobsService) {
-    // background job: tell the assigned TIP about a new lead (looks the TIP up after the form has been saved)
-    this.jobs.register('new_lead', async (p: { tip_user_id: number; ref_code: string; pincode: string }) => {
-      const t = await this.prisma.user.findUnique({ where: { id: p.tip_user_id } });
-      await this.notify.send({ user_id: p.tip_user_id, phone: t?.phone, template: 'new_lead', payload: { ref_code: p.ref_code, pincode: p.pincode } });
+  constructor(private prisma: PrismaService, private settings: SettingsService, private notify: NotificationsService, private jobs: JobsService) {}
+
+  /**
+   * Picks the approved, active DSA serving this PIN code with the fewest open leads (ties go to the lower id).
+   * Returns null when no DSA serves the PIN code: the lead then waits for admin to assign a DSA.
+   */
+  async pickDsa(pincode: string): Promise<number | null> {
+    const maps = await this.prisma.dsaPincodeMapping.findMany({
+      where: { pincode, is_active: true, dsa: { is_active: true, partner_status: 'approved' } }, select: { dsa_user_id: true },
     });
+    if (!maps.length) return null;
+    if (maps.length === 1) return Number(maps[0].dsa_user_id);
+    const counts = await Promise.all(maps.map(async (m) => ({ id: Number(m.dsa_user_id), n: await this.prisma.lead.count({ where: { brought_by_user_id: m.dsa_user_id, status: { in: OPEN } } }) })));
+    return counts.sort((a, b) => a.n - b.n || a.id - b.id)[0].id;
   }
 
-  /** Picks the approved, active TIP serving this PIN with the fewest open leads; falls back to the internal TIP. */
-  async pickTip(pincode: string): Promise<number | null> {
-    const maps = await this.prisma.tipPincodeMapping.findMany({
-      where: { pincode, is_active: true, tip: { is_active: true, partner_status: 'approved' } }, select: { tip_user_id: true },
-    });
-    if (maps.length === 1) return Number(maps[0].tip_user_id);
-    if (maps.length > 1) {
-      const counts = await Promise.all(maps.map(async (m) => ({ id: Number(m.tip_user_id), n: await this.prisma.lead.count({ where: { tip_user_id: m.tip_user_id, status: { in: OPEN } } }) })));
-      return counts.sort((a, b) => a.n - b.n || a.id - b.id)[0].id;
-    }
-    const internal = await this.prisma.user.findFirst({ where: { role: 'tip', is_internal: true, is_active: true, partner_status: 'approved' } });
-    return internal ? Number(internal.id) : null;
+  /** WhatsApp to a DSA: "a lead was assigned to you". */
+  private async tellDsa(dsaId: number | bigint, lead: { customer_name: string; customer_phone: string; ref_code: string; pincode: string; plan?: any; area?: { name: string } | null }) {
+    const dsa = await this.prisma.user.findUnique({ where: { id: dsaId }, select: { id: true, name: true, phone: true } });
+    if (!dsa) return;
+    await this.notify.send({ user_id: Number(dsa.id), phone: dsa.phone, template: 'dsa_lead_assigned', payload: {
+      name: dsa.name, customer: lead.customer_name, customer_phone: lead.customer_phone, product: productName(lead.plan ?? null),
+      area: lead.area?.name ?? lead.pincode, ref_code: lead.ref_code } });
   }
 
   async log(tx: Prisma.TransactionClient | PrismaService, lead_id: number | bigint, actor: number | null, event_type: string, extra: { from?: string; to?: string; note?: string } = {}) {
@@ -78,36 +81,36 @@ export class LeadsService {
     if (dup) throw new ConflictException(`You already have an open request (${dup.ref_code}) for this PIN code`);
 
     let source: Lead['source'] = d.source ?? 'website';
-    let brought_by: number | null = null;
+    let brought_by: number | null = null;   // the lead's DSA
+    let autoAssigned = false;
     let customer_user_id: number | null = null;
     if (actor?.role === 'dsa') { source = 'dsa'; brought_by = actor.id; }
-    else if (actor?.role === 'admin') source = 'admin';   // never attributed to a DSA: only a DSA's own leads carry that DSA
+    else if (actor?.role === 'admin') source = 'admin';
     else if (actor?.role === 'customer') customer_user_id = actor.id;
     if (brought_by) {
       const dsa = await this.prisma.user.findFirst({ where: { id: brought_by, role: 'dsa', partner_status: 'approved', is_active: true } });
       if (!dsa) throw new BadRequestException('brought_by_user_id is not an active DSA');
     }
     if (!customer_user_id) customer_user_id = existingCustomer ? Number(existingCustomer.id) : null;
-    const tip = autoAssign ? await this.pickTip(d.pincode) : null;
+    // a DSA's own lead stays theirs; every other lead goes to the DSA serving the PIN code with the fewest open leads (or waits for admin)
+    if (!brought_by && autoAssign) { brought_by = await this.pickDsa(d.pincode); autoAssigned = brought_by !== null; }
 
     const lead = await this.prisma.$transaction(async (tx) => {
       const created = await tx.lead.create({
         data: {
           ref_code: `TMP-${randomBytes(8).toString('hex')}`, source, customer_user_id, customer_name: d.customer_name.trim(), customer_phone: phone,
           customer_email: d.customer_email, address: d.address, area_id: d.area_id ?? (areas.length === 1 ? areas[0].id : null), pincode: d.pincode,
-          plan_id: d.plan_id, brought_by_user_id: brought_by, tip_user_id: tip, notes: d.notes,
+          plan_id: d.plan_id, brought_by_user_id: brought_by, notes: d.notes,
         },
       });
       const l = await tx.lead.update({ where: { id: created.id }, data: { ref_code: `CB-${String(created.id).padStart(6, '0')}` }, include: leadInclude });
       await this.log(tx, l.id, actor?.id ?? null, 'created', { to: 'new', note: `source=${source}` });
-      if (tip) await this.log(tx, l.id, null, 'assigned', { note: `tip_user_id=${tip}` });
+      if (autoAssigned) await this.log(tx, l.id, null, 'assigned', { note: `dsa_user_id=${brought_by}` });
       return l;
     });
 
-    await this.notify.send({ user_id: customer_user_id, phone, template: 'lead_received', payload: { ref_code: lead.ref_code, name: lead.customer_name, product: productName(lead.plan), executive: lead.tip?.name ?? lead.dsa?.name ?? 'Connect Bhai' } });
-    if (tip) {
-      await this.jobs.enqueue('new_lead', { tip_user_id: Number(tip), ref_code: lead.ref_code, pincode: lead.pincode });
-    }
+    await this.notify.send({ user_id: customer_user_id, phone, template: 'lead_received', payload: { ref_code: lead.ref_code, name: lead.customer_name, product: productName(lead.plan), executive: lead.dsa?.name ?? lead.tip?.name ?? 'Connect Bhai' } });
+    if (autoAssigned && brought_by) await this.tellDsa(brought_by, lead);
     return lead;
   }
 
@@ -124,8 +127,8 @@ export class LeadsService {
       if (q.brought_by_user_id) and.push({ brought_by_user_id: q.brought_by_user_id });
     }
     // "New" vs "Assigned" in every portal (the role scope above still limits which leads are visible)
-    if (q.unassigned) and.push({ tip_user_id: null });   // "assigned" means assigned to a TIP: a lead is never assigned to a DSA
-    if (q.assigned) and.push({ tip_user_id: { not: null } });
+    if (q.unassigned) and.push({ brought_by_user_id: null, tip_user_id: null });
+    if (q.assigned) and.push({ OR: [{ brought_by_user_id: { not: null } }, { tip_user_id: { not: null } }] });
     if (q.q) {
       const s = q.q.trim();
       // a full reference code ("CB-000142") is matched on the unique ref_code index; other text goes through the full-text index
@@ -162,7 +165,6 @@ export class LeadsService {
 
   async changeStatus(id: number, d: LeadStatusDto, u: AuthUser) {
     const lead = await this.getScoped(id, u);
-    if (u.role === 'dsa') throw new ForbiddenException('DSAs can view lead status but not change it');
     if (u.role === 'customer' && d.status !== 'cancelled') throw new ForbiddenException('You can only cancel your own request');
     if (!TRANSITIONS[lead.status].includes(d.status)) throw new BadRequestException(`Cannot move a lead from ${lead.status} to ${d.status}`);
     if (d.status === 'lost' && !d.lost_reason) throw new BadRequestException('lost_reason is required');
@@ -184,25 +186,74 @@ export class LeadsService {
   }
 
   /**
-   * Admin assigns the lead to a TIP (the installer). A lead is NEVER assigned to a DSA, by hand or automatically: a DSA only has the
-   * leads they add themselves (brought_by_user_id, set when the DSA creates the lead), which drives their dashboard, reports and the
-   * install payout. The TIP can't change while a booking is open.
+   * Who a lead is assigned to, in the DSA-first flow:
+   *  - a DSA (dsa_user_id): admin only, until the lead is booked. The DSA contacts, follows up and books the lead, and earns the payout.
+   *  - a TIP (tip_user_id): admin or the lead's DSA, only once the lead is booked. The TIP only installs.
+   * The DSA is stored in brought_by_user_id, which drives the DSA's dashboard, reports and the install payout.
    */
   async assign(id: number, d: AssignDto, u: AuthUser) {
-    const lead = await this.getScoped(id, u);
+    if (d.dsa_user_id === undefined && d.tip_user_id === undefined) throw new BadRequestException('Choose a DSA or a TIP');
+    if (d.dsa_user_id !== undefined && u.role !== 'admin') throw new ForbiddenException('Only admin can assign a DSA');
+    const lead = await this.getScoped(id, u);   // a DSA only reaches their own leads
     if (lead.status === 'installed') throw new BadRequestException('Installed leads cannot be reassigned');
-    if (d.tip_user_id === (lead.tip_user_id != null ? Number(lead.tip_user_id) : null)) return lead;   // already with this TIP
-    const tip = await this.prisma.user.findFirst({ where: { id: d.tip_user_id, role: 'tip', partner_status: 'approved', is_active: true }, select: { id: true } });
-    if (!tip) throw new BadRequestException('tip_user_id is not an approved TIP');
-    // the booking keeps its installer, so the lead's TIP may not drift away from it
-    const booked = await this.prisma.booking.findFirst({ where: { lead_id: id, status: { in: ['scheduled', 'rescheduled'] } }, select: { id: true } });
-    if (booked) throw new BadRequestException('Cancel or reschedule the booking before changing the TIP');
 
-    return this.prisma.$transaction(async (tx) => {
-      const l = await tx.lead.update({ where: { id }, data: { tip_user_id: tip.id }, include: leadInclude });
-      await this.log(tx, id, u.id, 'assigned', { note: `tip_user_id=${tip.id}` });
+    // DSA
+    const curDsa = lead.brought_by_user_id != null ? Number(lead.brought_by_user_id) : null;
+    let dsa: { id: bigint } | null = null;
+    if (d.dsa_user_id !== undefined && d.dsa_user_id !== curDsa) {
+      const booked = lead.status === 'scheduled' || await this.prisma.booking.findFirst({ where: { lead_id: id, status: { in: ['scheduled', 'rescheduled', 'completed'] } }, select: { id: true } });
+      if (booked) throw new BadRequestException('The DSA cannot be changed after the lead is booked');
+      dsa = await this.prisma.user.findFirst({ where: { id: d.dsa_user_id, role: 'dsa', partner_status: 'approved', is_active: true }, select: { id: true } });
+      if (!dsa) throw new BadRequestException('dsa_user_id is not an approved, active DSA');
+    }
+
+    // TIP
+    const curTip = lead.tip_user_id != null ? Number(lead.tip_user_id) : null;
+    let tip: { id: bigint } | null = null;
+    if (d.tip_user_id !== undefined) {
+      if (lead.status !== 'scheduled') throw new BadRequestException('Book the lead first: a TIP is assigned to a booked lead');
+      if (d.tip_user_id !== curTip) {
+        tip = await this.prisma.user.findFirst({ where: { id: d.tip_user_id, role: 'tip', partner_status: 'approved', is_active: true }, select: { id: true } });
+        if (!tip) throw new BadRequestException('tip_user_id is not an approved TIP');
+      }
+    }
+    if (!dsa && !tip) return lead;   // already with this DSA / TIP: nothing to change
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const data: Prisma.LeadUncheckedUpdateInput = {};
+      if (dsa) data.brought_by_user_id = dsa.id;
+      if (tip) data.tip_user_id = tip.id;
+      const l = await tx.lead.update({ where: { id }, data, include: leadInclude });
+      if (dsa) await this.log(tx, id, u.id, 'assigned', { note: `dsa_user_id=${dsa.id}${curDsa ? ` (was ${curDsa})` : ''}` });
+      if (tip) {
+        // the open booking is the TIP's job: it follows the lead
+        await tx.booking.updateMany({ where: { lead_id: id, status: { in: ['scheduled', 'rescheduled'] } }, data: { tip_user_id: tip.id } });
+        await this.log(tx, id, u.id, 'assigned', { note: `tip_user_id=${tip.id}${curTip ? ` (was ${curTip})` : ''}` });
+      }
       return l;
     });
+
+    if (dsa) await this.tellDsa(dsa.id, updated);
+    if (tip) {
+      // tells the customer the installation is on its way (once) and the TIP about the job
+      const bk = await this.prisma.booking.findFirst({ where: { lead_id: id, status: { in: ['scheduled', 'rescheduled'] } }, orderBy: { id: 'desc' }, select: { scheduled_at: true } });
+      if (bk) await this.jobs.enqueue('booking_created', { lead_id: id, actor: u.id, when: bk.scheduled_at.toISOString() });
+    }
+    return updated;
+  }
+
+  /**
+   * The TIPs a booked lead can be assigned to: approved and active, those covering the lead's PIN code first.
+   * For admin and the lead's DSA (who may not list partners themselves), so it carries only what is needed to choose.
+   */
+  async tipOptions(id: number, u: AuthUser) {
+    const lead = await this.getScoped(id, u);
+    const [tips, cover] = await Promise.all([
+      this.prisma.user.findMany({ where: { role: 'tip', partner_status: 'approved', is_active: true }, select: { id: true, name: true, business_name: true, partner_code: true, is_internal: true }, orderBy: { name: 'asc' } }),
+      this.prisma.tipPincodeMapping.findMany({ where: { pincode: lead.pincode, is_active: true }, select: { tip_user_id: true } }),
+    ]);
+    const covers = new Set(cover.map((c) => Number(c.tip_user_id)));
+    return tips.map((t) => ({ ...t, covers_pin: covers.has(Number(t.id)) })).sort((a, b) => Number(b.covers_pin) - Number(a.covers_pin) || a.name.localeCompare(b.name));
   }
 
   /**

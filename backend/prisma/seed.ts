@@ -153,7 +153,12 @@ async function people(indoreId: bigint) {
     await prisma.tipPincodeMapping.createMany({ data: pins.map((pincode) => ({ pincode, tip_user_id: u.id })), skipDuplicates: true });
   }
   const dsas: bigint[] = [];
-  for (const r of j('dsa.json')) dsas.push((await partnerUser('dsa', r['DSA CODE'], r)).id);
+  for (const r of j('dsa.json')) {
+    const u = await partnerUser('dsa', r['DSA CODE'], r);
+    dsas.push(u.id);
+    // a DSA serves the PIN code on their profile; new leads there go to the DSA with the fewest open leads
+    if (/^[1-9]\d{5}$/.test(String(r['PINCODE']))) await prisma.dsaPincodeMapping.createMany({ data: [{ pincode: String(r['PINCODE']), dsa_user_id: u.id }], skipDuplicates: true });
+  }
 
   // real PIN -> TIP assignment sheet
   let mapped = 0, unknown = new Set<string>();

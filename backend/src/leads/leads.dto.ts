@@ -57,9 +57,12 @@ export class LeadStatusDto {
   @IsOptional() @IsDateString() followup_at?: string;
   @IsOptional() @IsString() @MaxLength(255) lost_reason?: string;
 }
-/** Admin assignment. Send at least one field. dsa_user_id: a DSA id, or null to remove the DSA. */
-/** Assign a lead to a TIP. There is no DSA field on purpose: a lead is never assigned to a DSA. */
+/**
+ * Assign a lead. dsa_user_id: admin only, before the lead is booked. tip_user_id: admin or the lead's DSA, once the lead is booked.
+ * Send at least one of them.
+ */
 export class AssignDto {
-  @Type(() => Number) @IsInt() tip_user_id: number;
+  @IsOptional() @Type(() => Number) @IsInt() dsa_user_id?: number;
+  @IsOptional() @Type(() => Number) @IsInt() tip_user_id?: number;
 }
 export class NoteDto { @IsString() @MinLength(1) @MaxLength(500) note: string; }

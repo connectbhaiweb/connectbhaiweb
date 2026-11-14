@@ -43,7 +43,7 @@ describe('admin can edit and delete partners and leads in any status', () => {
       await c.prisma.user.update({ where: { id }, data: { partner_status: 'approved', approved_at: new Date() } });
       const token = await tokenFor(c, 'tip', phone);
       const lead = await newLead(c, a, { by: 'dsa1' });
-      await c.http().patch(`${P}/leads/${lead.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: id }).expect(200);
+      await c.prisma.lead.update({ where: { id: lead.id }, data: { tip_user_id: id } });   // with this TIP before booking (old-flow state), so it can book and install
       await install(c, token, lead.id);
       expect(await c.prisma.booking.count({ where: { tip_user_id: id } })).toBe(1);
       await c.http().delete(`${P}/users/${id}`).set(bearer(a.admin)).expect(200);

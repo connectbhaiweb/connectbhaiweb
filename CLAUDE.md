@@ -50,11 +50,14 @@ npx expo install <pkg>      # ALWAYS, never npm/yarn add
 - Plugging a React page in: add the view/tab to `REACT_VIEWS` in `ui.js`; the page reloads on the `cb:render` event (`useDashData.js`). Buttons reuse existing handlers via `data-act` / `data-go` — don't duplicate business logic.
 - Tailwind only scans `components/ui`, `components/magicui`, `components/speed`, `app/ui-kit`.
 
-## Lead assignment & status (do not break)
-- **A lead is never assigned to a DSA, by hand or automatically.** `PATCH /leads/:id/assign` (admin) takes only `tip_user_id` (a `dsa_user_id` is refused with 400), and admin cannot attribute a lead to a DSA when creating it (`brought_by_user_id` is refused). Auto-assign picks a TIP by PIN code only.
-- A DSA only has the leads **they add themselves**: `brought_by_user_id` is set when the DSA creates the lead and never changes. It drives the DSA dashboard, reports and the install payout. Website, admin and customer leads have no DSA.
-- TIP locked while a booking is open; installed leads locked. Booking: the lead carries its latest booking (`bookings[0]`), and a Booked lead shows **Install** to the TIP (installs straight from scheduled).
-- "Assigned" is a **UI-only** status: `rest.js` shows a server `new` lead that has a **TIP** as `assigned`. List filters: `status=new&unassigned=1` (no TIP) / `status=new&assigned=1` (has a TIP). The API has no `assigned` status.
+## Lead flow: DSA first, TIP only installs (do not break)
+1. **New leads go to a DSA.** Auto-assign (setting `auto_assign`) picks the approved, active DSA serving the lead's PIN code (`dsa_pincode_mapping`) with the fewest open leads; if none serves it, the lead waits for admin. Admin assigns / reassigns a DSA with `PATCH /leads/:id/assign {dsa_user_id}` (admin only, until the lead is booked). A DSA's own leads stay theirs. The DSA is `leads.brought_by_user_id` (drives the DSA dashboard, reports and the install payout). A DSA's PIN codes are set at registration or by admin (partner Edit, `PATCH /users/:id {service_pincodes}`).
+2. **The DSA works the lead:** contacts, follows up, marks lost (`PATCH /leads/:id/status`) and **books** it (`POST /bookings`). A booking may exist with **no TIP** (`bookings.tip_user_id` is nullable).
+3. **Then admin or the lead's DSA assigns a TIP to the booked lead** (`PATCH /leads/:id/assign {tip_user_id}`, only while the lead is `scheduled`; `GET /leads/:id/tip-options` lists TIPs, those covering the PIN first). It sets `leads.tip_user_id` and the open booking's TIP, can change until installed, and tells the TIP (and the customer, once).
+4. **The TIP only installs:** `POST /bookings/:id/start|complete` is for the assigned TIP or admin, never the DSA, and needs a TIP on the booking. Install pays the DSA payout to the lead's DSA and charges the TIP.
+- Leads that were already with a TIP before this flow (status new / contacted / followup) are left as they are: that TIP can still contact, follow up and book them.
+- "Assigned" is a **UI-only** status: `rest.js` shows a server `new` lead that has a DSA (or, on an old lead, a TIP) as `assigned`. Filters: `status=new&unassigned=1` (no DSA, no TIP) / `status=new&assigned=1`. The API has no `assigned` status.
+- The lead carries its latest booking (`bookings[0]`); a Booked lead shows **Install** to its TIP, and **Assign TIP** to its DSA / admin.
 
 ## Admin edit / delete (any status)
 Admin can edit and delete leads and DSA/TIP partners in **any** status: `PATCH|DELETE /leads/:id`, `PATCH|DELETE /users/:id` (`leads.service.adminUpdate/adminDelete`, `users.service.updatePartner/deletePartner`). Deletes are one transaction: a lead takes its bookings, payout, modem and chat with it (invoices stay, unlinked); a partner's leads stay (DSA/TIP cleared) while their bookings, payouts, charges, tickets and messages go. Connect Bhai's internal TIP cannot be deleted. The status machine and the assign locks above are **not** relaxed. The partner Edit dialog saves name, firm, mobile, email, address, PIN only (per-install amount and lead target are global settings).
@@ -73,4 +76,4 @@ Routes in `src/app/` (`_layout.tsx` = navigators); non-route code in `src/compon
 5. Keep existing naming, flow and architecture.
 6. Before done: frontend `npm run lint`; backend `typecheck` + `test`; mobile lint + `tsc --noEmit`.
 7. Update this file when a change makes it outdated.
-8. **Never assign a lead to a DSA** (manual or auto), and never add a DSA field to the assign API or the Assign dialog. A DSA only has the leads they add themselves. Assignment is to a TIP only (see "Lead assignment & status"). Don't weaken or remove the tests that enforce it in `backend/test/leads.e2e-spec.ts`.
+8. **Keep the lead flow DSA-first** (see "Lead flow"): leads go to a DSA; the DSA contacts, follows up and books; admin or the DSA then assigns a TIP to the *booked* lead; the TIP only installs and a DSA never installs. Don't assign a TIP before booking, and don't weaken the "DSA-first flow" tests in `backend/test/leads.e2e-spec.ts` and `backend/test/dsa-flow.e2e-spec.ts`.

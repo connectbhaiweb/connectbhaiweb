@@ -259,10 +259,15 @@
 }
 
 /* QA: TIP Leads, the actions (Call, WhatsApp, Update, Schedule) stay on one line and every row lines up */
-.pt-t-leads .pt-tr{grid-template-columns:200fr 150fr 200fr 110fr 110fr 104fr minmax(300px,300fr)}
-.pt-t-leads .pt-acts{flex-wrap:nowrap}
+.pt-t-leads .pt-tr{grid-template-columns:minmax(130px,170fr) minmax(90px,130fr) minmax(120px,190fr) minmax(80px,100fr) minmax(80px,100fr) minmax(80px,100fr) minmax(280px,520fr)}
+.pt-t-leads .pt-acts{flex-wrap:wrap;row-gap:6px}   /* the actions wrap inside their cell instead of running out of the table */
+/* TIP Leads: smaller action buttons, so a row's actions fit */
+.pt-t-leads .pt-acts .pt-sm{height:28px;padding:0 9px;font-size:11.5px;border-radius:8px;gap:5px}
+.pt-t-leads .pt-cw{gap:6px}
+.pt-t-leads .pt-ibtn{width:32px;height:28px;border-radius:8px}
+.pt-t-leads .pt-ibtn svg{width:16px;height:16px}
 .pt-t-leads{overflow-x:auto}
-.pt-t-leads .pt-tr{min-width:1090px}
+.pt-t-leads .pt-tr{min-width:940px;padding-block:8px}
 
 /* QA 12/13: device actions in the Care plan table */
 .cp-acts{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}

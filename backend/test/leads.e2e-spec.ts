@@ -7,27 +7,48 @@ describe('leads', () => {
   const body = (o: object = {}) => ({ customer_name: 'Neha Singh', customer_phone: uniquePhone(), pincode: PIN, plan_id: pid, ...o });
 
   describe('creating', () => {
-    it('website visitor creates a lead: ref code, auto-assigned to a TIP serving the PIN, event logged', async () => {
+    it('website visitor creates a lead: ref code, auto-assigned to the DSA serving the PIN, event logged', async () => {
       const r = await c.http().post(`${P}/leads`).send(body()).expect(201);
-      expect(r.body).toMatchObject({ source: 'website', status: 'new', brought_by_user_id: null, care_plan: false });
+      expect(r.body).toMatchObject({ source: 'website', status: 'new', brought_by_user_id: a.ids.dsa1, tip_user_id: null, care_plan: false });   // 452010 is served by DSA Ramesh (dsa1); a TIP comes only after booking
       expect(r.body.ref_code).toBe(`CB-${String(r.body.id).padStart(6, '0')}`);
-      expect(r.body.tip_user_id).toBeTruthy();
       expect(r.body.plan.plan_code).toBe('BSNL-01');
       const ev = await c.http().get(`${P}/leads/${r.body.id}/events`).set(bearer(a.admin)).expect(200);
       expect(ev.body.map((e: any) => e.event_type)).toEqual(['created', 'assigned']);
+      expect(ev.body[1].note).toBe(`dsa_user_id=${a.ids.dsa1}`);
     });
-    it('auto-assign can be turned off in settings', async () => {
+    it('auto-assign can be turned off in settings: the lead waits for admin', async () => {
       await c.http().put(`${P}/settings/auto_assign`).set(bearer(a.admin)).send({ value: '0' }).expect(200);
       const r = await c.http().post(`${P}/leads`).send(body()).expect(201);
-      expect(r.body.tip_user_id).toBeNull();
+      expect(r.body).toMatchObject({ brought_by_user_id: null, tip_user_id: null });
       await c.http().put(`${P}/settings/auto_assign`).set(bearer(a.admin)).send({ value: '1' }).expect(200);
     });
-    it('falls back to the internal Connect Bhai TIP when no TIP maps the PIN', async () => {
+    it('a PIN code no DSA serves: the lead waits for admin (no DSA, no TIP)', async () => {
       const pin = '999555';
       const indore = await c.prisma.city.findUniqueOrThrow({ where: { name: 'Indore' } });
       await c.prisma.area.create({ data: { city_id: indore.id, name: 'Lonely Colony', pincode: pin } });
       const r = await c.http().post(`${P}/leads`).send(body({ pincode: pin, plan_id: undefined })).expect(201);
-      expect(r.body.tip_user_id).toBe(a.ids.internal);
+      expect(r.body).toMatchObject({ brought_by_user_id: null, tip_user_id: null });
+    });
+    it('several DSAs serve a PIN: the one with the fewest open leads gets the next lead; inactive coverage is skipped', async () => {
+      // two brand-new DSAs, so both start with no open leads (the seeded DSAs carry other tests' leads)
+      const indore = await c.prisma.city.findUniqueOrThrow({ where: { name: 'Indore' } });
+      const pin = '999556', pinOff = '999557';
+      for (const p of [pin, pinOff]) await c.prisma.area.create({ data: { city_id: indore.id, name: `Area ${p}`, pincode: p } });
+      const newDsa = async (pins: string[]) => {
+        const reg = await c.http().post(`${P}/partners/register`).send({ role: 'dsa', name: 'Fresh Dsa', phone: uniquePhone(), address: '1 Road, Indore', pincode: '452001', aadhaar: '9999 1111 2222', pan: 'ABCDE1234F', bank_name: 'SBI', bank_account: '123456789012', bank_ifsc: 'SBIN0001234', service_pincodes: pins }).expect(201);
+        await c.http().patch(`${P}/users/${reg.body.user.id}/partner-status`).set(bearer(a.admin)).send({ status: 'approved' }).expect(200);
+        return Number(reg.body.user.id);
+      };
+      const x = await newDsa([pin, pinOff]), y = await newDsa([pin, pinOff]);
+      await c.prisma.dsaPincodeMapping.updateMany({ where: { dsa_user_id: y, pincode: pinOff }, data: { is_active: false } });   // y's coverage of pinOff is switched off
+      const owner = async (p: string) => Number((await c.http().post(`${P}/leads`).send(body({ pincode: p, plan_id: undefined })).expect(201)).body.brought_by_user_id);
+      const got = [await owner(pin), await owner(pin), await owner(pin), await owner(pin)];
+      expect(got[0]).toBe(Math.min(x, y));                                      // a tie goes to the lower id
+      expect(got[1]).toBe(Math.max(x, y));                                      // then the one with fewer open leads
+      expect(got.filter((d) => d === x)).toHaveLength(2);                       // balanced: two each
+      expect(got.filter((d) => d === y)).toHaveLength(2);
+      expect(await owner(pinOff)).toBe(x);                                      // y does not serve pinOff any more...
+      expect(await owner(pinOff)).toBe(x);                                      // ...so x keeps getting them, however many it has
     });
     it('a DSA-created lead records that DSA; nobody can name a DSA on a lead (admin or DSA)', async () => {
       const r = await c.http().post(`${P}/leads`).set(bearer(a.dsa1)).send(body()).expect(201);
@@ -35,9 +56,9 @@ describe('leads', () => {
       await c.http().post(`${P}/leads`).set(bearer(a.dsa1)).send(body({ brought_by_user_id: a.ids.dsa2 })).expect(400);   // a DSA cannot hand a lead to another DSA
       await c.http().post(`${P}/leads`).set(bearer(a.admin)).send(body({ brought_by_user_id: a.ids.dsa2 })).expect(400);   // admin cannot attribute a lead to a DSA
     });
-    it('an admin-created lead has no DSA', async () => {
+    it('an admin-created lead is assigned like any other: to the DSA serving the PIN (a DSA cannot be named on it)', async () => {
       const r = await c.http().post(`${P}/leads`).set(bearer(a.admin)).send(body()).expect(201);
-      expect(r.body).toMatchObject({ source: 'admin', brought_by_user_id: null });
+      expect(r.body).toMatchObject({ source: 'admin', brought_by_user_id: a.ids.dsa1, tip_user_id: null });
     });
     it('customer-created lead is linked to the customer account', async () => {
       const cust = await makeCustomer(c);
@@ -140,9 +161,20 @@ describe('leads', () => {
       await c.http().patch(`${P}/leads/${l.id}/status`).set(bearer(a.dream)).send({ status: 'installed' }).expect(400);
       await c.http().patch(`${P}/leads/${l.id}/status`).set(bearer(a.dream)).send({ status: 'scheduled' }).expect(400);
     });
-    it('a DSA can see status but cannot change it', async () => {
-      const l = await newLead(c, a, { by: 'dsa1', tip: 'dream' });
-      await c.http().patch(`${P}/leads/${l.id}/status`).set(bearer(a.dsa1)).send({ status: 'contacted' }).expect(403);
+    it('a DSA works their own lead: contact, follow-up, lost; not installed / scheduled; not another DSA\'s lead', async () => {
+      const l = await newLead(c, a, { by: 'dsa1' });
+      const st = (s: object, who = a.dsa1) => c.http().patch(`${P}/leads/${l.id}/status`).set(bearer(who)).send(s);
+      expect((await st({ status: 'contacted', note: 'called' }).expect(200)).body.status).toBe('contacted');
+      await st({ status: 'followup' }).expect(400);                       // needs followup_at
+      await st({ status: 'followup', followup_at: inDays(2) }).expect(200);
+      await st({ status: 'lost' }).expect(400);                           // needs a reason
+      await st({ status: 'lost', lost_reason: 'Not interested' }).expect(200);
+      await st({ status: 'followup', followup_at: inDays(1) }).expect(200);   // a lost lead can be reopened
+      await st({ status: 'installed' }).expect(400);                      // only a booking can do that
+      await st({ status: 'scheduled' }).expect(400);
+      await st({ status: 'contacted' }, a.dsa2).expect(404);              // not their lead
+      const ev = await c.http().get(`${P}/leads/${l.id}/events`).set(bearer(a.dsa1)).expect(200);
+      expect(ev.body.filter((e: any) => e.event_type === 'status_changed').map((e: any) => `${e.from_status}>${e.to_status}`)).toEqual(['new>contacted', 'contacted>followup', 'followup>lost', 'lost>followup']);
     });
     it('a TIP cannot touch another TIP\'s lead', async () => {
       const l = await newLead(c, a, { tip: 'doulat' });
@@ -156,43 +188,93 @@ describe('leads', () => {
       expect(r.body.status).toBe('cancelled');
       await c.http().patch(`${P}/leads/${l.id}/status`).set(bearer(cust.token)).send({ status: 'cancelled' }).expect(400); // terminal
     });
-    it('admin reassigns to an approved TIP only', async () => {
-      const l = await newLead(c, a, { tip: 'dream' });
-      const r = await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat }).expect(200);
-      expect(r.body.tip.id).toBe(a.ids.doulat);
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dsa1 }).expect(400);
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dream)).send({ tip_user_id: a.ids.dream }).expect(403);
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(403);
-    });
-    it('a lead can never be assigned to a DSA: no DSA field, a DSA id is refused, and the DSA on a lead never changes', async () => {
-      const l = await newLead(c, a, { by: 'dsa1', tip: 'dream' });
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({}).expect(400);
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa2 }).expect(400);                        // no DSA assignment
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: null }).expect(400);                              // and no clearing either
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa2, tip_user_id: a.ids.doulat }).expect(400);
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dsa2 }).expect(400);                       // a DSA is not a TIP
-      const r = await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat }).expect(200);
-      expect(r.body.tip.id).toBe(a.ids.doulat);
-      expect(r.body.dsa.id).toBe(a.ids.dsa1);   // the DSA who brought it keeps it, untouched
-      await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dsa2)).expect(404);   // another DSA never sees it
-      const ev = await c.http().get(`${P}/leads/${l.id}/events`).set(bearer(a.admin)).expect(200);
-      expect(ev.body.filter((e: any) => e.event_type === 'assigned' && /dsa/i.test(e.note)).length).toBe(0);
-    });
-    it('a website lead is assigned to a TIP only and has no DSA', async () => {
-      const l = await newLead(c, a, { by: 'web', tip: 'dream' });
-      expect(l.brought_by_user_id).toBeNull();
-      expect(l.tip_user_id).toBe(a.ids.dream);
-      expect(l.dsa ?? null).toBeNull();
-    });
-    it('the TIP cannot change while a booking is open, and the lead returns contact details for both partners', async () => {
-      const l = await newLead(c, a, { by: 'dsa1', tip: 'dream' });
-      const got = (await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.admin)).expect(200)).body;
-      expect(got.dsa.phone).toBeTruthy();
-      expect(got.tip.phone).toBeTruthy();
-      expect(got.plan === null || 'speed_mbps' in got.plan).toBe(true);
-      await c.http().post(`${P}/bookings`).set(bearer(a.dream)).send({ lead_id: l.id, scheduled_at: inDays(2) }).expect(201);
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat }).expect(400);
-      await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dream }).expect(200); // same TIP = no change
+    describe('DSA-first flow: DSA books, then a TIP is assigned, then the TIP installs', () => {
+      const tomorrow = () => inDays(1);
+      it('end to end: auto-assigned DSA -> contact -> book -> TIP assigned by the DSA -> TIP installs -> DSA is paid', async () => {
+        const l = (await c.http().post(`${P}/leads`).send(body()).expect(201)).body;
+        expect(l.brought_by_user_id).toBe(a.ids.dsa1);
+        await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dream)).expect(404);                       // no TIP yet: the TIP does not see it
+        await c.http().patch(`${P}/leads/${l.id}/status`).set(bearer(a.dsa1)).send({ status: 'contacted' }).expect(200);
+
+        // a TIP is assigned to a booked lead only
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(400);
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dream }).expect(400);
+
+        // the DSA books it, with no TIP yet
+        const bk = (await c.http().post(`${P}/bookings`).set(bearer(a.dsa1)).send({ lead_id: l.id, scheduled_at: tomorrow() }).expect(201)).body;
+        expect(bk.tip_user_id).toBeNull();
+        const booked = (await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dsa1)).expect(200)).body;
+        expect(booked).toMatchObject({ status: 'scheduled', tip_user_id: null });
+        await c.http().post(`${P}/bookings/${bk.id}/complete`).set(bearer(a.admin)).send({ connection_id: 'CID-1' }).expect(400);   // nobody to install it yet
+        await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dream)).expect(404);
+
+        // the lead's DSA assigns the TIP; the booking follows
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa2)).send({ tip_user_id: a.ids.dream }).expect(404);          // another DSA cannot
+        const assigned = (await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(200)).body;
+        expect(assigned.tip.id).toBe(a.ids.dream);
+        expect(assigned.bookings[0]).toMatchObject({ id: bk.id });
+        expect((await c.prisma.booking.findUniqueOrThrow({ where: { id: bk.id } })).tip_user_id).toBe(BigInt(a.ids.dream));
+        await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dream)).expect(200);                     // now the TIP sees it
+
+        // the TIP only installs; the DSA cannot
+        await c.http().post(`${P}/bookings/${bk.id}/complete`).set(bearer(a.dsa1)).send({ connection_id: 'CID-1' }).expect(403);
+        await c.http().post(`${P}/bookings/${bk.id}/complete`).set(bearer(a.doulat)).send({ connection_id: 'CID-1' }).expect(404);   // another TIP: out of scope
+        const done = await c.http().post(`${P}/bookings/${bk.id}/complete`).set(bearer(a.dream)).send({ connection_id: 'CID-1', router_serial: `SN-${Date.now()}` }).expect(200);
+        expect(done.body.commission).toMatchObject({ dsa_user_id: a.ids.dsa1, amount: 300 });           // the DSA is paid
+        expect((await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.admin)).expect(200)).body.status).toBe('installed');
+        const ev = await c.http().get(`${P}/leads/${l.id}/events`).set(bearer(a.admin)).expect(200);
+        expect(ev.body.filter((e: any) => e.event_type === 'assigned').map((e: any) => e.note)).toEqual([`dsa_user_id=${a.ids.dsa1}`, `tip_user_id=${a.ids.dream}`]);
+      });
+      it('only admin assigns a DSA, and only before the lead is booked', async () => {
+        const l = await newLead(c, a, { by: 'web' });                       // auto-assigned to dsa1
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({}).expect(400);
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ dsa_user_id: a.ids.dsa2 }).expect(403);   // a DSA cannot hand a lead over
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dream)).send({ dsa_user_id: a.ids.dsa2 }).expect(403);
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dream }).expect(400);   // a TIP is not a DSA
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa1 }).expect(200);    // same DSA: nothing to do
+        const r = await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa2 }).expect(200);
+        expect(r.body.dsa.id).toBe(a.ids.dsa2);
+        await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dsa1)).expect(404);
+        await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dsa2)).expect(200);
+        await c.http().post(`${P}/bookings`).set(bearer(a.dsa2)).send({ lead_id: l.id, scheduled_at: tomorrow() }).expect(201);
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa1 }).expect(400);    // booked: the DSA is final
+      });
+      it('a lead nobody serves can be assigned a DSA by admin, who then works it', async () => {
+        const l = await newLead(c, a, { by: 'web', noDsa: true });
+        expect(l.brought_by_user_id).toBeNull();
+        await c.http().post(`${P}/bookings`).set(bearer(a.admin)).send({ lead_id: l.id, scheduled_at: tomorrow() }).expect(400);   // book it only once it has a DSA
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ dsa_user_id: a.ids.dsa2 }).expect(200);
+        await c.http().patch(`${P}/leads/${l.id}/status`).set(bearer(a.dsa2)).send({ status: 'contacted' }).expect(200);
+      });
+      it('the TIP can be changed while the booking is open, and the booking follows; not after installation', async () => {
+        const l = await newLead(c, a, { by: 'dsa1' });
+        const bk = (await c.http().post(`${P}/bookings`).set(bearer(a.dsa1)).send({ lead_id: l.id, scheduled_at: tomorrow() }).expect(201)).body;
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dsa2 }).expect(400);            // a DSA is not a TIP
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(200);
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat }).expect(200);          // reassigned
+        expect((await c.prisma.booking.findUniqueOrThrow({ where: { id: bk.id } })).tip_user_id).toBe(BigInt(a.ids.doulat));
+        await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dream)).expect(404);                                                      // the first TIP lost it
+        await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.doulat)).expect(200);
+        const got = (await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.admin)).expect(200)).body;
+        expect(got.dsa.phone).toBeTruthy(); expect(got.tip.phone).toBeTruthy();                                                         // contact details for both partners
+        await c.http().post(`${P}/bookings/${bk.id}/complete`).set(bearer(a.doulat)).send({ connection_id: 'CID-2' }).expect(200);
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dream }).expect(400);          // installed: locked
+      });
+      it('the TIP picker: admin and the lead\'s DSA see approved TIPs, those covering the PIN first; nobody else can', async () => {
+        const l = await newLead(c, a, { by: 'dsa1' });
+        const mine = (await c.http().get(`${P}/leads/${l.id}/tip-options`).set(bearer(a.dsa1)).expect(200)).body;
+        const admin = (await c.http().get(`${P}/leads/${l.id}/tip-options`).set(bearer(a.admin)).expect(200)).body;
+        expect(admin).toEqual(mine);
+        expect(mine.length).toBeGreaterThan(2);
+        expect(mine[0].covers_pin).toBe(true);                                         // 452010 is covered, so those come first
+        expect(mine.find((t: any) => t.id === a.ids.dream)).toMatchObject({ covers_pin: true });
+        expect(mine.every((t: any) => t.phone === undefined)).toBe(true);              // only what is needed to choose
+        const firstUncovered = mine.findIndex((t: any) => !t.covers_pin);
+        if (firstUncovered >= 0) expect(mine.slice(firstUncovered).every((t: any) => !t.covers_pin)).toBe(true);
+        await c.http().get(`${P}/leads/${l.id}/tip-options`).set(bearer(a.dsa2)).expect(404);   // not their lead
+        await c.http().get(`${P}/leads/${l.id}/tip-options`).set(bearer(a.dream)).expect(403);
+        await c.http().get(`${P}/leads/${l.id}/tip-options`).expect(401);
+      });
     });
     it('"assigned" and "unassigned" filters split new leads in every portal', async () => {
       const mine = await newLead(c, a, { by: 'dsa1' });
