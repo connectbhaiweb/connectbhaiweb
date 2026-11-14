@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, NotFoundException, ServiceUnavailableException, Param, ParseIntPipe, Patch, Post, Query, BadRequestException } from '@nestjs/common';
+import { Body, ConflictException, Controller, Delete, Get, NotFoundException, ServiceUnavailableException, Param, ParseIntPipe, Patch, Post, Query, BadRequestException } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { TtlCache } from '../common/utils/ttl-cache';
 import { Public, Roles } from '../common/decorators';
@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import { ImportPinsDto, ReverseQuery } from './locations.dto';
 import { PincodeService } from './pincode.service';
-import { CreateAreaDto, CreateCityDto, PINCODE_RE, TipPincodeDto, TipPincodeQuery, TipPincodeUpdateDto, UpdateCityDto } from './locations.dto';
+import { CreateAreaDto, CreateCityDto, PINCODE_RE, TipPincodeDto, TipPincodeQuery, TipPincodeUpdateDto, UpdateAreaDto, UpdateCityDto } from './locations.dto';
 
 @ApiTags('locations') @Controller()
 export class LocationsController {
@@ -99,6 +99,19 @@ export class LocationsController {
   async createArea(@Param('id', ParseIntPipe) id: number, @Body() d: CreateAreaDto) { this.cache.clear();
     if (!(await this.prisma.city.findUnique({ where: { id } }))) throw new NotFoundException('City not found');
     return this.prisma.area.create({ data: { city_id: id, name: d.name.trim(), pincode: d.pincode } });
+  }
+
+  /** Admin: rename an area. Leads link to the area by id, so every place that shows a lead's area picks up the new name. */
+  @ApiBearerAuth() @Roles('admin') @Patch('areas/:id')
+  async updateArea(@Param('id', ParseIntPipe) id: number, @Body() d: UpdateAreaDto) {
+    const area = await this.prisma.area.findUnique({ where: { id } });
+    if (!area) throw new NotFoundException('Area not found');
+    const name = d.name.trim();
+    if (name.length < 2) throw new BadRequestException('Enter the area name');
+    const clash = await this.prisma.area.findFirst({ where: { city_id: area.city_id, pincode: area.pincode, name, NOT: { id } } });
+    if (clash) throw new ConflictException('This PIN code already has an area with that name');
+    this.cache.clear();
+    return this.prisma.area.update({ where: { id }, data: { name } });
   }
 
   @ApiBearerAuth() @Roles('admin') @Delete('areas/:id')

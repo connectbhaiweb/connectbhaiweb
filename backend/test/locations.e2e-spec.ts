@@ -57,6 +57,23 @@ describe('locations', () => {
     await c.http().delete(`${P}/areas/${area.body.id}`).set(bearer(a.admin)).expect(404);
   });
 
+  it('admin renames an area; the PIN code cannot be changed and duplicates are refused', async () => {
+    const city = await c.http().post(`${P}/cities`).set(bearer(a.admin)).send({ name: `Renamepur ${Date.now()}` }).expect(201);
+    const one = await c.http().post(`${P}/cities/${city.body.id}/areas`).set(bearer(a.admin)).send({ name: 'Old Name', pincode: '999011' }).expect(201);
+    const two = await c.http().post(`${P}/cities/${city.body.id}/areas`).set(bearer(a.admin)).send({ name: 'Other Name', pincode: '999011' }).expect(201);
+    const cust = await makeCustomer(c);
+    await c.http().patch(`${P}/areas/${one.body.id}`).send({ name: 'New Name' }).expect(401);
+    await c.http().patch(`${P}/areas/${one.body.id}`).set(bearer(cust.token)).send({ name: 'New Name' }).expect(403);
+    const r = await c.http().patch(`${P}/areas/${one.body.id}`).set(bearer(a.admin)).send({ name: '  New Name  ' }).expect(200);
+    expect(r.body).toMatchObject({ name: 'New Name', pincode: '999011' });
+    await c.http().patch(`${P}/areas/${one.body.id}`).set(bearer(a.admin)).send({ name: 'Other Name' }).expect(409);
+    await c.http().patch(`${P}/areas/${one.body.id}`).set(bearer(a.admin)).send({ name: 'x' }).expect(400);
+    await c.http().patch(`${P}/areas/${one.body.id}`).set(bearer(a.admin)).send({ name: 'Fine Name', pincode: '999012' }).expect(400);   // the PIN code is not editable
+    await c.http().patch(`${P}/areas/999999999`).set(bearer(a.admin)).send({ name: 'Nope' }).expect(404);
+    await c.http().delete(`${P}/areas/${one.body.id}`).set(bearer(a.admin)).expect(200);
+    await c.http().delete(`${P}/areas/${two.body.id}`).set(bearer(a.admin)).expect(200);
+  });
+
   it('admin manages the TIP <-> PIN mapping', async () => {
     const pin = '999777';
     const add = await c.http().post(`${P}/admin/tip-pincodes`).set(bearer(a.admin)).send({ pincode: pin, tip_user_id: a.ids.dream }).expect(201);

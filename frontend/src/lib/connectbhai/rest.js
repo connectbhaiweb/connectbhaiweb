@@ -440,6 +440,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
         coverage: maps.filter(m => m.pincode === a.pincode).map(m => ({ id: S(m.id), location_id: S(a.id), provider_id: "all", provider: { id: "all", name: "All providers" }, tip_partner_id: S(m.tip_user_id), tip: pc(m.tip), technology: "ftth", is_active: m.is_active })) }));
     },
     async saveLocation(f) { need("admin"); await post(`/cities/${N(f.city_id) || 1}/areas`, { name: f.area.trim(), pincode: f.pincode }); return true; },
+    async updateLocation(id, name) { need("admin"); await patch(`/areas/${N(id)}`, { name: String(name || "").trim() }); return true; },   // rename only; the PIN code stays
     async saveLocationZone() { fail("Zones are not used any more."); },
     async saveCoverage(f) { need("admin"); const loc = (await this.adminLocations()).find(l => String(l.id) === String(f.location_id)); if (!loc) fail("Choose the area."); if (!f.tip_partner_id) fail("Choose the TIP partner."); await post("/admin/tip-pincodes", { pincode: loc.pincode, tip_user_id: Number(f.tip_partner_id) }); return true; },
     async removeCoverage(id) { need("admin"); await del("/admin/tip-pincodes/" + id); return true; },

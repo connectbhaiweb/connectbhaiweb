@@ -14,6 +14,10 @@ export class CreateAreaDto {
   @IsString() @MinLength(2) @MaxLength(120) name: string;
   @Matches(PINCODE_RE, { message: 'pincode must be a valid 6-digit PIN' }) pincode: string;
 }
+/** Rename an area. The PIN code is not editable: leads keep their own PIN code, so changing it would leave them mismatched. */
+export class UpdateAreaDto {
+  @IsString() @MinLength(2) @MaxLength(120) name: string;
+}
 export class TipPincodeDto {
   @Matches(PINCODE_RE) pincode: string;
   @Type(() => Number) @IsInt() tip_user_id: number;
