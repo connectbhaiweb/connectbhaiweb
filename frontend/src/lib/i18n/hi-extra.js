@@ -15,6 +15,7 @@ export const PLACES = {
 const MONTHS = { Jan: "जन", Feb: "फ़र", Mar: "मार्च", Apr: "अप्रैल", May: "मई", Jun: "जून", Jul: "जुल", Aug: "अग", Sept: "सित", Sep: "सित", Oct: "अक्टू", Nov: "नव", Dec: "दिस", am: "पूर्वाह्न", pm: "अपराह्न" };
 
 export const EXTRA = {
+  "Sharing": "साझा करना", "Legal": "कानूनी", "Partners": "पार्टनर", "Equipment": "उपकरण",
   "Main": "मुख्य", "Plans": "प्लान", "Mobile": "मोबाइल", "Back": "वापस", "Ping": "पिंग", "Download": "डाउनलोड", "Upload": "अपलोड", "DOWNLOAD": "डाउनलोड",
   "Jitter": "जिटर", "4K streaming": "4K स्ट्रीमिंग", "Customers": "ग्राहक", "FAQ": "सवाल-जवाब", "Contact": "संपर्क", "Customer": "ग्राहक",
   "215-A, Mahalaxmi Nagar, Indore (M.P.) 452010": "215-A, महालक्ष्मी नगर, इंदौर (म.प्र.) 452010",

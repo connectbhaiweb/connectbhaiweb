@@ -7,7 +7,12 @@ import legacyA from "./hi-legacyA";
 import legacyB from "./hi-legacyB";
 import legacyC from "./hi-legacyC";
 import legacyD from "./hi-legacyD";
+import moreSite from "./hi-more-site";
+import moreA from "./hi-more-legacyA";
+import moreB from "./hi-more-legacyB";
+import moreC from "./hi-more-legacyC";
+import moreD from "./hi-more-legacyD";
 import { EXTRA, EXTRA_PATTERNS, PLACES } from "./hi-extra";
 
-export const EXACT = { ...legacyA, ...legacyB, ...legacyC, ...legacyD, ...site, ...dash, ...admin, ...PLACES, ...EXTRA };
+export const EXACT = { ...legacyA, ...legacyB, ...legacyC, ...legacyD, ...site, ...dash, ...admin, ...moreSite, ...moreA, ...moreB, ...moreC, ...moreD, ...PLACES, ...EXTRA };
 export const PATTERNS = EXTRA_PATTERNS;

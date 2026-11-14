@@ -1,6 +1,7 @@
 "use client";
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
+import { Wifi } from "lucide-react";
 import Logo from "./Logo";
 import { subscribe, getSnapshot, getServerSnapshot } from "@/lib/connectbhai/runtime";
 import { ROLE_HOME } from "@/lib/connectbhai/shared";
@@ -65,6 +66,17 @@ export default function Footer() {
               </li>
             </ul>
           </div>
+        </div>
+        <div className="fbar">
+          <p>{`© ${new Date().getFullYear()} Connect Bhai. All Rights Reserved.`}</p>
+          <nav aria-label="Legal">
+            <Link href="/privacy">Privacy Policy</Link>
+            <Link href="/delete-account">Account Deletion</Link>
+            <Link href="/terms">Terms of Service</Link>
+            <Link href="/refund">Refund Policy</Link>
+            <Link href="/shipping">Shipping Policy</Link>
+            <span className="fbar-tag"><Wifi aria-hidden="true" />Connecting India</span>
+          </nav>
         </div>
       </div>
     </footer>
