@@ -2,6 +2,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import Logo from "./Logo";
+import LangToggle from "./LangToggle";
 import { subscribe, getSnapshot, getServerSnapshot } from "@/lib/connectbhai/runtime";
 import { ROLE_HOME, ROLE_NAME, ROLE_NAV_LABEL, initials, viewFromPath } from "@/lib/connectbhai/shared";
 
@@ -33,6 +34,7 @@ export default function Header() {
           ))}
         </nav>
         <div className="acts" id="topacts">
+          <LangToggle />
           {user ? (
             <>
               <button className="btn btn-ghost btn-sm acts-who" data-go={ROLE_HOME[user.role]} type="button">

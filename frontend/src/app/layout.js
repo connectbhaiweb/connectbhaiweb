@@ -23,6 +23,7 @@ import CompareBar from "@/components/CompareBar";
 import Overlays from "@/components/Overlays";
 import StoryTemplate from "@/components/StoryTemplate";
 import ConnectBhaiRuntime from "@/components/ConnectBhaiRuntime";
+import LangRuntime from "@/components/LangRuntime";
 import TableTools from "@/components/TableTools";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 
@@ -55,6 +56,7 @@ export default function RootLayout({ children }) {
         <DashboardShell />
         <FloatingActions />
         <ConnectBhaiRuntime />
+        <LangRuntime />
         <TableTools />
       </body>
     </html>

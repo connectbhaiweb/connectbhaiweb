@@ -1,0 +1,77 @@
+/* Second pass: texts found on the live pages that the source scan missed (short labels, city and area names).
+   Brand and role names stay in English. */
+export const PLACES = {
+  Indore: "इंदौर", Bhopal: "भोपाल", Gwalior: "ग्वालियर", Jabalpur: "जबलपुर", Ujjain: "उज्जैन", Bhind: "भिंड", Burhanpur: "बुरहानपुर",
+  Chhindwara: "छिंदवाड़ा", Dewas: "देवास", Dhar: "धार", Guna: "गुना", Katni: "कटनी", Khandwa: "खंडवा", Khargone: "खरगोन", Mandsaur: "मंदसौर",
+  Morena: "मुरैना", Narmadapuram: "नर्मदापुरम", Neemuch: "नीमच", Ratlam: "रतलाम", Rewa: "रीवा", Sagar: "सागर", Satna: "सतना", Shivpuri: "शिवपुरी",
+  Singrauli: "सिंगरौली", Vidisha: "विदिशा", "Agar Malwa": "आगर मालवा", Alirajpur: "अलीराजपुर", Anuppur: "अनूपपुर", Ashoknagar: "अशोकनगर",
+  Balaghat: "बालाघाट", Barwani: "बड़वानी", Betul: "बैतूल", Chhatarpur: "छतरपुर", Damoh: "दमोह", Datia: "दतिया", Dindori: "डिंडौरी", Harda: "हरदा",
+  Jhabua: "झाबुआ", Maihar: "मैहर", Mandla: "मंडला", Mauganj: "मऊगंज", Narsinghpur: "नरसिंहपुर", Niwari: "निवाड़ी", Pandhurna: "पांढुर्णा",
+  Panna: "पन्ना", Raisen: "रायसेन", Rajgarh: "राजगढ़", Sehore: "सीहोर", Seoni: "सिवनी", Shahdol: "शहडोल", Shajapur: "शाजापुर", Sheopur: "श्योपुर",
+  Sidhi: "सीधी", Tikamgarh: "टीकमगढ़", Umaria: "उमरिया", Depalpur: "देपालपुर", Mhow: "महू", Sanwer: "सांवेर",
+  "Vijay Nagar": "विजय नगर", Rajwada: "राजवाड़ा", Annapurna: "अन्नपूर्णा", Nipania: "निपानिया", Bhawarkuan: "भंवरकुआं",
+  "Pologround Industrial Area": "पोलोग्राउंड औद्योगिक क्षेत्र",
+};
+const MONTHS = { Jan: "जन", Feb: "फ़र", Mar: "मार्च", Apr: "अप्रैल", May: "मई", Jun: "जून", Jul: "जुल", Aug: "अग", Sept: "सित", Sep: "सित", Oct: "अक्टू", Nov: "नव", Dec: "दिस", am: "पूर्वाह्न", pm: "अपराह्न" };
+
+export const EXTRA = {
+  "Main": "मुख्य", "Plans": "प्लान", "Mobile": "मोबाइल", "Back": "वापस", "Ping": "पिंग", "Download": "डाउनलोड", "Upload": "अपलोड", "DOWNLOAD": "डाउनलोड",
+  "Jitter": "जिटर", "4K streaming": "4K स्ट्रीमिंग", "Customers": "ग्राहक", "FAQ": "सवाल-जवाब", "Contact": "संपर्क", "Customer": "ग्राहक",
+  "215-A, Mahalaxmi Nagar, Indore (M.P.) 452010": "215-A, महालक्ष्मी नगर, इंदौर (म.प्र.) 452010",
+  "Area served: Indore, Depalpur, Mhow & Sanwer": "सेवा क्षेत्र: इंदौर, देपालपुर, महू और सांवेर",
+  "selected": "चुने गए", "Compare": "तुलना करें", "Clear": "हटाएं", "Top": "ऊपर", "Log in to Care plan": "Care plan के लिए लॉग इन करें",
+  "Scans the ONT serial": "ONT सीरियल स्कैन करता है", "Installation": "इंस्टॉलेशन", "Care.": "केयर।", "Product": "प्रोडक्ट",
+  "Fiber": "फाइबर", "Search": "खोजें", "Reset": "रीसेट", "BSNL TIPs, DSAs & local ISPs": "BSNL TIPs, DSAs और लोकल ISP",
+  "/month": "/माह", "Best": "सबसे अच्छा", "Choose": "चुनें", "Connect": "जुड़ें", "Care": "केयर", "Replay": "दोबारा चलाएं", "Modem": "मॉडेम",
+  "Online": "ऑनलाइन", "Strong": "मज़बूत", "Speed": "स्पीड", "Restart": "रीस्टार्ट", "Password": "पासवर्ड", "Connected": "जुड़ा हुआ",
+  "Soon": "जल्द", "Show all 55 districts": "सभी 55 जिले देखें", "For DSAs & TIPs": "DSA और TIP के लिए", "I am a": "मैं हूँ",
+  "Direct Selling Agent (DSA)": "डायरेक्ट सेलिंग एजेंट (DSA)", "Telecom Infrastructure Partner (TIP)": "टेलीकॉम इंफ्रास्ट्रक्चर पार्टनर (TIP)",
+  "Full name": "पूरा नाम", "Firm / shop name": "फर्म / दुकान का नाम", "Mobile number": "मोबाइल नंबर", "Email": "ईमेल",
+  "DSAs and TIPs can register before we launch in their city.": "DSA और TIP अपने शहर में लॉन्च से पहले भी रजिस्टर कर सकते हैं।",
+  "PIN codes you serve": "आप जिन PIN code में सेवा देते हैं", "Separate with commas": "कॉमा से अलग करें", "Close": "बंद करें",
+  "Username (your mobile number)": "यूज़रनेम (आपका मोबाइल नंबर)", "10-digit mobile": "10 अंकों का मोबाइल", "Forgot password?": "पासवर्ड भूल गए?",
+  "Reset it with an OTP on WhatsApp.": "WhatsApp पर OTP से रीसेट करें।", "Admin": "एडमिन",
+  "Fills the admin username. Enter the password and tap Log in.": "एडमिन यूज़रनेम भर देता है। पासवर्ड डालें और लॉग इन दबाएं।",
+  "Administrator": "प्रशासक", "Messages": "संदेश", "Overview": "ओवरव्यू", "Leads": "लीड", "Providers": "प्रोवाइडर", "Locations": "लोकेशन",
+  "Chat": "चैट", "Reports": "रिपोर्ट", "Settings": "सेटिंग", "Dashboard": "डैशबोर्ड", "More": "और", "Menu": "मेन्यू", "PIN": "PIN", "Plan": "प्लान",
+  "Actions": "कार्रवाई", "Applicant": "आवेदक", "Type": "प्रकार", "Phone": "फ़ोन", "Action": "कार्रवाई", "Approve": "मंज़ूर करें", "Reject": "अस्वीकार करें",
+  "Installs": "इंस्टॉल", "Area": "क्षेत्र", "Conversion": "कन्वर्ज़न", "Cities": "शहर", "City": "शहर", "Status": "स्थिति", "Total": "कुल", "Offline": "ऑफ़लाइन",
+  "View": "देखें", "Show these leads": "ये लीड दिखाएं", "Rows": "पंक्तियाँ", "Ref": "रेफ़", "TIP": "TIP", "Call": "कॉल", "Chat or call on WhatsApp": "WhatsApp पर चैट या कॉल करें",
+  "Callback": "कॉलबैक", "Assign DSA": "DSA असाइन करें", "Reassign DSA": "DSA दोबारा असाइन करें", "Change TIP": "TIP बदलें", "Install": "इंस्टॉल",
+  "Lists": "सूचियाँ", "TIPs": "TIP", "Requests": "अनुरोध", "Joined": "जुड़े", "DSAs": "DSA", "Active": "सक्रिय", "Suspended": "निलंबित", "KYC": "KYC",
+  "DSA earns": "DSA की कमाई", "KYC not verified · awaiting your approval": "KYC सत्यापित नहीं · आपकी मंज़ूरी का इंतज़ार", "Edit": "बदलें", "Delete": "हटाएं",
+  "Verified": "सत्यापित", "Can log in and receive leads": "लॉग इन कर सकते हैं और लीड पा सकते हैं", "Suspend": "निलंबित करें", "Admins": "एडमिन",
+  "Name": "नाम", "Role": "भूमिका", "Reset password": "पासवर्ड रीसेट करें", "Provider": "प्रोवाइडर", "Website": "वेबसाइट", "Demo": "डेमो", "Hide": "छिपाएं",
+  "Code": "कोड", "Benefit": "फ़ायदा", "Price": "कीमत", "Remove": "हटाएं", "1 provider": "1 प्रोवाइडर", "Most people waiting:": "सबसे ज़्यादा लोग इंतज़ार में:",
+  "Waiting": "इंतज़ार में", "Back to soon": "वापस 'जल्द' में", "Launch": "लॉन्च करें", "collected": "वसूला गया", "Fees & GST": "फीस और GST",
+  "GST": "GST", "Subtotal": "उप-कुल", "Ready to pay": "भुगतान के लिए तैयार", "Booking": "बुकिंग", "Created": "बनाया गया", "Amount": "राशि",
+  "Date": "तारीख", "Method": "तरीका", "Reference": "संदर्भ", "Agent": "एजेंट", "Installer": "इंस्टॉलर", "Message": "संदेश", "Send": "भेजें", "Time": "समय", "To": "प्रति",
+  "Details": "विवरण", "sent": "भेजा गया", "Simulated": "सिम्युलेटेड", "Collected": "वसूला गया", "Leads delivered": "दिए गए लीड", "Fees paid": "चुकाई गई फीस",
+  "Below": "नीचे", "Fees & payouts": "फीस और भुगतान", "TIP registration fee (₹)": "TIP रजिस्ट्रेशन फीस (₹)", "GST (%)": "GST (%)",
+  "Leads promised per DSA/TIP / month": "प्रति DSA/TIP प्रति माह वादा किए गए लीड", "Default; set per DSA/TIP in the DSA & TIP list": "डिफ़ॉल्ट; DSA & TIP सूची में हर एक के लिए अलग तय करें",
+  "TIP share of monthly rental (%)": "मासिक किराये में TIP का हिस्सा (%)", "Used to estimate TIP income on their dashboard": "TIP के डैशबोर्ड पर आय का अनुमान लगाने के लिए",
+  "Home": "होम", "Commission": "कमीशन", "Tickets": "टिकट", "You (DSA)": "आप (DSA)", "Edit name / email": "नाम / ईमेल बदलें", "Connect Bhai admin": "Connect Bhai एडमिन",
+  "Update": "अपडेट", "Service PINs:": "सेवा PIN:", "Today": "आज", "Tomorrow": "कल", "Installations": "इंस्टॉलेशन", "Payments": "भुगतान", "Requested": "अनुरोध किया",
+  "You (TIP)": "आप (TIP)", "Due": "बकाया", "Request change": "बदलाव का अनुरोध", "Slow speed": "धीमी स्पीड", "Raised": "दर्ज किया", "Note:": "नोट:",
+  "Share % to be set by admin": "हिस्सा % एडमिन तय करेगा", "Drag & drop or click to upload": "खींचकर छोड़ें या अपलोड के लिए क्लिक करें", "Date & Time": "तारीख और समय",
+  "of": "में से", "Bookings": "बुकिंग", "Support": "सहायता", "Namaste": "नमस्ते", "Booking #": "बुकिंग #", "Signal:": "सिग्नल:", "Good": "अच्छा",
+  "You (customer)": "आप (ग्राहक)", "Your agent (DSA)": "आपका एजेंट (DSA)", "Complaint": "शिकायत", "Update:": "अपडेट:", "Service request": "सेवा अनुरोध",
+  "Connection": "कनेक्शन", "Choose connection": "कनेक्शन चुनें", "Category": "श्रेणी", "Frequent disconnection": "बार-बार कनेक्शन टूटना", "Billing": "बिलिंग",
+  "Shift connection": "कनेक्शन शिफ्ट करें", "Plan change": "प्लान बदलना", "Other": "अन्य", "Describe the issue": "समस्या बताएं", "Submit": "जमा करें",
+  "Amount (₹, incl. GST)": "राशि (₹, GST सहित)", "Wallets": "वॉलेट", "1 payment": "1 भुगतान", "Firmware": "फ़र्मवेयर", "Devices on Wi-Fi": "Wi-Fi पर डिवाइस",
+  "Line test": "लाइन टेस्ट", "Done": "पूरा", "Welcome": "स्वागत है", "Leads delivered · {x}": "दिए गए लीड · {x}", "Collected · {x}": "वसूला गया · {x}",
+  "Paid to DSAs · {x}": "DSA को चुकाया · {x}", "Paid to DSAs": "DSA को चुकाया", "All ({n})": "सभी ({n})", "New ({n})": "नए ({n})", "Assigned ({n})": "असाइन ({n})",
+  "Contacted ({n})": "संपर्क किया ({n})", "Follow-up ({n})": "फ़ॉलो-अप ({n})", "Booked ({n})": "बुक ({n})", "Installed ({n})": "इंस्टॉल ({n})", "Lost ({n})": "खोए ({n})",
+  "Due ({n})": "बकाया ({n})", "Paid ({n})": "चुकाया ({n})", "Failed ({n})": "विफल ({n})", "Waived ({n})": "माफ़ ({n})", "Fiber broadband ({n})": "फाइबर ब्रॉडबैंड ({n})",
+  "Air Fiber ({n})": "एयर फाइबर ({n})", "TV ({n})": "TV ({n})", "OTT pack ({n})": "OTT पैक ({n})", "SIM · Prepaid ({n})": "SIM · प्रीपेड ({n})", "SIM · Postpaid ({n})": "SIM · पोस्टपेड ({n})",
+  "{n} approved": "{n} मंज़ूर", "Show the top {n} areas": "शीर्ष {n} क्षेत्र दिखाएं", "{n} d {n} h": "{n} दिन {n} घंटे", "Welcome, {x}.": "स्वागत है, {x}।",
+  "Namaste, {x}": "नमस्ते, {x}", "{n} provider": "{n} प्रोवाइडर", "{n} providers": "{n} प्रोवाइडर",
+};
+
+export const EXTRA_PATTERNS = [
+  [/^(.+?) · soon$/, p => (PLACES[p] || p) + " · जल्द"],                                   // "Bhopal · soon"
+  [/^(\d{6}) · (.+)$/, (pin, a) => pin + " · " + (PLACES[a] || a)],                       // "452010 · Vijay Nagar"
+  [/^· (.+)$/, a => (PLACES[a] ? "· " + PLACES[a] : undefined)],                             // "· Rajwada"
+  [/^([A-Z][A-Za-z ]+?) \((\d+)\)$/, (c, n) => (PLACES[c] ? PLACES[c] + " (" + n + ")" : undefined)],   // "Bhopal (4)"
+  [new RegExp("^((?:[\\d,:.\\s]|am|pm|" + Object.keys(MONTHS).join("|") + ")+)$"), s => (/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|am|pm)/.test(s) ? s.replace(/(Sept|Sep|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Oct|Nov|Dec|am|pm)/g, m => MONTHS[m]) : undefined)],   // "13 Nov, 8:22 pm", "Jun 2026"
+];

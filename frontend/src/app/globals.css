@@ -812,3 +812,14 @@ footer button.linkbtn:hover,footer a:hover{color:#4FD6B0;text-decoration:underli
 
 /* Mobile: taller hero animation frame, scene stays centred and the extra room is filled by the background. */
 @media (max-width:640px){.story .stage{aspect-ratio:600/290}}
+
+/* ---- English / Hindi toggle ---- */
+.lang-toggle{display:inline-flex;align-items:center;gap:0;height:34px;padding:3px;border-radius:999px;border:1px solid rgba(141,180,255,.45);background:rgba(255,255,255,.06);cursor:pointer;font:700 12.5px/1 var(--body,inherit);color:#CFE0FF;flex:none}
+.lang-toggle span{display:grid;place-items:center;min-width:34px;height:26px;padding:0 6px;border-radius:999px;transition:background .15s,color .15s}
+.lang-toggle span.is-on{background:#fff;color:#0A1B3D}
+.lang-toggle i{display:none}
+.lang-toggle:hover{border-color:#fff}
+.lang-toggle:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.lang-toggle.lang-dash{margin-right:10px;border-color:#C9D6EE;background:#fff;color:#53617F}
+.lang-toggle.lang-dash span.is-on{background:#164FC8;color:#fff}
+@media (max-width:760px){.lang-toggle{height:32px}.lang-toggle span{min-width:30px;height:24px}}
