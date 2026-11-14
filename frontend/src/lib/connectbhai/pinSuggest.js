@@ -43,6 +43,7 @@ function box(el) {
 }
 function hide(el) { const b = el && (el.closest(".field") || el.parentElement).querySelector(":scope > .pin-sug"); if (b) b.hidden = true; if (el) el.setAttribute("aria-expanded", "false"); }
 
+let justPicked = false;   // the input event fired by a pick must not reopen the list
 function pick(el, pin) {
   if (isMany(el)) {
     const have = listOf(String(el.value).split(",").slice(0, -1).join(","));
@@ -50,7 +51,8 @@ function pick(el, pin) {
     el.value = have.join(", ") + ", ";
   } else el.value = pin;
   hide(el); el.focus();
-  el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true }));
+  justPicked = true;
+  try { el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); } finally { justPicked = false; }
 }
 
 /* chips under a multi-PIN field */
@@ -80,7 +82,7 @@ export async function pinSuggest(el, API) {
   if (isMany(el)) pinChips(el);
   const t = token(el), b = box(el);
   b.style.top = (el.offsetTop + el.offsetHeight + 4) + "px";   // right under the input, above any hint text
-  if (!/^\d{3,5}$/.test(t)) { hide(el); return; }
+  if (!/^\d{3,6}$/.test(t) || justPicked) { hide(el); return; }
   const chosen = isMany(el) ? listOf(el.value) : [];
   const all = await loadDir(API);
   if (token(el) !== t) return;   // the user kept typing while the list loaded
