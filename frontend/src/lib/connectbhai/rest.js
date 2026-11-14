@@ -97,7 +97,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     fee_paid_at: u.approved_at, commission_per_install: rates[u.role] || 0, created_at: u.created_at, is_internal: !!u.is_internal, acs_mode: "connectbhai", acs_key_set: true, acs_agreement: true, aadhaar_last4: u.aadhaar_last4, pan_last4: u.pan_last4, bank_name: u.bank_name || "", bank_ifsc: u.bank_ifsc || "", bank_account_last4: u.bank_account_last4 || "", upi_id: u.upi_id || "" });
   const pc = u => u ? { id: S(u.id), name: u.name, firm: u.business_name || "", phone: u.phone || "", email: u.email || "", type: u.role || "partner", partner_code: u.partner_code } : null;
   /* official provider logos live in /public/logos (also stored as plan_categories.logo_url in MySQL) */
-  const BRAND_LOGO = { bsnl: "/logos/bsnl.svg", jio: "/logos/jio.svg", airtel: "/logos/airtel.svg" };
+  const BRAND_LOGO = { bsnl: "/logos/bsnl.png", jio: "/logos/jio.svg", airtel: "/logos/airtel.svg" };
   const CAT = { fiber: "fiber", airfiber: "air_fiber", tv: "tv", ott: "ott" }, CATBACK = { fiber: "fiber", air_fiber: "airfiber", tv: "tv", ott: "ott" };
   const providerOf = c => c ? ({ id: S(c.id), name: c.type && c.type !== "fiber" ? `${c.name} · ${({ airfiber: "Air Fiber", tv: "TV", ott: "OTT" })[c.type] || c.type}` : c.name, brand: c.name, kind: "local_isp", logo_url: c.logo_url || BRAND_LOGO[String(c.name || "").toLowerCase()] || null, is_demo: false, is_active: c.is_active !== false, website: "" }) : null;
   const mapPlan = p => p && ({ id: S(p.id), plan_code: p.plan_code, name: p.name, category: p.category ? (CAT[p.category.type] || p.category.type) : "fiber", provider_id: S(p.category_id || (p.category && p.category.id)), provider: providerOf(p.category || { id: p.category_id, name: "Plan" }),

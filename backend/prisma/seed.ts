@@ -176,7 +176,7 @@ async function people(indoreId: bigint) {
 
 async function providerLogos() {
   for (const [name, file] of [['BSNL', 'bsnl'], ['Jio', 'jio'], ['Airtel', 'airtel']]) {
-    await prisma.planCategory.updateMany({ where: { name, OR: [{ logo_url: null }, { logo_url: { startsWith: '/logos/' } }] }, data: { logo_url: `/logos/${file}.svg` } });   // never overwrite a Cloudinary URL
+    await prisma.planCategory.updateMany({ where: { name, OR: [{ logo_url: null }, { logo_url: { startsWith: '/logos/' } }] }, data: { logo_url: `/logos/${file}.${file === 'bsnl' ? 'png' : 'svg'}` } });   // never overwrite a Cloudinary URL
   }
 }
 

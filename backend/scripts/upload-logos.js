@@ -12,10 +12,11 @@ const sign = (p) => crypto.createHash('sha1').update(Object.keys(p).sort().map((
   const url = new URL(process.env.DATABASE_URL);
   const db = await mysql.createConnection({ host: url.hostname, port: Number(url.port || 3306), user: decodeURIComponent(url.username), password: decodeURIComponent(url.password), database: url.pathname.slice(1) });
   for (const [brand, file] of Object.entries(BRANDS)) {
+    const ext = file === 'bsnl' ? 'png' : 'svg';
     const params = { folder: 'connectbhai/logos', overwrite: 'true', public_id: file, timestamp: Math.floor(Date.now() / 1000), type: 'upload' };
     const fd = new FormData();
     Object.entries({ ...params, api_key: key, signature: sign(params) }).forEach(([k, v]) => fd.append(k, v));
-    fd.append('file', new Blob([fs.readFileSync(path.join(DIR, `${file}.svg`))], { type: 'image/svg+xml' }), `${file}.svg`);
+    fd.append('file', new Blob([fs.readFileSync(path.join(DIR, `${file}.${ext}`))], { type: ext === 'png' ? 'image/png' : 'image/svg+xml' }), `${file}.${ext}`);
     const r = await fetch(`${API}/${cloud}/image/upload`, { method: 'POST', body: fd }), j = await r.json();
     if (!r.ok) { console.error(`${brand}: upload failed: ${j.error && j.error.message}`); process.exit(1); }
     // store only the path; the API builds the full URL from CLOUDINARY_DELIVERY_URL + CLOUDINARY_CLOUD_NAME

@@ -9,7 +9,7 @@ export function Logo({ height = 36 }: { height?: number }) {
 
 /* Provider logos (same SVGs as the website). Other providers show a coloured initial, like the website does. */
 const LOGOS: Record<string, number> = {
-  jio: require('../../assets/logos/jio.svg'), airtel: require('../../assets/logos/airtel.svg'), bsnl: require('../../assets/logos/bsnl.svg'),
+  jio: require('../../assets/logos/jio.svg'), airtel: require('../../assets/logos/airtel.svg'), bsnl: require('../../assets/logos/bsnl.png'),
 };
 export function ProviderLogo({ name, url, size = 34 }: { name: string; url?: string | null; size?: number }) {
   const local = LOGOS[(name || '').toLowerCase()];
