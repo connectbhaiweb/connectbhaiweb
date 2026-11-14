@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ValidateNested, ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { ValidateIf, ValidateNested, ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { PageQuery } from '../common/pagination';
 
 /** What Cloudinary returned after the browser uploaded the file (signed by Cloudinary, re-verified on our server). */
@@ -46,6 +46,17 @@ export class UserQuery extends PageQuery {
   @IsOptional() @IsIn(['customer', 'dsa', 'tip', 'admin']) role?: 'customer' | 'dsa' | 'tip' | 'admin';
   @IsOptional() @IsIn(['pending', 'approved', 'rejected', 'suspended']) partner_status?: 'pending' | 'approved' | 'rejected' | 'suspended';
   @IsOptional() @IsString() q?: string;
+}
+/** Admin edit of a DSA / TIP's own details, in any status. */
+export class UpdatePartnerDto {
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(120) name?: string;
+  @IsOptional() @IsString() @MaxLength(160) business_name?: string;
+  @IsOptional() @IsString() phone?: string;
+  /** empty string clears the email */
+  @IsOptional() @ValidateIf((o) => o.email !== '') @IsEmail() email?: string;
+  @IsOptional() @IsString() @MaxLength(255) address?: string;
+  /** empty string clears the PIN code */
+  @IsOptional() @Matches(/^([1-9]\d{5})?$/, { message: 'pincode must be a valid 6-digit PIN' }) pincode?: string;
 }
 export class PartnerStatusDto {
   @IsIn(['approved', 'rejected', 'suspended']) status: 'approved' | 'rejected' | 'suspended';

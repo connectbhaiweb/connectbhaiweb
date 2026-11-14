@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsEmail, IsIn, IsInt, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsDateString, IsEmail, IsIn, IsInt, IsOptional, IsString, Matches, MaxLength, MinLength, ValidateIf } from 'class-validator';
 import { PageQuery } from '../common/pagination';
 
 export class CreateLeadDto {
@@ -14,6 +14,20 @@ export class CreateLeadDto {
   @IsOptional() @IsString() @MaxLength(1000) notes?: string;
   /** admin only: attribute the lead to a DSA */
   @IsOptional() @Type(() => Number) @IsInt() brought_by_user_id?: number;
+}
+/** Admin edit of a lead's details, allowed in every lead status. Status, DSA and TIP keep their own endpoints. */
+export class UpdateLeadDto {
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(120) customer_name?: string;
+  @IsOptional() @IsString() customer_phone?: string;
+  /** empty string clears the email */
+  @IsOptional() @ValidateIf((o) => o.customer_email !== '') @IsEmail() customer_email?: string;
+  @IsOptional() @IsString() @MaxLength(255) address?: string;
+  @IsOptional() @Matches(/^[1-9]\d{5}$/, { message: 'pincode must be a valid 6-digit PIN' }) pincode?: string;
+  /** null clears the area */
+  @IsOptional() @Type(() => Number) @IsInt() area_id?: number | null;
+  /** null clears the plan (callback lead) */
+  @IsOptional() @Type(() => Number) @IsInt() plan_id?: number | null;
+  @IsOptional() @IsString() @MaxLength(1000) notes?: string;
 }
 export class LeadQuery extends PageQuery {
   @IsOptional() @IsIn(['new', 'contacted', 'followup', 'scheduled', 'installed', 'lost', 'cancelled']) status?: string;

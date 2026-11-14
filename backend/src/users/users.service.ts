@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { JobsService } from '../common/jobs/jobs.service';
@@ -11,7 +12,7 @@ import { ChargesService } from '../payments/charges.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SettingsService } from '../settings/settings.service';
 import { UploadsService } from '../uploads/uploads.service';
-import { CreateAdminDto, PartnerStatusDto, RegisterPartnerDto } from './users.dto';
+import { CreateAdminDto, PartnerStatusDto, RegisterPartnerDto, UpdatePartnerDto } from './users.dto';
 
 @Injectable()
 export class UsersService {
@@ -110,31 +111,68 @@ export class UsersService {
    * Admin removes a DSA / TIP application that never went anywhere (still pending, no leads, bookings, tickets, chat,
    * devices or payouts, and no paid money unless force=true). Its unpaid fee, notifications and PIN mappings go with it. Anything with history is refused: disable it instead.
    */
-  async deletePendingPartner(id: number, force = false) {
+  /** Admin edit of a DSA / TIP's own details, in any status. KYC numbers and the status keep their own flows. */
+  async updatePartner(id: number, d: UpdatePartnerDto) {
     const u = await this.prisma.user.findUnique({ where: { id } });
     if (!u || !['dsa', 'tip'].includes(u.role)) throw new NotFoundException('DSA / TIP not found');
-    if (u.partner_status !== 'pending') throw new ConflictException('Only a pending application can be deleted. Disable the account instead.');
-    const uid = u.id;
-    const used = await Promise.all([
-      this.prisma.lead.count({ where: { OR: [{ customer_user_id: uid }, { brought_by_user_id: uid }, { tip_user_id: uid }] } }),
-      this.prisma.booking.count({ where: { tip_user_id: uid } }),
-      this.prisma.commission.count({ where: { dsa_user_id: uid } }),
-      this.prisma.ticket.count({ where: { OR: [{ raised_by: uid }, { assigned_to: uid }] } }),
-      this.prisma.chatMessage.count({ where: { sender_user_id: uid } }),
-      this.prisma.carePlanDevice.count({ where: { tip_user_id: uid } }),
-      this.prisma.deviceAction.count({ where: { requested_by: uid } }),
-      this.prisma.leadEvent.count({ where: { actor_user_id: uid } }),
-      force ? 0 : this.prisma.charge.count({ where: { payer_user_id: uid, status: { in: ['paid', 'refunded'] } } }),   // force: test payments may go too
-    ]);
-    if (used.some((n) => n > 0)) throw new ConflictException('This account has activity (leads, payments or messages), so it cannot be deleted. Disable it instead.');
-    await this.prisma.$transaction([
-      this.prisma.tipPincodeMapping.deleteMany({ where: { tip_user_id: uid } }),
-      this.prisma.chatRead.deleteMany({ where: { user_id: uid } }),
-      this.prisma.notification.deleteMany({ where: { OR: [{ user_id: uid }, { phone: u.phone }] } }),   // includes the OTP messages sent to this number
-      this.prisma.otpCode.deleteMany({ where: { phone: u.phone } }),
-      this.prisma.charge.deleteMany({ where: { payer_user_id: uid } }),   // unpaid ones (and, with force, test payments); their lines go with them
-      this.prisma.user.delete({ where: { id: uid } }),
-    ]);
+    const data: Prisma.UserUncheckedUpdateInput = {};
+    if (d.name !== undefined) data.name = d.name.trim();
+    if (d.business_name !== undefined) data.business_name = d.business_name.trim() || null;
+    if (d.email !== undefined) data.email = d.email.trim() || null;
+    if (d.address !== undefined) data.address = d.address.trim() || null;
+    if (d.pincode !== undefined) data.pincode = d.pincode || null;
+    if (d.phone !== undefined) {
+      const phone = normalizePhone(d.phone);
+      if (!phone) throw new BadRequestException('Enter a valid 10-digit mobile number');
+      data.phone = phone;
+    }
+    if (!Object.keys(data).length) return publicUser(u);
+    const updated = await this.prisma.user.update({ where: { id }, data }).catch((e) => {
+      if (e?.code === 'P2002') throw new ConflictException('This mobile number is already registered');
+      throw e;
+    });
+    return publicUser(updated);
+  }
+
+  /**
+   * Admin: permanently delete a DSA / TIP in any status. Their leads stay (they just lose this partner); the installations, payouts,
+   * payments, tickets, messages and modems that belong to the partner are deleted with them. One transaction, so it is all or nothing.
+   * Connect Bhai's own partner account is the one exception: it carries the platform's own installs.
+   */
+  async deletePartner(id: number) {
+    const u = await this.prisma.user.findUnique({ where: { id } });
+    if (!u || !['dsa', 'tip'].includes(u.role)) throw new NotFoundException('DSA / TIP not found');
+    if (u.is_internal) throw new ConflictException("This is Connect Bhai's own partner account and cannot be deleted. Suspend it instead.");
+    await this.prisma.$transaction(async (tx) => {
+      // leads and their history stay; they just lose this partner
+      await tx.lead.updateMany({ where: { brought_by_user_id: id }, data: { brought_by_user_id: null } });
+      await tx.lead.updateMany({ where: { tip_user_id: id }, data: { tip_user_id: null } });
+      await tx.lead.updateMany({ where: { customer_user_id: id }, data: { customer_user_id: null } });
+      await tx.leadEvent.updateMany({ where: { actor_user_id: id }, data: { actor_user_id: null } });
+      // installations, payouts and modems of the partner
+      const bookingIds = (await tx.booking.findMany({ where: { tip_user_id: id }, select: { id: true } })).map((b) => b.id);
+      if (bookingIds.length) await tx.commission.updateMany({ where: { booking_id: { in: bookingIds } }, data: { booking_id: null } });   // a DSA's payout stays, only unlinked from the booking
+      await tx.commission.deleteMany({ where: { dsa_user_id: id } });
+      await tx.booking.deleteMany({ where: { tip_user_id: id } });
+      await tx.carePlanDevice.deleteMany({ where: { tip_user_id: id } });   // its modem actions and speed tests go with it
+      await tx.deviceAction.deleteMany({ where: { requested_by: id } });
+      // support: tickets they raised go with their chat; tickets assigned to them are only unassigned
+      const ticketIds = (await tx.ticket.findMany({ where: { raised_by: id }, select: { id: true } })).map((t) => t.id);
+      if (ticketIds.length) {
+        await tx.chatMessage.deleteMany({ where: { thread_type: 'ticket', thread_id: { in: ticketIds } } });
+        await tx.chatRead.deleteMany({ where: { thread_type: 'ticket', thread_id: { in: ticketIds } } });
+      }
+      await tx.ticket.deleteMany({ where: { raised_by: id } });
+      await tx.ticket.updateMany({ where: { assigned_to: id }, data: { assigned_to: null } });
+      await tx.chatMessage.deleteMany({ where: { sender_user_id: id } });
+      await tx.chatRead.deleteMany({ where: { user_id: id } });
+      // money they were charged (its lines go with it), messages and sign-in data
+      await tx.charge.deleteMany({ where: { payer_user_id: id } });
+      await tx.tipPincodeMapping.deleteMany({ where: { tip_user_id: id } });
+      await tx.notification.deleteMany({ where: { OR: [{ user_id: id }, { phone: u.phone }] } });
+      await tx.otpCode.deleteMany({ where: { phone: u.phone } });
+      await tx.user.delete({ where: { id } });
+    });
     return { deleted: true, id, phone: u.phone };
   }
 }

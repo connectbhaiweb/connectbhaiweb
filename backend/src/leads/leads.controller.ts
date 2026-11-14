@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthUser, CurrentUser, Public, Roles } from '../common/decorators';
-import { AssignDto, CreateLeadDto, LeadQuery, LeadStatusDto, NoteDto, TrackQuery } from './leads.dto';
+import { AssignDto, CreateLeadDto, LeadQuery, LeadStatusDto, NoteDto, TrackQuery, UpdateLeadDto } from './leads.dto';
 import { LeadsService } from './leads.service';
 
 @ApiTags('leads') @Controller('leads')
@@ -30,6 +30,14 @@ export class LeadsController {
 
   @ApiBearerAuth() @Roles('admin') @Patch(':id/assign')
   assign(@Param('id', ParseIntPipe) id: number, @Body() d: AssignDto, @CurrentUser() u: AuthUser) { return this.leads.assign(id, d, u); }
+
+  /** Admin: edit a lead's details in any status. */
+  @ApiBearerAuth() @Roles('admin') @Patch(':id')
+  adminUpdate(@Param('id', ParseIntPipe) id: number, @Body() d: UpdateLeadDto, @CurrentUser() u: AuthUser) { return this.leads.adminUpdate(id, d, u); }
+
+  /** Admin: permanently delete a lead in any status, together with the records that hang off it. */
+  @ApiBearerAuth() @Roles('admin') @Delete(':id')
+  adminDelete(@Param('id', ParseIntPipe) id: number) { return this.leads.adminDelete(id); }
 
   @ApiBearerAuth() @Post(':id/notes')
   note(@Param('id', ParseIntPipe) id: number, @Body() d: NoteDto, @CurrentUser() u: AuthUser) { return this.leads.addNote(id, d.note, u); }

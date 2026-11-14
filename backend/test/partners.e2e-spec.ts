@@ -148,18 +148,27 @@ describe('partner registration & approval', () => {
       expect(await c.prisma.charge.count({ where: { payer_user_id: id } })).toBe(0);
       await c.http().delete(`${P}/users/${id}`).set(bearer(a.admin)).expect(404);
     });
-    it('refuses an approved partner, a customer, and an application that already paid', async () => {
-      await c.http().delete(`${P}/users/${a.ids.dream}`).set(bearer(a.admin)).expect(409);          // approved
-      const cust = await makeCustomer(c);
-      await c.http().delete(`${P}/users/${cust.user.id}`).set(bearer(a.admin)).expect(404);          // not a DSA / TIP
+    it('admin can delete a partner in any status, even one that has already paid or has history', async () => {
+      // pending TIP that already paid its fee: no more "force" step
       const reg = await c.http().post(`${P}/partners/register`).send(partner('tip')).expect(201);
       await c.prisma.charge.update({ where: { id: reg.body.charge.id }, data: { status: 'paid', paid_at: new Date() } });
-      await c.http().delete(`${P}/users/${reg.body.user.id}`).set(bearer(a.admin)).expect(409);      // money was paid
-      expect(await c.prisma.user.findUnique({ where: { id: reg.body.user.id } })).not.toBeNull();
-      // admin can still clear a test application whose test payment was made, by asking for it explicitly
-      await c.http().delete(`${P}/users/${reg.body.user.id}?force=true`).set(bearer(a.admin)).expect(200);
+      await c.http().delete(`${P}/users/${reg.body.user.id}`).set(bearer(a.admin)).expect(200);
       expect(await c.prisma.user.findUnique({ where: { id: reg.body.user.id } })).toBeNull();
       expect(await c.prisma.charge.count({ where: { payer_user_id: reg.body.user.id } })).toBe(0);
+      // approved DSA that brought a lead: the partner goes, the lead stays without a DSA
+      const dsa = await c.http().post(`${P}/partners/register`).send(partner('dsa')).expect(201);
+      const id = dsa.body.user.id;
+      await c.prisma.user.update({ where: { id }, data: { partner_status: 'approved', approved_at: new Date() } });
+      const lead = await c.http().post(`${P}/leads`).set(bearer(a.admin)).send({ customer_name: 'Kept Lead', customer_phone: uniquePhone(), pincode: '452010', brought_by_user_id: id }).expect(201);
+      await c.http().delete(`${P}/users/${id}`).set(bearer(a.admin)).expect(200);
+      expect(await c.prisma.user.findUnique({ where: { id } })).toBeNull();
+      expect((await c.prisma.lead.findUniqueOrThrow({ where: { id: lead.body.id } })).brought_by_user_id).toBeNull();
+    });
+    it('refuses a customer (not a DSA / TIP) and Connect Bhai\'s own partner account', async () => {
+      const cust = await makeCustomer(c);
+      await c.http().delete(`${P}/users/${cust.user.id}`).set(bearer(a.admin)).expect(404);
+      await c.http().delete(`${P}/users/${a.ids.internal}`).set(bearer(a.admin)).expect(409);
+      expect(await c.prisma.user.findUnique({ where: { id: a.ids.internal } })).not.toBeNull();
     });
   });
 });

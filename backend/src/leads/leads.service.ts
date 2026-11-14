@@ -11,7 +11,7 @@ import { leadScope } from '../common/utils/scope';
 import { NotificationsService } from '../notifications/notifications.service';
 import { productName } from '../notifications/whatsapp-campaigns';
 import { SettingsService } from '../settings/settings.service';
-import { AssignDto, CreateLeadDto, LeadQuery, LeadStatusDto } from './leads.dto';
+import { AssignDto, CreateLeadDto, LeadQuery, LeadStatusDto, UpdateLeadDto } from './leads.dto';
 
 /** installed/scheduled are only reachable through bookings. */
 export const TRANSITIONS: Record<LeadStatus, LeadStatus[]> = {
@@ -229,6 +229,76 @@ export class LeadsService {
         area: updated.area?.name ?? updated.pincode, ref_code: updated.ref_code } });
     }
     return updated;
+  }
+
+  /**
+   * Admin edit of a lead's details, in any status (installed, lost and cancelled included). The status itself, the DSA and the TIP
+   * keep their own rules: installed / scheduled only come from bookings, and assignment has its own locks.
+   */
+  async adminUpdate(id: number, d: UpdateLeadDto, u: AuthUser) {
+    const lead = await this.prisma.lead.findUnique({ where: { id } });
+    if (!lead) throw new NotFoundException('Lead not found');
+    const data: Prisma.LeadUncheckedUpdateInput = {};
+    const changed: string[] = [];
+    if (d.customer_name !== undefined && d.customer_name.trim() !== lead.customer_name) { data.customer_name = d.customer_name.trim(); changed.push('name'); }
+    if (d.customer_phone !== undefined) {
+      const phone = normalizePhone(d.customer_phone);
+      if (!phone) throw new BadRequestException('Enter a valid 10-digit mobile number');
+      if (phone !== lead.customer_phone) { data.customer_phone = phone; changed.push('mobile'); }
+    }
+    if (d.customer_email !== undefined) {
+      const email = d.customer_email.trim() || null;
+      if (email !== lead.customer_email) { data.customer_email = email; changed.push('email'); }
+    }
+    if (d.address !== undefined) {
+      const address = d.address.trim() || null;
+      if (address !== lead.address) { data.address = address; changed.push('address'); }
+    }
+    if (d.notes !== undefined && d.notes !== lead.notes) { data.notes = d.notes; changed.push('notes'); }
+    if (d.plan_id !== undefined && (d.plan_id ?? null) !== (lead.plan_id != null ? Number(lead.plan_id) : null)) {
+      if (d.plan_id !== null && !(await this.prisma.plan.findUnique({ where: { id: d.plan_id }, select: { id: true } }))) throw new BadRequestException('plan_id does not exist');
+      data.plan_id = d.plan_id; changed.push('plan');
+    }
+    // PIN code and area: an area must belong to the lead's PIN code; changing the PIN drops an area that no longer fits
+    const pincode = d.pincode ?? lead.pincode;
+    let areaId: number | null = d.area_id !== undefined ? d.area_id : (lead.area_id != null ? Number(lead.area_id) : null);
+    if (areaId !== null) {
+      const area = await this.prisma.area.findUnique({ where: { id: areaId }, select: { pincode: true } });
+      if (!area) throw new BadRequestException('area_id does not exist');
+      if (area.pincode !== pincode) {
+        if (d.area_id !== undefined && d.area_id !== null) throw new BadRequestException('area_id does not belong to this PIN code');
+        areaId = null;   // the PIN code changed and the old area no longer fits
+      }
+    }
+    if (pincode !== lead.pincode) { data.pincode = pincode; changed.push('PIN code'); }
+    if (areaId !== (lead.area_id != null ? Number(lead.area_id) : null)) { data.area_id = areaId; changed.push('area'); }
+    if (!changed.length) return this.prisma.lead.findUnique({ where: { id }, include: leadInclude });
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.lead.update({ where: { id }, data, include: leadInclude });
+      await this.log(tx, id, u.id, 'edited', { note: `Admin edited: ${changed.join(', ')}` });
+      return updated;
+    });
+  }
+
+  /**
+   * Admin: permanently delete a lead in any status. Its bookings, payout, care-plan modem and chat go with it; invoices and payments
+   * are kept as money records but unlinked from the lead; support tickets are kept and unlinked. One transaction, so it is all or nothing.
+   */
+  async adminDelete(id: number) {
+    const lead = await this.prisma.lead.findUnique({ where: { id }, select: { id: true, ref_code: true } });
+    if (!lead) throw new NotFoundException('Lead not found');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.chatMessage.deleteMany({ where: { thread_type: 'lead', thread_id: id } });
+      await tx.chatRead.deleteMany({ where: { thread_type: 'lead', thread_id: id } });
+      await tx.ticket.updateMany({ where: { lead_id: id }, data: { lead_id: null } });
+      await tx.chargeLead.deleteMany({ where: { lead_id: id } });
+      await tx.charge.updateMany({ where: { lead_id: id }, data: { lead_id: null, install_fee_key: null } });
+      await tx.commission.deleteMany({ where: { lead_id: id } });   // before bookings: a payout points at its booking
+      await tx.booking.deleteMany({ where: { lead_id: id } });
+      await tx.carePlanDevice.deleteMany({ where: { lead_id: id } });   // its modem actions and speed tests go with it
+      await tx.lead.delete({ where: { id } });   // lead events go with it
+    });
+    return { deleted: true, id, ref_code: lead.ref_code };
   }
 
   async events(id: number, u: AuthUser) {

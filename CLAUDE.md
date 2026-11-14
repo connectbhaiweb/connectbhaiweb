@@ -54,6 +54,9 @@ npx expo install <pkg>      # ALWAYS, never npm/yarn add
 - `PATCH /leads/:id/assign` (admin): `dsa_user_id` (null clears) and/or `tip_user_id`. DSA lives in `brought_by_user_id` (drives DSA dashboard, reports, install payout). DSA locked once a booking is scheduled; TIP locked while a booking is open; installed leads locked. New DSA gets `dsa_lead_assigned`.
 - "Assigned" is a **UI-only** status: `rest.js` shows a server `new` lead that has a DSA or TIP as `assigned`. List filters: `status=new&unassigned=1` (New) / `status=new&assigned=1` (Assigned). The API has no `assigned` status.
 
+## Admin edit / delete (any status)
+Admin can edit and delete leads and DSA/TIP partners in **any** status: `PATCH|DELETE /leads/:id`, `PATCH|DELETE /users/:id` (`leads.service.adminUpdate/adminDelete`, `users.service.updatePartner/deletePartner`). Deletes are one transaction: a lead takes its bookings, payout, modem and chat with it (invoices stay, unlinked); a partner's leads stay (DSA/TIP cleared) while their bookings, payouts, charges, tickets and messages go. Connect Bhai's internal TIP cannot be deleted. The status machine and the assign locks above are **not** relaxed. The partner Edit dialog saves name, firm, mobile, email, address, PIN only (per-install amount and lead target are global settings).
+
 ## Backend
 Modules in `src/<feature>/` (auth, leads, bookings, payments, care-plan, commissions, plans, settings, tickets, chat, …). Business rules (DSA payout, TIP fees + GST, Care Plan, Razorpay HMAC/idempotency) live in code and are covered by tests — see `backend/README.md`. `app_settings` DB values override env.
 

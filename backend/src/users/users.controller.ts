@@ -7,7 +7,7 @@ import { UploadsService } from '../uploads/uploads.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { fulltextIds } from '../common/utils/fulltext';
 import { publicUser } from '../common/utils/serialize';
-import { ActiveDto, CreateAdminDto, PartnerStatusDto, RegisterPartnerDto, UpdateMeDto, UserQuery } from './users.dto';
+import { ActiveDto, CreateAdminDto, PartnerStatusDto, RegisterPartnerDto, UpdateMeDto, UpdatePartnerDto, UserQuery } from './users.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('users') @Controller()
@@ -60,8 +60,13 @@ export class UsersController {
   @ApiBearerAuth() @Roles('admin') @Patch('users/:id/active')
   async setActive(@Param('id', ParseIntPipe) id: number, @Body() d: ActiveDto) { return publicUser(await this.prisma.user.update({ where: { id }, data: { is_active: d.is_active } })); }
 
+  /** Admin: edit a DSA / TIP's details in any status. */
+  @ApiBearerAuth() @Roles('admin') @Patch('users/:id')
+  updatePartner(@Param('id', ParseIntPipe) id: number, @Body() d: UpdatePartnerDto) { return this.users.updatePartner(id, d); }
+
+  /** Admin: permanently delete a DSA / TIP in any status (their leads stay; see UsersService.deletePartner). */
   @ApiBearerAuth() @Roles('admin') @Delete('users/:id')
-  deletePending(@Param('id', ParseIntPipe) id: number, @Query('force') force?: string) { return this.users.deletePendingPartner(id, force === 'true'); }
+  deletePartner(@Param('id', ParseIntPipe) id: number) { return this.users.deletePartner(id); }
 
   @ApiBearerAuth() @Roles('admin') @Post('users/admins')
   createAdmin(@Body() d: CreateAdminDto) { return this.users.createAdmin(d); }

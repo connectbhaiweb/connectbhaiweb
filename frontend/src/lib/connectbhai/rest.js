@@ -83,7 +83,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     partner_code: u.partner_code || null, disabled: u.is_active === false, must_change: false, has_password: u.role === "admin", partner_status: u.partner_status || null });
   const PSTATUS = { approved: "active", pending: "pending", rejected: "suspended", suspended: "suspended" };
   const mapPartner = u => u && ({ id: S(u.id), type: u.role, role: u.role, name: u.name, firm: u.business_name || "", phone: u.phone, email: u.email || "", partner_code: u.partner_code, city_id: S(u.city_id),
-    service_pincodes: Array.isArray(u.service_pincodes) ? u.service_pincodes.join(", ") : (u.pincode || ""), status: PSTATUS[u.partner_status] || "pending", kyc_verified: !!u.approved_at, approved_at: u.approved_at,
+    address: u.address || "", pincode: u.pincode || "", service_pincodes: Array.isArray(u.service_pincodes) ? u.service_pincodes.join(", ") : (u.pincode || ""), status: PSTATUS[u.partner_status] || "pending", kyc_verified: !!u.approved_at, approved_at: u.approved_at,
     fee_paid_at: u.approved_at, commission_per_install: u.role === "dsa" ? 300 : 0, created_at: u.created_at, is_internal: !!u.is_internal, acs_mode: "connectbhai", acs_key_set: true, acs_agreement: true, aadhaar_last4: u.aadhaar_last4, pan_last4: u.pan_last4, bank_name: u.bank_name || "", bank_ifsc: u.bank_ifsc || "", bank_account_last4: u.bank_account_last4 || "", upi_id: u.upi_id || "" });
   const pc = u => u ? { id: S(u.id), name: u.name, firm: u.business_name || "", phone: u.phone || "", email: u.email || "", type: u.role || "partner", partner_code: u.partner_code } : null;
   /* official provider logos live in /public/logos (also stored as plan_categories.logo_url in MySQL) */
@@ -102,7 +102,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   const mapLead = l => {
     if (!l) return l;
     const b = l.booking || null;
-    return { id: S(l.id), ref_code: l.ref_code, customer_id: S(l.customer_user_id), name: l.customer_name, phone: l.customer_phone, email: l.customer_email || "", pincode: l.pincode, area: l.area ? l.area.name : null, address: l.address,
+    return { id: S(l.id), ref_code: l.ref_code, customer_id: S(l.customer_user_id), name: l.customer_name, phone: l.customer_phone, email: l.customer_email || "", pincode: l.pincode, area: l.area ? l.area.name : null, area_id: l.area ? S(l.area.id) : null, address: l.address,
       plan_id: S(l.plan_id), plan: l.plan ? mapPlan({ ...l.plan, category: l.plan.category }) : null, preferred_date: null, source: l.source, product: l.plan && l.plan.category && ["ott"].includes(l.plan.category.type) ? "ott" : "broadband", status: l.status === "new" && (l.brought_by_user_id || l.tip_user_id) ? "assigned" : (LS[l.status] || l.status),   // the API has no "assigned" status: a new lead with a DSA or TIP is shown as Assigned
       assigned_dsa_id: S(l.brought_by_user_id), assigned_tip_id: S(l.tip_user_id), dsa: pc(l.dsa), tip: pc(l.tip), next_follow_up: l.followup_at ? String(l.followup_at).slice(0, 10) : null, lost_reason: l.lost_reason, notes: l.notes,
       care_plan: !!l.care_plan, consent: true, created_at: l.created_at, updated_at: l.updated_at, installed_at: l.installed_at, booking: b };
@@ -403,7 +403,10 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     async adminPartners(f) { need("admin"); const ps = f && f.partner_status ? { partner_status: f.partner_status } : {}; const [a, b] = await Promise.all([all("/users", { role: "dsa", ...ps }), all("/users", { role: "tip", ...ps })]); return [...a.items, ...b.items].map(mapPartner).sort((x, y) => Number(y.id) - Number(x.id)); },   // newest first
     async adminCustomers() { need("admin"); return (await all("/users", { role: "customer" })).items.map(mapUser); },
     async adminTeam() { need("admin"); return (await all("/users")).items.filter(u => u.role !== "customer").map(u => ({ ...mapUser(u), partner: ["dsa", "tip"].includes(u.role) ? pc(u) : null, pw_set_at: null })); },
-    async savePartner() { fail("Partners join through the public registration form; approve them in the partner list."); },
+    async savePartner(f) {
+      need("admin"); if (!f.id) fail("Partners join through the public registration form; approve them in the partner list.");
+      await patch(`/users/${N(f.id)}`, { name: f.name.trim(), business_name: f.firm || "", phone: f.phone, email: f.email || "", address: f.address || "", pincode: f.pincode || "" }); return true;   // any status
+    },
     async approvePartner(id) { need("admin"); await patch(`/users/${id}/partner-status`, { status: "approved" }); return true; },
     async setPartnerStatus(id, status) { need("admin"); await patch(`/users/${id}/partner-status`, { status: status === "active" ? "approved" : "suspended" }); return true; },
     async adminCreateUser(f) {
@@ -412,7 +415,12 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     },
     async adminResetPassword() { fail("Partners and customers sign in with a WhatsApp OTP, so there is no password to reset."); },
     /** delete a PENDING DSA/TIP application with no activity (the API refuses anything else and says why) */
-    async deletePartner(id) { need("admin"); await del("/users/" + id); return true; },
+    async deletePartner(id) { need("admin"); await del("/users/" + id); return true; },   // any status; their leads stay
+    async updateLead(id, f) {   // admin: details of a lead in any status
+      need("admin"); const b = { customer_name: f.name.trim(), customer_phone: f.phone, customer_email: f.email || "", address: f.address || "", pincode: f.pincode, notes: f.notes || "" };
+      if (f.area_id !== undefined) b.area_id = f.area_id ? N(f.area_id) : null; await patch(`/leads/${N(id)}`, b); return true;
+    },
+    async deleteLead(id) { need("admin"); await del(`/leads/${N(id)}`); return true; },   // any status
     async adminSetDisabled(id, off) { need("admin"); if (String(id) === String(me.id)) fail("You cannot disable your own login."); await patch(`/users/${id}/active`, { is_active: !off }); return true; },
 
     /* ---- catalogue / locations (admin) ---- */
