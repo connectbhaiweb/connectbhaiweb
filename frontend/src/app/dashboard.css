@@ -218,7 +218,7 @@ html[data-shell] .backrow .wrap{max-width:none;margin:0;padding:12px 28px 0}
 @media (max-width:700px){.cc-feats li{font-size:11px}.cc-router{width:72px}.cc-top{padding-right:0;padding-top:22px}}
 @media (prefers-reduced-motion:reduce){.cc-ok i,.cc-w1,.cc-w2{animation:none}.cc-cta{transition:none}}
 /* desktop: the right column never makes the hero taller than the search card; the animation shrinks to fit */
-@media (min-width:901px){.hero-side{contain:size}.hero-side .story .stage{max-height:100%}}
+@media (min-width:901px){.hero-side .story{flex:none}.hero-side .story .stage{height:auto;max-height:none}}
 
 /* Hero story v2: 16 s loop, four 4 s steps. --d is each element's start offset in seconds (phase shift of one shared loop). */
 .story .fsc,.story .fe,.story .fcap,.story .fdot,.story .fpopb,.story .ffib,.story .fled,.story .fwv,.story .ftype,.story .fshield,.story .fheart,.story .fping{animation-duration:16s;animation-iteration-count:infinite;animation-fill-mode:backwards;animation-delay:var(--d,0s);animation-timing-function:ease-out}
