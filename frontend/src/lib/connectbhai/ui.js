@@ -324,8 +324,8 @@ async function renderHome() {
   ${citiesSection()}
   <section class="sec" id="router" style="padding-top:0"><div class="wrap">
     <div class="card tr-hero">
-      <div style="min-width:0"><span class="eyebrow">Care plan · Gene, your personal assistant</span><h2 style="font-size:clamp(24px,3.2vw,32px);margin:8px 0">Connect Bhai Care plan: Bhai looks after your internet</h2>
-        <p class="muted">With the Care plan and Gene, your personal assistant, your modem is watched 24x7. See Online / Offline and fiber signal, change your Wi-Fi name or password, restart the modem and test the line speed, all from the app. If the line goes down, your installer knows before you call.</p>
+      <div style="min-width:0"><span class="eyebrow">Care plan · Gene, your personal assistant</span><h2 style="font-size:clamp(24px,3.2vw,32px);margin:8px 0">Connect Bhai Care plan: looking after your internet</h2>
+        <p class="muted">With the Care plan and Gene, your personal assistant, your modem is watched 24x7. See the Online/Offline status and fiber signal, change your Wi-Fi name or password, restart the modem and test the line speed, all from the app. If the line goes down, your installer will know before you call.</p>
         <div class="row" style="margin-top:14px"><button class="btn btn-primary" data-go="router" type="button">Open my Care plan</button><button class="btn btn-ghost" data-go="speed" type="button">Wi-Fi speed test</button></div></div>
       <ol class="trsteps"><li><b>Installer links the modem</b><span>Scans the ONT serial; the modem reports to the installer's or Connect Bhai's Gene</span></li><li><b>Modem reports every 5 minutes</b><span>Status, fiber signal, Wi-Fi and restarts</span></li><li><b>You control it in the app</b><span>Restart, Wi-Fi change, line speed test</span></li></ol>
     </div>
