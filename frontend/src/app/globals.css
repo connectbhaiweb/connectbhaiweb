@@ -140,6 +140,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .search .pinacts{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
 .search .resetbtn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:0;border-radius:999px;background:var(--blue-soft,#E8EFFF);color:var(--blue,#1450E6);font:700 13px var(--body,Manrope,system-ui,sans-serif);cursor:pointer}
 .search .resetbtn:hover{background:var(--blue,#1450E6);color:#fff}
+.search .pinrow input::placeholder{color:#CDD4E2;opacity:1;letter-spacing:.08em;font-weight:400}
 .search .pinrow input:focus{border-color:var(--blue);outline:none}
 .ptabs{display:flex;gap:4px;background:var(--blue-soft);border-radius:14px;padding:4px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
 .ptabs::-webkit-scrollbar{display:none}
@@ -730,9 +731,9 @@ html[data-entering]::after{content:"";position:fixed;z-index:201;left:50%;top:50
 
 /* QA points 1 & 4: PIN suggestions and chosen-PIN chips */
 .pin-sug{position:absolute;left:0;right:0;z-index:30;max-height:288px;overflow-y:auto;background:#fff;border:1px solid #CBD6EA;border-radius:12px;box-shadow:0 12px 32px rgba(11,22,64,.16);padding:4px}
-.pin-sug-item{display:flex;align-items:baseline;gap:10px;min-height:44px;padding:10px 12px;border-radius:9px;cursor:pointer;color:#0B1640}
-.pin-sug-item b{font-variant-numeric:tabular-nums;letter-spacing:.02em}
-.pin-sug-item span{color:#53617F;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pin-sug-item{display:flex;align-items:flex-start;gap:10px;min-height:44px;padding:10px 12px;border-radius:9px;cursor:pointer;color:#0B1640}
+.pin-sug-item b{flex:none;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.pin-sug-item span{color:#53617F;font-size:13.5px;line-height:1.4;min-width:0;white-space:normal;overflow-wrap:anywhere}
 .pin-sug-item.is-on,.pin-sug-item:hover{background:#EAF1FF}
 .pin-sug-none{padding:12px;color:#53617F;font-size:13.5px}
 .pin-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}

@@ -1,10 +1,9 @@
 /* PIN code suggestions for every PIN field (QA points 1 and 4).
-   From the 3rd digit a list drops down under the field: "452010 · Vijay Nagar, Annapurna · Indore", taken from the PIN codes
+   From the 3rd digit a list drops down under the field (one row per area, written as saved): "452010 · Vijay Nagar, Scheme 54, Scheme 78 · Indore", taken from the PIN codes
    Connect Bhai already knows (each city's areas, loaded once per visit through API.pinDirectory()).
    - Single-PIN fields: picking fills the field.
    - Multi-PIN fields ("452010, 452016"): picking adds the PIN to the list; the chosen PINs also show as chips with a remove ×.
    Keyboard: ↓ ↑ to move, Enter to pick, Esc to close. Typing a full PIN by hand still works everywhere. Browser-only. */
-import { tidyArea } from "./areas";
 
 export const PIN_ONE = ["pin", "rq-pin", "lc-pin", "dl-pin"];
 export const PIN_MANY = ["pa-pins", "pt-pins", "cu-pins"];
@@ -16,15 +15,11 @@ let dir = null;   // Promise<[{ pin, label }]>
 function loadDir(API) {
   if (dir) return dir;
   dir = Promise.resolve(API && API.pinDirectory ? API.pinDirectory() : []).then(rows => {
-    const by = new Map();
-    (rows || []).forEach(r => {
-      if (!/^\d{6}$/.test(String(r.pin || ""))) return;
-      const e = by.get(r.pin) || { pin: r.pin, areas: [], city: r.city || "" };
-      const n = tidyArea(r.area); if (n && !e.areas.some(a => a.toLowerCase() === n.toLowerCase())) e.areas.push(n);
-      by.set(r.pin, e);
-    });
-    return [...by.values()].sort((a, b) => a.pin.localeCompare(b.pin))
-      .map(e => ({ pin: e.pin, label: [e.areas.slice(0, 2).join(", ") + (e.areas.length > 2 ? ` +${e.areas.length - 2}` : ""), e.city].filter(Boolean).join(" · ") }));
+    // one row per area exactly as stored: "452010 · Vijay Nagar, Scheme 54, Scheme 78 · Indore"
+    const seen = new Set();
+    return (rows || []).filter(r => /^\d{6}$/.test(String(r.pin || ""))).map(r => ({ pin: r.pin, label: (a => [a, r.city && !new RegExp("\\b" + r.city + "$", "i").test(a) ? r.city : ""].filter(Boolean).join(" · "))(String(r.area || "").trim()) }))
+      .filter(r => { const k = r.pin + "|" + r.label.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+      .sort((x, y) => x.pin.localeCompare(y.pin));
   }).catch(() => { dir = null; return []; });
   return dir;
 }
@@ -89,7 +84,7 @@ export async function pinSuggest(el, API) {
   const chosen = isMany(el) ? listOf(el.value) : [];
   const all = await loadDir(API);
   if (token(el) !== t) return;   // the user kept typing while the list loaded
-  const hits = all.filter(r => r.pin.startsWith(t) && !chosen.slice(0, -1).includes(r.pin)).slice(0, 8);
+  const hits = all.filter(r => r.pin.startsWith(t) && !chosen.slice(0, -1).includes(r.pin)).slice(0, 80);
   if (!hits.length) { b.innerHTML = `<div class="pin-sug-none">No served PIN starts with ${esc(t)}. You can still type the full PIN.</div>`; b.hidden = false; el.setAttribute("aria-expanded", "true"); return; }
   b.innerHTML = hits.map((r, i) => `<div class="pin-sug-item${i === 0 ? " is-on" : ""}" role="option" id="${el.id}-o${i}" data-pin="${r.pin}" aria-selected="${i === 0}"><b>${r.pin}</b>${r.label ? `<span>${esc(r.label)}</span>` : ""}</div>`).join("");
   b.hidden = false; el.setAttribute("aria-expanded", "true"); el.setAttribute("aria-activedescendant", el.id + "-o0");

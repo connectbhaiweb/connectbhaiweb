@@ -395,7 +395,7 @@ function searchBody() {
     <div class="pinacts"><button class="linkbtn small" data-act="use-location" type="button">Use my current location</button><button class="resetbtn" data-act="reset-pin" type="button" aria-label="Reset PIN code search"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Reset</button></div>
     <p class="ferr" id="pin-err" style="margin-top:6px"></p>
     <div class="chips" style="margin-top:6px">${pins.map(p => `<button type="button" class="chip" data-act="pick-pin" data-pin="${p.pin}" aria-pressed="${S.pin === p.pin}">${p.pin} · ${esc(p.area)}</button>`).join("")}</div>`;
-  if (S.product === "broadband") return pinUI("Check fiber plans at your pincode", "Enter your 6-digit PIN code");
+  if (S.product === "broadband") return pinUI("Check Fiber Plans At Your Pincode", "Enter your 6-digit PIN code");
   if (S.product === "air_fiber") return pinUI("Book Air Fiber", "Wireless home internet, no fiber cable needed. Check availability at your PIN code.");
   if (S.product === "tv") return pinUI("TV channel packs", "IPTV over your fiber line. Check what's available at your PIN code.");
   if (S.product === "sim") return `<h2>Book a SIM online</h2><p class="muted small" style="margin-top:2px">Get a new number or keep your number and switch (port). Delivered to your door in Indore with e-KYC.</p>
