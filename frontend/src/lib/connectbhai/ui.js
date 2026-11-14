@@ -648,6 +648,22 @@ function leadRow(l, role) {
       ${role === "dsa" && l.status === "booked" ? `<button class="btn btn-soft btn-sm" data-act="assign" data-id="${l.id}" type="button">${l.tip ? "Change TIP" : "Assign TIP"}</button>` : ""}
       ${role === "dsa" && open && noInstall ? `<button class="btn btn-primary btn-sm" data-act="activate-sim" data-id="${l.id}" type="button">${l.product === "sim" ? "Mark SIM activated" : "Mark pack activated"}</button>` : ""}</div></div>`;
 }
+function dsaLeadsTable(rows) {
+  const today = todayISO();
+  return `<div class="tbl-wrap"><table class="tbl" style="min-width:1120px"><thead><tr><th>Ref</th><th style="min-width:230px">Customer</th><th>PIN</th><th>Area</th><th>Plan</th><th>Status</th><th>Next follow-up</th><th>TIP</th><th></th></tr></thead><tbody>
+  ${rows.map(l => {
+    const due = l.status === "follow_up" && l.next_follow_up && l.next_follow_up <= today;
+    const noInstall = ["sim", "ott"].includes(l.product), open = ["assigned", "contacted", "follow_up"].includes(l.status);
+    return `<tr><td class="mono" style="white-space:nowrap">${esc(l.ref_code)}<br><span class="muted">${fdate(l.created_at)}</span></td>
+      <td><b>${esc(l.name)}</b><br><span class="muted">${esc(fmtPh(l.phone))}</span>${l.email ? `<br><span class="muted small">${esc(l.email)}</span>` : ""}${contactBtns({ phone: l.phone, email: l.email }, { thread: "lead:" + l.id, text: "Namaste " + l.name + ", this is about your Connect Bhai request " + l.ref_code })}</td>
+      <td><b class="mono">${esc(l.pincode)}</b></td><td>${esc(l.area || "—")}</td>
+      <td>${l.plan ? esc(l.plan.provider.name) + "<br><span class='muted'>" + esc(l.plan.name) + "</span>" : "<span class='muted'>Callback</span>"}</td>
+      <td>${leadPill(l.status, l.product)}<br>${productChip(l)}${due ? "<br>" + pill("Follow-up due", "p-bad") : ""}</td>
+      <td style="white-space:nowrap">${l.next_follow_up ? fdate(l.next_follow_up) : "<span class='muted'>—</span>"}</td>
+      <td>${l.tip ? esc(l.tip.name) : l.status === "booked" ? pill("Choose a TIP", "p-warn") : "<span class='muted'>—</span>"}</td>
+      <td><div class="row" style="flex-wrap:nowrap"><button class="btn btn-soft btn-sm" data-act="lead" data-id="${l.id}" type="button">Update</button>${open && !noInstall ? `<button class="btn btn-primary btn-sm" data-act="book" data-id="${l.id}" type="button">Schedule booking</button>` : ""}${l.status === "booked" ? `<button class="btn btn-primary btn-sm" data-act="assign" data-id="${l.id}" type="button">${l.tip ? "Change TIP" : "Assign TIP"}</button>` : ""}${open && noInstall ? `<button class="btn btn-primary btn-sm" data-act="activate-sim" data-id="${l.id}" type="button">${l.product === "sim" ? "Mark SIM activated" : "Mark pack activated"}</button>` : ""}</div></td></tr>`;
+  }).join("")}</tbody></table></div>`;
+}
 function commissionList(cs) {
   const sum = s => cs.filter(c => c.status === s).reduce((a, c) => a + Number(c.amount), 0);
   return `<div class="kpis"><div class="kpi"><span>Pending approval</span><b>${inr(sum("pending"))}</b></div><div class="kpi"><span>Approved</span><b>${inr(sum("approved"))}</b><small>awaiting payment</small></div><div class="kpi"><span>Paid</span><b>${inr(sum("paid"))}</b></div><div class="kpi"><span>Installs</span><b>${cs.length}</b></div></div>
@@ -736,7 +752,7 @@ async function renderDSA() {
   if (tab === "leads") body = `<div class="kpis"><div class="kpi"><span>Open leads</span><b>${open}</b></div><div class="kpi"><span>Follow-ups due</span><b>${st.followups_due}</b><small>today or earlier</small></div><div class="kpi"><span>Booked</span><b>${L.booked}</b></div><div class="kpi"><span>Installed</span><b>${L.installed}</b></div></div>
     <div class="chips" style="margin-bottom:14px">${[["open", "Open"], ["due", "Follow-up due"], ["assigned", "New to call"], ["contacted", "Contacted"], ["booked", "Booked"], ["installed", "Installed"], ["lost", "Lost"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="dsa-filter" data-v="${k}" aria-pressed="${filt === k}">${l}</button>`).join("")}</div>
     ${serverTable("dsa-leads", {
-    role: "dsa", kind: "leads", filters: () => ({ status: S.dsaFilter || "open" }), label: "Search leads", html: rows => `<div class="list">${rows.map(l => leadRow(l, "dsa")).join("")}</div>`,
+    role: "dsa", kind: "leads", filters: () => ({ status: S.dsaFilter || "open" }), label: "Search leads", html: dsaLeadsTable,
     empty: `No leads here yet. New requests from your PIN codes (${partner.service_pincodes || "none set"}) are assigned to you automatically. You can also add customers you meet in the field, and you earn when they are installed.`
   })}`;
   if (tab === "installs") body = serverTable("dsa-installs", { role: "dsa", kind: "bookings", label: "Search installations", empty: "No installations yet.", html: rows => `<div class="list">${rows.map(b => `<div class="item"><div class="ih"><h3>${esc(b.lead.name)}</h3>${bookPill(b.status)}<span class="spacer"></span><span class="mono muted">${esc(b.ref_code)}</span></div><div class="meta"><span><b>${esc(fmtPh(b.lead.phone))}</b></span><span>${planLine(b.plan)}</span><span>Scheduled <b>${fdate(b.scheduled_date)}</b></span>${b.tip ? `<span>TIP <b>${esc(b.tip.name)}</b></span>` : ""}</div>${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}${contactLine("Installer", b.tip)}</div>`).join("")}</div>` });
