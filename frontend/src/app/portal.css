@@ -96,7 +96,7 @@
 .pt-t-cust .pt-tr{grid-template-columns:220fr 170fr 220fr 120fr 160fr 104fr;min-height:60px}
 .pt-t-up .pt-tr{grid-template-columns:150fr 130fr 70fr 130fr;min-height:38px;font-size:13.5px}
 .pt-t-inst .pt-tr{grid-template-columns:130fr 130fr 165fr 160fr 170fr;min-height:41px;font-size:13px}
-.pt-t-leads .pt-tr{grid-template-columns:200fr 160fr 210fr 110fr 110fr 240fr;min-height:64px}
+.pt-t-leads .pt-tr{grid-template-columns:200fr 160fr 210fr 110fr 110fr 110fr 240fr;min-height:64px}
 .pt-t-assign .pt-tr{grid-template-columns:112fr 118fr 78fr 128fr 196fr;min-height:36px;font-size:12.5px;gap:0 8px}
 .pt-t-apps .pt-tr{grid-template-columns:110fr 60fr 150fr 115fr 105fr 175fr;min-height:40px;font-size:13.5px}
 .pt-t-zone .pt-tr{grid-template-columns:150fr 60fr 70fr 100fr;min-height:28px;font-size:13px;border-bottom:0}
@@ -259,10 +259,10 @@
 }
 
 /* QA: TIP Leads, the actions (Call, WhatsApp, Update, Schedule) stay on one line and every row lines up */
-.pt-t-leads .pt-tr{grid-template-columns:200fr 150fr 200fr 110fr 104fr minmax(300px,300fr)}
+.pt-t-leads .pt-tr{grid-template-columns:200fr 150fr 200fr 110fr 110fr 104fr minmax(300px,300fr)}
 .pt-t-leads .pt-acts{flex-wrap:nowrap}
 .pt-t-leads{overflow-x:auto}
-.pt-t-leads .pt-tr{min-width:980px}
+.pt-t-leads .pt-tr{min-width:1090px}
 
 /* QA 12/13: device actions in the Care plan table */
 .cp-acts{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}

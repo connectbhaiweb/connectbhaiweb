@@ -122,10 +122,10 @@ function Home({ data, s, months, setMonths }) {
    arrive here with that filter preset (ui.js stores it in sessionStorage) */
 const takeFilter = () => { try { const v = sessionStorage.getItem("cb-tip-filter"); sessionStorage.removeItem("cb-tip-filter"); return v; } catch (e) { return null; } };
 function Leads({ stats, partner }) {
-  const [f, setF] = useState(() => takeFilter() || "open");
+  const [f, setF] = useState(() => takeFilter() || "all");   // "All" is the first tab and selected by default
   useEffect(() => { const on = () => { const v = takeFilter(); if (v) setF(v); }; window.addEventListener("cb:tip-filter", on); return () => window.removeEventListener("cb:tip-filter", on); }, []);
   const L = stats.leads, open = L.new + L.contacted + L.follow_up + L.booked;
-  const F = [["open", "Open", open], ["assigned", "New to call", L.assigned || 0], ["contacted", "Contacted", L.contacted], ["follow_up", "Follow-up", L.follow_up], ["booked", "Booked", L.booked], ["installed", "Installed", L.installed], ["lost", "Lost", L.lost], ["all", "All", stats.leads_total]];
+  const F = [["all", "All", stats.leads_total], ["open", "Open", open], ["assigned", "New to call", L.assigned || 0], ["contacted", "Contacted", L.contacted], ["follow_up", "Follow-up", L.follow_up], ["booked", "Booked", L.booked], ["installed", "Installed", L.installed], ["lost", "Lost", L.lost]];
   const p = usePaged("tip", "leads", { status: f });
   return (
     <>
@@ -135,13 +135,14 @@ function Leads({ stats, partner }) {
       <Card title={`${F.find(x => x[0] === f)[1]} leads (${p.total})`} Icon={Users}>
         <PagedBar p={p} label="Search leads" />
         <div className="pt-table pt-t-leads" role="table" aria-label="Leads" data-server>
-          <div className="pt-tr pt-th" role="row"><span role="columnheader">Customer</span><span role="columnheader">PIN / area</span><span role="columnheader">Plan</span><span role="columnheader">Status</span><span role="columnheader">Requested</span><span role="columnheader">Actions</span></div>
+          <div className="pt-tr pt-th" role="row"><span role="columnheader">Customer</span><span role="columnheader">PIN / area</span><span role="columnheader">Plan</span><span role="columnheader">Status</span><span role="columnheader">Care plan</span><span role="columnheader">Requested</span><span role="columnheader">Actions</span></div>
           {p.rows.map(l => (
             <div className="pt-tr" role="row" key={l.id}>
               <span role="cell" className="pt-name"><span><b>{l.name}</b><small>{l.ref_code}{l.dsa ? ` · DSA ${l.dsa.name}` : ""}</small></span></span>
               <span role="cell"><Pin>{[l.pincode, l.area].filter(Boolean).join(", ")}</Pin></span>
               <span role="cell" className="pt-plan"><b>{planName(l.plan)}</b><small>{planPrice(l.plan)}</small></span>
               <span role="cell"><Chip s={l.status} /></span>
+              <span role="cell">{l.status === "installed" ? (l.care_plan ? <Chip s="care" label="Active" tone="green" /> : <Chip s="care" label="Not active" tone="grey" />) : <span className="pt-muted">—</span>}</span>   {/* a Care plan only exists after installation */}
               <span role="cell">{fDate(l.created_at)}</span>
               <span role="cell" className="pt-acts">
                 <CallWa phone={l.phone} name={l.name} text={`Namaste ${l.name}, this is about your Connect Bhai request ${l.ref_code}`} />
