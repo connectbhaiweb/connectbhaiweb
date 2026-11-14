@@ -48,6 +48,8 @@ npx expo install <pkg>      # ALWAYS, never npm/yarn add
 - `src/lib/connectbhai/`: `api.js` (demo data layer, **off-limits**), `rest.js` (REST layer, same method names), `ui.js` (legacy string-template views writing into `<main id="app">`), `config.js`, `shared.js`, `runtime.js`.
 - React dashboards: `components/dashboard/*` (shell, nav in `nav.js`), `components/customer/*`, `components/portal/*` (DSA/TIP/Admin, Recharts), `components/speed/*`.
 - Plugging a React page in: add the view/tab to `REACT_VIEWS` in `ui.js`; the page reloads on the `cb:render` event (`useDashData.js`). Buttons reuse existing handlers via `data-act` / `data-go` — don't duplicate business logic.
+- English/Hindi: `lib/i18n/engine.js` swaps text by exact English match from `lib/i18n/hi*.js` (toggle `components/LangToggle.jsx`, saved in localStorage `cb-lang`). A new visible English text needs a Hindi entry in `hi-extra.js` (`{x}` = any text, `{n}` = number). Debug: localStorage `cb-i18n-debug`=1, then read `cb-missing`. Do not read the big `hi-*.js` lists.
+- Entrance animation: `components/MotionRuntime.jsx` (Motion). Phone tables turn into cards via `components/ResponsiveTables.jsx` plus the max-width:700px rules in `portal.css` and `legacy-dash.css`.
 - Tailwind only scans `components/ui`, `components/magicui`, `components/speed`, `app/ui-kit`.
 
 ## Lead flow: DSA first, TIP only installs (do not break)
