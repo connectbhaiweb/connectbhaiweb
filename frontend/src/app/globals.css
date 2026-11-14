@@ -840,3 +840,4 @@ footer button.linkbtn:hover,footer a:hover{color:#4FD6B0;text-decoration:underli
 .legal p,.legal li{line-height:1.7}
 .legal ul{margin:8px 0 0;padding-left:22px}
 .legal li{margin:6px 0}
+h1:focus,h1:focus-visible{outline:none}

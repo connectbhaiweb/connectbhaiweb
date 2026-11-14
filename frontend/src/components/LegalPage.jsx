@@ -7,6 +7,8 @@ export default function LegalPage({ title, updated, children }) {
   useEffect(() => { const app = document.getElementById("app"); if (app) app.innerHTML = ""; }, []);
   return (
     <section className="sec legal">
+      {/* this page paints nothing into <main id="app">, so drop its empty-state skeleton (68vh gap) while the page is open */}
+      <style>{"main#app:empty{min-height:0!important}main#app:empty::before{display:none!important}"}</style>
       <div className="wrap legal-in">
         <h1>{title}</h1>
         <p className="muted small">{updated}</p>

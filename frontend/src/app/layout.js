@@ -24,6 +24,7 @@ import Overlays from "@/components/Overlays";
 import StoryTemplate from "@/components/StoryTemplate";
 import ConnectBhaiRuntime from "@/components/ConnectBhaiRuntime";
 import LangRuntime from "@/components/LangRuntime";
+import RouteScroll from "@/components/RouteScroll";
 import TableTools from "@/components/TableTools";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 
@@ -57,6 +58,7 @@ export default function RootLayout({ children }) {
         <FloatingActions />
         <ConnectBhaiRuntime />
         <LangRuntime />
+        <RouteScroll />
         <TableTools />
       </body>
     </html>
