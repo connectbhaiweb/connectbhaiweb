@@ -81,10 +81,20 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
   /* ---------- mappers: API → UI shapes ---------- */
   const mapUser = u => u && ({ id: S(u.id), role: u.role, full_name: u.name, name: u.name, phone: u.phone, email: u.email || "", partner_id: ["dsa", "tip"].includes(u.role) ? S(u.id) : null,
     partner_code: u.partner_code || null, disabled: u.is_active === false, must_change: false, has_password: u.role === "admin", partner_status: u.partner_status || null });
+  /* Per-install amounts are the same for every DSA and every TIP and come from Admin > Settings (the app_settings table):
+     a DSA earns dsa_payout_per_lead, a TIP pays tip_install_fee (+ GST). Nothing is hard-coded here. */
+  let rates = { dsa: 0, tip: 0 }, ratesAt = 0;
+  const loadRates = async () => {
+    if (Date.now() - ratesAt < 30000) return;
+    try {
+      const d = me && me.role === "admin" ? kv(await get("/settings")) : await get("/settings/partner");
+      rates = { dsa: num(d.dsa_payout_per_lead), tip: num(d.tip_install_fee) }; ratesAt = Date.now();
+    } catch (e) { /* keep the last known amounts */ }
+  };
   const PSTATUS = { approved: "active", pending: "pending", rejected: "suspended", suspended: "suspended" };
   const mapPartner = u => u && ({ id: S(u.id), type: u.role, role: u.role, name: u.name, firm: u.business_name || "", phone: u.phone, email: u.email || "", partner_code: u.partner_code, city_id: S(u.city_id),
     address: u.address || "", pincode: u.pincode || "", service_pincodes: Array.isArray(u.service_pincodes) ? u.service_pincodes.join(", ") : (u.pincode || ""), status: PSTATUS[u.partner_status] || "pending", kyc_verified: !!u.approved_at, approved_at: u.approved_at,
-    fee_paid_at: u.approved_at, commission_per_install: u.role === "dsa" ? 300 : 0, created_at: u.created_at, is_internal: !!u.is_internal, acs_mode: "connectbhai", acs_key_set: true, acs_agreement: true, aadhaar_last4: u.aadhaar_last4, pan_last4: u.pan_last4, bank_name: u.bank_name || "", bank_ifsc: u.bank_ifsc || "", bank_account_last4: u.bank_account_last4 || "", upi_id: u.upi_id || "" });
+    fee_paid_at: u.approved_at, commission_per_install: rates[u.role] || 0, created_at: u.created_at, is_internal: !!u.is_internal, acs_mode: "connectbhai", acs_key_set: true, acs_agreement: true, aadhaar_last4: u.aadhaar_last4, pan_last4: u.pan_last4, bank_name: u.bank_name || "", bank_ifsc: u.bank_ifsc || "", bank_account_last4: u.bank_account_last4 || "", upi_id: u.upi_id || "" });
   const pc = u => u ? { id: S(u.id), name: u.name, firm: u.business_name || "", phone: u.phone || "", email: u.email || "", type: u.role || "partner", partner_code: u.partner_code } : null;
   /* official provider logos live in /public/logos (also stored as plan_categories.logo_url in MySQL) */
   const BRAND_LOGO = { bsnl: "/logos/bsnl.svg", jio: "/logos/jio.svg", airtel: "/logos/airtel.svg" };
@@ -137,7 +147,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
 
   /* ---------- settings ---------- */
   const settingsOut = d => ({ registration_fee_tip: num(d.tip_onboarding_fee), gst_percent: num(d.gst_percent), tip_install_fee: num(d.tip_install_fee), care_plan_fee_per_lead: num(d.care_plan_fee_per_lead),
-    dsa_payout_per_lead: num(d.dsa_payout_per_lead), tip_job_earning: num(d.tip_job_earning), auto_assign: num(d.auto_assign), lead_target_default: 20, tip_share_percent: 0 });
+    dsa_payout_per_lead: num(d.dsa_payout_per_lead), tip_job_earning: num(d.tip_job_earning), auto_assign: num(d.auto_assign), lead_target_default: num(d.lead_target_default) || 20, tip_share_percent: 0 });
   const kv = rows => Object.fromEntries(rows.map(r => [r.key, r.value]));
 
   /* ---------- Razorpay checkout (live keys only; the mock gateway settles on the server) ---------- */
@@ -322,12 +332,12 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       return { items: (d.items || []).map(n => ({ id: n.id, to_phone: n.phone || "", template: n.template, params: n.payload ? Object.values(n.payload).map(String) : [], status: n.status, simulated: n.status !== "sent", created_at: n.created_at, sent_at: n.created_at })), total: d.total, page: d.page, limit: d.limit };
     },
     async getLead(id) { return mapLead(await get("/leads/" + id)); },
-    async getPartner(id) { need("admin"); return mapPartner(await get("/users/" + id)); },
+    async getPartner(id) { need("admin"); await loadRates(); return mapPartner(await get("/users/" + id)); },
     async getBooking(id) { const b = await get("/bookings/" + id); return mapBooking(b, []); },
     /* partners of one kind ("dsa" | "tip"); status uses the UI names (active / pending / suspended) */
     async pagePartners(f) {
       need("admin"); f = f || {}; const ps = f.status && f.status !== "all" ? ({ active: "approved", suspended: "suspended", pending: "pending", rejected: "rejected" })[f.status] : undefined;
-      const d = await get("/users" + qs({ role: f.type, partner_status: ps, page: f.page || 1, limit: f.limit || 10, q: f.q })); return { items: d.items.map(mapPartner), total: d.total, page: d.page, limit: d.limit };
+      await loadRates(); const d = await get("/users" + qs({ role: f.type, partner_status: ps, page: f.page || 1, limit: f.limit || 10, q: f.q })); return { items: d.items.map(mapPartner), total: d.total, page: d.page, limit: d.limit };
     },
 
     /* ---- bookings ---- */
@@ -388,19 +398,26 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       return { id: S(Date.now()), partner_id: S(partnerId), amount: total, method: mode, reference: reference.trim(), paid_at: new Date().toISOString() };
     },
     async adminPayments() { need("admin"); const r = (await all("/commissions", { status: "paid" })).items; return r.map(c => ({ id: S(c.id), partner_id: S(c.dsa_user_id), partner: pc(c.dsa), amount: num(c.amount), method: c.paid_mode, reference: c.paid_reference, paid_at: c.paid_at })); },
-    async getSettings() { try { if (me && me.role === "admin") return settingsOut(kv(await get("/settings"))); } catch (e) { /* fall through */ } return settingsOut(await get("/settings/public", { anon: true })); },
+    async getSettings() {
+      try {
+        if (me && me.role === "admin") return settingsOut(kv(await get("/settings")));
+        if (me && (me.role === "dsa" || me.role === "tip")) return settingsOut({ ...(await get("/settings/public", { anon: true })), ...(await get("/settings/partner")) });   // their own rates, set in Admin > Settings
+      } catch (e) { /* fall through */ }
+      return settingsOut(await get("/settings/public", { anon: true }));
+    },
     async saveSettings(o) {   // every money setting is a row in the app_settings table; only the values passed in are saved
       need("admin");
-      const m = { registration_fee_tip: "tip_onboarding_fee", tip_install_fee: "tip_install_fee", care_plan_fee_per_lead: "care_plan_fee_per_lead", dsa_payout_per_lead: "dsa_payout_per_lead", tip_job_earning: "tip_job_earning", gst_percent: "gst_percent" };
+      const m = { registration_fee_tip: "tip_onboarding_fee", tip_install_fee: "tip_install_fee", care_plan_fee_per_lead: "care_plan_fee_per_lead", dsa_payout_per_lead: "dsa_payout_per_lead", tip_job_earning: "tip_job_earning", gst_percent: "gst_percent", lead_target_default: "lead_target_default" };
       const todo = Object.entries(m).filter(([k]) => o[k] !== undefined);
       for (const [k] of todo) { const x = Number(o[k]); if (o[k] === "" || !(x >= 0)) fail("Enter 0 or more."); if (k === "gst_percent" && x > 100) fail("GST cannot be more than 100."); }
       for (const [k, v] of todo) await put("/settings/" + v, { value: String(Number(o[k])) });
+      ratesAt = 0;   // the per-install amounts shown on the partner screens follow what was just saved
       return true;
     },
 
     /* ---- people ---- */
-    async myPartner() { need("dsa", "tip"); return mapPartner(await get("/users/me")); },
-    async adminPartners(f) { need("admin"); const ps = f && f.partner_status ? { partner_status: f.partner_status } : {}; const [a, b] = await Promise.all([all("/users", { role: "dsa", ...ps }), all("/users", { role: "tip", ...ps })]); return [...a.items, ...b.items].map(mapPartner).sort((x, y) => Number(y.id) - Number(x.id)); },   // newest first
+    async myPartner() { need("dsa", "tip"); await loadRates(); return mapPartner(await get("/users/me")); },
+    async adminPartners(f) { need("admin"); await loadRates(); const ps = f && f.partner_status ? { partner_status: f.partner_status } : {}; const [a, b] = await Promise.all([all("/users", { role: "dsa", ...ps }), all("/users", { role: "tip", ...ps })]); return [...a.items, ...b.items].map(mapPartner).sort((x, y) => Number(y.id) - Number(x.id)); },   // newest first
     async adminCustomers() { need("admin"); return (await all("/users", { role: "customer" })).items.map(mapUser); },
     async adminTeam() { need("admin"); return (await all("/users")).items.filter(u => u.role !== "customer").map(u => ({ ...mapUser(u), partner: ["dsa", "tip"].includes(u.role) ? pc(u) : null, pw_set_at: null })); },
     async savePartner(f) {
@@ -448,6 +465,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
         coverage: maps.filter(m => m.pincode === a.pincode).map(m => ({ id: S(m.id), location_id: S(a.id), provider_id: "all", provider: { id: "all", name: "All providers" }, tip_partner_id: S(m.tip_user_id), tip: pc(m.tip), technology: "ftth", is_active: m.is_active })) }));
     },
     async saveLocation(f) { need("admin"); await post(`/cities/${N(f.city_id) || 1}/areas`, { name: f.area.trim(), pincode: f.pincode }); return true; },
+    async deleteLocation(id) { need("admin"); await del(`/areas/${N(id)}`); return true; },   // any state; leads that point to it just lose the area
     async updateLocation(id, name) { need("admin"); await patch(`/areas/${N(id)}`, { name: String(name || "").trim() }); return true; },   // rename only; the PIN code stays
     async saveLocationZone() { fail("Zones are not used any more."); },
     async saveCoverage(f) { need("admin"); const loc = (await this.adminLocations()).find(l => String(l.id) === String(f.location_id)); if (!loc) fail("Choose the area."); if (!f.tip_partner_id) fail("Choose the TIP partner."); await post("/admin/tip-pincodes", { pincode: loc.pincode, tip_user_id: Number(f.tip_partner_id) }); return true; },

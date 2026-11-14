@@ -29,7 +29,7 @@ export const envValidationSchema = Joi.object({
   OTP_MAX_ATTEMPTS: Joi.number().default(5),
   OTP_DEV_CODE: Joi.string().pattern(/^\d{4,8}$/).allow('').default(''),
 
-  // Fees, GST % and auto-assign are NOT env settings: they live in the app_settings table (Admin > Billing).
+  // Fees, GST % and auto-assign are NOT env settings: they live in the app_settings table (Admin > Settings).
   GST_HOME_STATE_CODE: Joi.string().length(2).default('23'),
 
   DATA_ENCRYPTION_KEY: Joi.string().hex().length(64).required(),

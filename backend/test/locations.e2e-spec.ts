@@ -74,6 +74,27 @@ describe('locations', () => {
     await c.http().delete(`${P}/areas/${two.body.id}`).set(bearer(a.admin)).expect(200);
   });
 
+  it('admin deletes an area even when leads point to it: the leads stay and just lose the area', async () => {
+    const city = await c.prisma.city.create({ data: { name: `Deletepur ${Date.now()}`, status: 'soon' } });
+    const area = await c.prisma.area.create({ data: { city_id: city.id, name: 'Doomed Colony', pincode: '999041' } });
+    const keep = await c.prisma.area.create({ data: { city_id: city.id, name: 'Safe Colony', pincode: '999041' } });
+    const lead = await c.prisma.lead.create({ data: { ref_code: `CB-DEL${Date.now()}`, customer_name: 'Linked Lead', customer_phone: '9000099999', pincode: '999041', area_id: area.id } });
+    await c.http().delete(`${P}/areas/${area.id}`).expect(401);
+    const cust = await makeCustomer(c);
+    await c.http().delete(`${P}/areas/${area.id}`).set(bearer(cust.token)).expect(403);
+    const r = await c.http().delete(`${P}/areas/${area.id}`).set(bearer(a.admin)).expect(200);
+    expect(r.body).toEqual({ ok: true, unlinked_leads: 1 });
+    expect(await c.prisma.area.findUnique({ where: { id: area.id } })).toBeNull();
+    expect(await c.prisma.area.findUnique({ where: { id: keep.id } })).not.toBeNull();   // the PIN's other area is untouched
+    const kept = await c.prisma.lead.findUniqueOrThrow({ where: { id: lead.id } });
+    expect(kept.area_id).toBeNull();
+    expect(kept.pincode).toBe('999041');   // the lead keeps its PIN code
+    await c.http().delete(`${P}/areas/${area.id}`).set(bearer(a.admin)).expect(404);
+    await c.prisma.lead.delete({ where: { id: lead.id } });
+    await c.prisma.area.deleteMany({ where: { city_id: city.id } });
+    await c.prisma.city.delete({ where: { id: city.id } });
+  });
+
   it('admin adds many PIN / area rows at once (sheet); existing rows are skipped, bad rows are refused', async () => {
     const city = await c.http().post(`${P}/cities`).set(bearer(a.admin)).send({ name: `Bulkpur ${Date.now()}` }).expect(201);
     const url = `${P}/cities/${city.body.id}/areas/bulk`;

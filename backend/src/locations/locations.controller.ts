@@ -109,8 +109,20 @@ export class LocationsController {
     return this.prisma.area.update({ where: { id }, data: { name } });
   }
 
+  /**
+   * Admin: delete an area (a PIN / area row), whatever its state. Leads that point to it keep everything else and just lose the area.
+   * TIP coverage and plan availability are stored per PIN code, so they are kept and come back if the PIN is added again.
+   */
   @ApiBearerAuth() @Roles('admin') @Delete('areas/:id')
-  async deleteArea(@Param('id', ParseIntPipe) id: number) { this.cache.clear(); await this.prisma.area.delete({ where: { id } }); return { ok: true }; }
+  async deleteArea(@Param('id', ParseIntPipe) id: number) {
+    if (!(await this.prisma.area.findUnique({ where: { id }, select: { id: true } }))) throw new NotFoundException('Area not found');
+    const [unlinked] = await this.prisma.$transaction([
+      this.prisma.lead.updateMany({ where: { area_id: id }, data: { area_id: null } }),
+      this.prisma.area.delete({ where: { id } }),
+    ]);
+    this.cache.clear();
+    return { ok: true, unlinked_leads: unlinked.count };
+  }
 
   // ---------- admin: which TIP serves which PIN ----------
   @ApiBearerAuth() @Roles('admin') @Get('admin/tip-pincodes')

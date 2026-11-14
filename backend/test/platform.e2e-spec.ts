@@ -32,9 +32,9 @@ describe('waitlist, settings, notifications, reports', () => {
   });
 
   describe('settings', () => {
-    it('admin reads all seven money / behaviour settings', async () => {
+    it('admin reads all eight money / behaviour settings', async () => {
       const r = await c.http().get(`${P}/settings`).set(bearer(a.admin)).expect(200);
-      expect(r.body.map((s: any) => s.key).sort()).toEqual(['auto_assign', 'care_plan_fee_per_lead', 'dsa_payout_per_lead', 'gst_percent', 'tip_install_fee', 'tip_job_earning', 'tip_onboarding_fee']);
+      expect(r.body.map((s: any) => s.key).sort()).toEqual(['auto_assign', 'care_plan_fee_per_lead', 'dsa_payout_per_lead', 'gst_percent', 'lead_target_default', 'tip_install_fee', 'tip_job_earning', 'tip_onboarding_fee']);
       expect(r.body.find((s: any) => s.key === 'gst_percent').value).toBe('18');
     });
     it('validates values and keys; only admin may change', async () => {

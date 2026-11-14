@@ -14,7 +14,7 @@ function make(rows: Record<string, string> = {}) {
 
 describe('SettingsService (fees live in the table, not in env)', () => {
   it('has a setting for every fee the app charges or pays', () => {
-    expect(Object.keys(SETTING_DEFS)).toEqual(expect.arrayContaining(['tip_onboarding_fee', 'tip_install_fee', 'care_plan_fee_per_lead', 'dsa_payout_per_lead', 'tip_job_earning', 'gst_percent', 'auto_assign']));
+    expect(Object.keys(SETTING_DEFS)).toEqual(expect.arrayContaining(['tip_onboarding_fee', 'tip_install_fee', 'care_plan_fee_per_lead', 'dsa_payout_per_lead', 'tip_job_earning', 'gst_percent', 'auto_assign', 'lead_target_default']));
   });
   it('reads the value the admin saved', async () => {
     const { svc } = make({ care_plan_fee_per_lead: '249' });

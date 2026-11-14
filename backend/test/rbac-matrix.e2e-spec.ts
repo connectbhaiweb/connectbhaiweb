@@ -14,7 +14,7 @@ const routes: [string, string, Role[]][] = [
   ['GET', '/users', ['admin']], ['GET', `/users/${X}`, ['admin']], ['GET', `/users/${X}/documents`, ['admin']],
   ['PATCH', `/users/${X}/partner-status`, ['admin']], ['PATCH', `/users/${X}/active`, ['admin']], ['POST', '/users/admins', ['admin']],
   // settings, notifications, reports, waitlist
-  ['GET', '/settings', ['admin']], ['PUT', '/settings/gst_percent', ['admin']],
+  ['GET', '/settings', ['admin']], ['GET', '/settings/partner', ['admin', 'dsa', 'tip']], ['PUT', '/settings/gst_percent', ['admin']],
   ['GET', '/notifications/me', ALL], ['PATCH', `/notifications/${X}/read`, ALL], ['GET', '/notifications', ['admin']],
   ['GET', '/reports/me', ALL], ['GET', '/reports/overview', ['admin']], ['GET', '/reports/leads-by-pincode', ['admin']], ['GET', '/reports/partners', ['admin']],
   ['GET', '/waitlist', ['admin']], ['POST', `/waitlist/notify/${X}`, ['admin']],

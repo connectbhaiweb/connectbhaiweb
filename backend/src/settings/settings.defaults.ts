@@ -1,5 +1,5 @@
 /**
- * Money settings that live in the `app_settings` table and are edited by the admin in the app (Admin > Billing).
+ * Money settings that live in the `app_settings` table and are edited by the admin in the app (Admin > Settings).
  * There are NO environment variables for these. The default below is used only until the admin saves a value
  * (the seed writes it as a row on a fresh database; the service falls back to it if a row is ever missing).
  */
@@ -10,5 +10,6 @@ export const SETTING_DEFS: Record<string, { default: string; description: string
   dsa_payout_per_lead: { default: '300', description: 'Paid to DSA only when the lead is installed' },
   tip_job_earning: { default: '0', description: 'Amount shown in the "job completed" WhatsApp to the TIP (rupees per installed job)' },
   gst_percent: { default: '18', description: 'GST on all TIP charges' },
+  lead_target_default: { default: '20', description: 'Leads Connect Bhai promises each DSA / TIP per month' },
   auto_assign: { default: '1', description: '1/true = assign new leads to a TIP by pincode automatically' },
 };
