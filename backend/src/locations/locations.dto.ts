@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 
 export const PINCODE_RE = /^[1-9]\d{5}$/;
 export class CreateCityDto {
@@ -34,7 +34,7 @@ export class ReverseQuery {
   @Type(() => Number) @IsNumber() @Min(68) @Max(98) lng: number;
 }
 
-export class ImportPinsDto {
-  @Type(() => Number) @IsInt() city_id: number;
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(10) @Matches(PINCODE_RE, { each: true, message: 'each pincode must be a valid 6-digit PIN' }) pincodes: string[];
+/** Admin: add many PIN / area rows at once (from a sheet). Rows that already exist are skipped. */
+export class BulkAreasDto {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(500) @ValidateNested({ each: true }) @Type(() => CreateAreaDto) areas: CreateAreaDto[];
 }

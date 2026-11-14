@@ -1485,14 +1485,36 @@ function downloadSheet(name, head, sampleRows) {
   const q = v => /[",\n]/.test(String(v ?? "")) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? "");
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + [head, ...sampleRows].map(r => r.map(q).join(",")).join("\n")], { type: "text/csv" })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
 }
-async function readPinFile(input) {
-  const file = input.files[0]; if (!file) return;
+/* Admin > Locations > Add PIN / area: read a sheet with a "pincode" and an "area" column. Nothing is looked up anywhere: the sheet
+   holds the area names. Rows with a bad PIN or no area are listed with the reason and skipped; the rest are added in one go. */
+async function readAreaFile(input) {
+  const out = document.getElementById("ap-out"), file = input.files[0]; S.areaRows = [];
+  if (!file) { if (out) out.innerHTML = ""; return; }
+  out.innerHTML = `<p class="muted">Reading ${esc(file.name)}…</p>`;
   try {
     const buf = await file.arrayBuffer();
-    const rows = /\.csv$/i.test(file.name) ? readCsv(new TextDecoder().decode(buf)) : await readXlsx(buf);
-    const pins = [...new Set(rows.slice(1).filter(r => !r.some(c => /this is sample data/i.test(String(c || "")))).map(r => String(r[0] || "").trim()).filter(Boolean))];
-    document.getElementById("ap-pins").value = pins.join(", "); toast(`${pins.length} PIN code${pins.length === 1 ? "" : "s"} read from ${file.name}.`);
-  } catch (err) { toast(errMsg(err), true); }
+    const grid = /\.csv$/i.test(file.name) ? readCsv(new TextDecoder().decode(buf)) : await readXlsx(buf);
+    const head = (grid[0] || []).map(c => String(c == null ? "" : c).trim().toLowerCase());
+    let ci = head.findIndex(h => h === "pincode" || h === "pin code" || h === "pin"), ai = head.findIndex(h => h === "area" || h === "area name");
+    if (ci < 0 || ai < 0) { ci = 0; ai = 1; }   // no recognisable heading: first column = PIN code, second = area
+    const seen = new Set(), rows = [];
+    grid.slice(1).forEach((r, i) => {
+      const pin = String(r[ci] == null ? "" : r[ci]).trim(), area = String(r[ai] == null ? "" : r[ai]).trim().replace(/\s+/g, " ");
+      if (!pin && !area) return;   // blank row
+      if (/this is sample data/i.test(r.map(c => String(c == null ? "" : c)).join(" "))) return;   // the sample row of the template
+      const key = pin + "|" + area.toLowerCase();
+      const err = !isPin(pin) ? "PIN code must be 6 digits" : area.length < 2 ? "Area name is missing" : area.length > 120 ? "Area name is too long" : seen.has(key) ? "Repeated in this sheet" : "";
+      if (!err) seen.add(key);
+      rows.push({ row: i + 2, pin, area, err });
+    });
+    S.areaRows = rows.filter(r => !r.err);
+    const bad = rows.length - S.areaRows.length;
+    if (!rows.length) { out.innerHTML = `<p class="formerr">No rows found. Use the columns pincode and area, one area per row.</p>`; return; }
+    if (S.areaRows.length > 500) { out.innerHTML = `<p class="formerr">At most 500 rows can be added at once. This sheet has ${S.areaRows.length}.</p>`; S.areaRows = []; return; }
+    out.innerHTML = `<div class="row" style="margin:8px 0">${pill(S.areaRows.length + " ready", "p-ok")}${bad ? pill(bad + " with errors (skipped)", "p-bad") : ""}</div>
+      <div class="tbl-wrap" style="max-height:240px;overflow:auto"><table class="tbl"><thead><tr><th>Row</th><th>PIN</th><th>Area</th><th>Check</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r.row}</td><td class="mono">${esc(r.pin)}</td><td>${esc(r.area)}</td><td>${r.err ? `<span style="color:var(--bad)">${esc(r.err)}</span>` : `<span style="color:var(--ok)">OK</span>`}</td></tr>`).join("")}</tbody></table></div>
+      <button class="btn btn-primary btn-block" style="margin-top:10px" data-act="areas-bulk" type="button" ${S.areaRows.length ? "" : "disabled"}>Add ${S.areaRows.length} area${S.areaRows.length === 1 ? "" : "s"}</button>`;
+  } catch (err) { out.innerHTML = `<p class="formerr">${esc(errMsg(err))}</p>`; }
 }
 const SAMPLE_NOTE = "This is sample data - delete this row and add your own plans";
 async function downloadTemplate() {
@@ -1680,7 +1702,7 @@ const actions = {
   "plan-cat": b => { S.planCat = b.dataset.v; render(); },
   "plan-import": b => openImport(b.dataset.mode),
   "plan-template": () => downloadTemplate(),
-  "pin-template": () => downloadSheet("connectbhai-pincode-template.csv", ["pincode", "note"], [["452010", "This is sample data - delete this row and add your own PIN codes"]]),
+  "area-template": () => downloadSheet("connectbhai-areas-template.csv", ["pincode", "area"], [["452010", "Vijay Nagar"], ["452010", "Scheme 54"], ["452016", "This is sample data - delete these rows and add your own"]]),
   "import-confirm": async b => {
     const rows = S.importRows || [];
     if (S.importMode === "tip") { const n = await guard(b, () => API.tipSubmitPlans(rows)); closeModal(); toast(n + " plan" + (n === 1 ? "" : "s") + " sent for review."); }
@@ -1778,12 +1800,6 @@ const actions = {
   "toggle-provider": async b => { await guard(b, () => API.toggleProvider(b.dataset.id)); render(); },
   "edit-plan": b => openPlan(b.dataset.id),
   "toggle-plan": async b => { await guard(b, () => API.togglePlan(b.dataset.id)); render(); },
-  "pins-fetch": async b => {
-    const f = b.closest("form"), out = f.querySelector("#ap-out"), pins = [...new Set(val(f, "pins").split(/[,\s]+/).filter(Boolean))];
-    if (!pins.length) { out.innerHTML = `<span class="muted">Type 2 or 3 PIN codes first.</span>`; return; }
-    const rows = await guard(b, () => API.pinLookupMany(pins));
-    out.innerHTML = rows.map(r => r.valid ? `<div class="item"><b class="mono">${esc(r.pincode)}</b> · ${esc(r.district || "")}, ${esc(r.state || "")} ${r.serviceable ? pill("Already served", "p-ok") : ""}<div class="muted small">${esc(r.areas.join(", "))}</div></div>` : `<div class="item"><b class="mono">${esc(r.pincode)}</b> ${pill("Not found", "p-bad")} <span class="muted small">${esc(r.error || "This PIN is not in the India Post directory.")}</span></div>`).join("");
-  },
   "edit-lead": async b => {
     const l = await API.leadDetail(b.dataset.id);
     const areas = ((await API.adminLocations().catch(() => [])) || []).filter(x => x.pincode === l.pincode);
@@ -1803,22 +1819,23 @@ const actions = {
   "edit-location": b => openModal(`<h2>Rename area</h2><p class="muted" style="margin:4px 0 12px">PIN <b class="mono">${esc(b.dataset.pin)}</b>. The new name shows on every lead linked to this area. The PIN code itself cannot be changed here.</p>
     <form class="stack" data-form="location-edit" data-id="${esc(b.dataset.id)}" novalidate>${field("el-area", "Area name", `<input id="el-area" name="area" value="${esc(b.dataset.area)}" maxlength="120" autocomplete="off">`)}
     <button class="btn btn-primary" type="submit">Save</button></form>`),
-  "add-location": () => REST ? openModal(`<h2>Add PIN codes</h2><p class="muted" style="margin:4px 0 12px">Type 2 or 3 PIN codes. We fetch them from the India Post directory and add their post offices as areas.</p>
-    <form class="stack" data-form="pins-import" novalidate>${field("ap-pins", "PIN codes", `<input id="ap-pins" name="pins" placeholder="452010, 452016, 453001">`, "Separate with commas")}
-    ${field("ap-file", "Or upload a sheet (.xlsx / .csv)", `<input id="ap-file" type="file" accept=".xlsx,.csv">`, "First column = PIN code. Row 1 is the heading.")}
-    <button class="btn btn-ghost btn-sm" data-act="pin-template" type="button">Download sample sheet</button>
-    ${field("ap-city", "City", `<select id="ap-city" name="city_id">${cityOptions("indore", true)}</select>`)}
-    <button class="btn btn-soft" data-act="pins-fetch" type="button">Fetch from India Post</button><div class="stack" id="ap-out"></div>
-    <button class="btn btn-primary" type="submit">Add these areas</button></form>`) : openModal(`<h2>Add PIN code / area</h2><form class="stack" data-form="location" novalidate style="margin-top:12px">${field("lc-pin", "PIN code", `<input id="lc-pin" name="pincode" inputmode="numeric" maxlength="6">`)}
-    <div class="row"><button class="btn btn-soft btn-sm" data-act="fetch-areas" type="button">Fetch areas from India Post</button><span class="muted small" id="lc-src"></span></div><div class="chips" id="lc-areas"></div>
-    ${field("lc-area", "Area name", `<input id="lc-area" name="area">`)}${field("lc-city", "City", `<select id="lc-city" name="city_id">${cityOptions("indore", true)}</select>`, "Add PIN codes of a city before you launch it.")}<button class="btn btn-primary" type="submit">Save</button></form>`),
-  "fetch-areas": async b => {
-    const pin = (document.getElementById("lc-pin").value || "").trim(); if (!isPin(pin)) { toast("Enter a valid 6-digit PIN code first.", true); return; }
-    const r = await guard(b, () => API.geoAreas(pin));
-    document.getElementById("lc-src").textContent = r.simulated ? "Simulated list (preview)" : r.areas.length + " post offices found";
-    document.getElementById("lc-areas").innerHTML = r.areas.map(a => `<button type="button" class="chip" data-act="pick-area" data-v="${esc(a.name)}">${esc(a.name)}</button>`).join("") || `<span class="muted small">No areas found.</span>`;
+  "add-location": () => {
+    S.areaRows = [];
+    openModal(`<h2>Add PIN / area</h2><p class="muted" style="margin:4px 0 12px">Type the PIN code and the area name yourself. Nothing is looked up or filled in for you.</p>
+    <form class="stack" data-form="location" novalidate>${field("lc-pin", "PIN code", `<input id="lc-pin" name="pincode" inputmode="numeric" maxlength="6" autocomplete="off">`)}
+    ${field("lc-area", "Area name", `<input id="lc-area" name="area" maxlength="120" autocomplete="off">`, "One area at a time. Add the same PIN again for another area.")}
+    ${field("lc-city", "City", `<select id="lc-city" name="city_id">${cityOptions("indore", true)}</select>`, "Add PIN codes of a city before you launch it.")}
+    <button class="btn btn-primary" type="submit">Add area</button></form>
+    ${REST ? `<hr style="margin:16px 0;border:0;border-top:1px solid var(--line)"><h3 style="margin:0 0 6px;font-size:16px">Or add many from a sheet</h3>
+    <p class="muted small" style="margin:0 0 10px">A .xlsx or .csv with two columns: <b>pincode</b> and <b>area</b>, one area per row. The city above is used for every row.</p>
+    <div class="row" style="margin-bottom:10px"><button class="btn btn-ghost btn-sm" data-act="area-template" type="button">Download sample sheet</button></div>
+    <input id="ap-file" type="file" accept=".xlsx,.csv"><div id="ap-out"></div>` : ""}`);
   },
-  "pick-area": b => { document.getElementById("lc-area").value = b.dataset.v; },
+  "areas-bulk": async b => {
+    const rows = S.areaRows || []; if (!rows.length) return;
+    const r = await guard(b, () => API.addAreasBulk(Number((document.getElementById("lc-city") || {}).value) || 1, rows.map(x => ({ pincode: x.pin, name: x.area })))); closeModal(); S.areaRows = [];
+    toast(`${r.added} area${r.added === 1 ? "" : "s"} added.${r.skipped ? " " + r.skipped + " already existed." : ""}`); render();
+  },
   "use-location": async b => {
     const err = document.getElementById("pin-err");
     try {
@@ -1883,7 +1900,7 @@ function pinListAssist(el) {
     } catch (e) { box.innerHTML = ""; }
   }, 450);
 }
-const PIN_FIELDS = { "rq-pin": "rq-area", "pa-pin1": null, "lc-pin": "lc-area", "dl-pin": "dl-area" };
+const PIN_FIELDS = { "rq-pin": "rq-area", "pa-pin1": null, "dl-pin": "dl-area" };   // "lc-pin" (admin Add PIN / area) is typed by hand: no India Post check or auto-fill
 let pinTimer = null;
 function pinAssist(el) {
   if (!REST || !(el.id in PIN_FIELDS)) return;
@@ -1949,7 +1966,7 @@ const onChange = e => {
   if (e.target.id === "lc-city") { const z = document.querySelector('[data-f="lc-zone"]'); if (z) z.hidden = e.target.value !== "indore"; return; }
   if (e.target.id === "ac-mode") { const el = document.querySelector('[data-acs="partner"]'); if (el) el.hidden = e.target.value !== "partner"; return; }
   if (e.target.id === "imp-file") { previewImport(e.target); return; }
-  if (e.target.id === "ap-file") { readPinFile(e.target); return; }
+  if (e.target.id === "ap-file") { readAreaFile(e.target); return; }
   if (e.target.name === "category" && e.target.closest("form[data-form=plan], form[data-form=tip-plan]")) { syncPlanForm(e.target.closest("form")); return; }
   if (e.target.name === "sim_conn") { const port = e.target.value === "port"; document.getElementById("sm-port").hidden = !port; document.getElementById("sm-prefwrap").hidden = port; return; }
   if (e.target.dataset && e.target.dataset.zoneLoc) { const v = e.target.value; guard(null, () => API.saveLocationZone(e.target.dataset.zoneLoc, v)).then(() => { toast(v ? "Zone set to " + ZONE_NAME[v] + "." : "Zone removed."); }).catch(() => { }); return; }
@@ -2160,14 +2177,6 @@ const forms = {
   },
   "review-reject": async (f, btn) => { await guard(btn, () => API.adminReviewPlan(f.dataset.id, false, val(f, "note"))); closeModal(); toast("Submission rejected."); render(); },
   "add-city": async (f, btn) => { const d = { name: val(f, "name"), district: val(f, "district"), tier: val(f, "tier") }; if (!setErr(f, d.name.length < 2 ? { "ac-name": "Enter the city or town name." } : {})) return; await guard(btn, () => API.adminAddCity(d)); closeModal(); S.cities = null; toast(d.name + " added as launching soon."); render(); },
-  "pins-import": async (f, btn) => {
-    const pins = [...new Set(val(f, "pins").split(/[,\s]+/).filter(Boolean))], e = {};
-    if (!pins.length || !pins.every(isPin)) e["ap-pins"] = "Enter 6-digit PIN codes separated by commas.";
-    if (!setErr(f, e)) return;
-    const r = await guard(btn, () => API.importPincodes(val(f, "city_id") === "indore" ? 1 : val(f, "city_id"), pins)); closeModal();
-    const n = r.added.reduce((s, x) => s + x.areas, 0);
-    toast(`${n} area${n === 1 ? "" : "s"} added.${r.skipped.length ? " Not found: " + r.skipped.map(x => x.pincode).join(", ") + "." : ""}`, !!r.skipped.length && !n); render();
-  },
   "lead-edit": async (f, btn) => {
     const d = { name: val(f, "name"), phone: val(f, "phone"), email: val(f, "email"), pincode: val(f, "pincode"), address: val(f, "address"), notes: val(f, "notes") }, e = {};
     if (d.name.length < 2) e["le-name"] = "Enter the customer name."; if (!isPhone(d.phone)) e["le-phone"] = "Enter a valid 10-digit mobile."; if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) e["le-email"] = "Enter a valid email.";

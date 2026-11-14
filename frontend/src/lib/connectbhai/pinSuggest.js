@@ -7,7 +7,7 @@
 import { tidyArea } from "./areas";
 
 export const PIN_ONE = ["pin", "rq-pin", "lc-pin", "dl-pin"];
-export const PIN_MANY = ["pa-pins", "pt-pins", "cu-pins", "ap-pins"];
+export const PIN_MANY = ["pa-pins", "pt-pins", "cu-pins"];
 const isPinField = el => el && el.tagName === "INPUT" && (PIN_ONE.includes(el.id) || PIN_MANY.includes(el.id));
 const isMany = el => PIN_MANY.includes(el.id);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

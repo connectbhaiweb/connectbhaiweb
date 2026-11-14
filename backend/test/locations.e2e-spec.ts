@@ -74,6 +74,26 @@ describe('locations', () => {
     await c.http().delete(`${P}/areas/${two.body.id}`).set(bearer(a.admin)).expect(200);
   });
 
+  it('admin adds many PIN / area rows at once (sheet); existing rows are skipped, bad rows are refused', async () => {
+    const city = await c.http().post(`${P}/cities`).set(bearer(a.admin)).send({ name: `Bulkpur ${Date.now()}` }).expect(201);
+    const url = `${P}/cities/${city.body.id}/areas/bulk`;
+    const rows = [{ name: 'Alpha Colony', pincode: '999021' }, { name: ' Beta Nagar ', pincode: '999021' }, { name: 'Gamma Park', pincode: '999022' }];
+    await c.http().post(url).send({ areas: rows }).expect(401);
+    const cust = await makeCustomer(c);
+    await c.http().post(url).set(bearer(cust.token)).send({ areas: rows }).expect(403);
+    const r = await c.http().post(url).set(bearer(a.admin)).send({ areas: rows }).expect(201);
+    expect(r.body).toEqual({ added: 3, skipped: 0 });
+    const again = await c.http().post(url).set(bearer(a.admin)).send({ areas: [...rows, { name: 'Delta Road', pincode: '999022' }] }).expect(201);
+    expect(again.body).toEqual({ added: 1, skipped: 3 });
+    const saved = await c.prisma.area.findMany({ where: { city_id: city.body.id }, orderBy: { name: 'asc' } });
+    expect(saved.map((x) => x.name)).toEqual(['Alpha Colony', 'Beta Nagar', 'Delta Road', 'Gamma Park']);   // names are trimmed
+    await c.http().post(url).set(bearer(a.admin)).send({ areas: [{ name: 'Bad Pin', pincode: '12' }] }).expect(400);
+    await c.http().post(url).set(bearer(a.admin)).send({ areas: [] }).expect(400);
+    await c.http().post(url).set(bearer(a.admin)).send({}).expect(400);
+    await c.http().post(`${P}/cities/999999/areas/bulk`).set(bearer(a.admin)).send({ areas: rows }).expect(404);
+    await c.prisma.area.deleteMany({ where: { city_id: city.body.id } });
+  });
+
   it('admin manages the TIP <-> PIN mapping', async () => {
     const pin = '999777';
     const add = await c.http().post(`${P}/admin/tip-pincodes`).set(bearer(a.admin)).send({ pincode: pin, tip_user_id: a.ids.dream }).expect(201);

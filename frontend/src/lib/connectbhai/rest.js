@@ -454,7 +454,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     async removeCoverage(id) { need("admin"); await del("/admin/tip-pincodes/" + id); return true; },
     async geoReverse(lat, lng) { const r = await get(`/locations/reverse${qs({ lat, lng })}`, { anon: true }); return { pincode: r.pincode, area: r.area, city: r.city }; },
     async pinLookupMany(list) { return get(`/locations/pincodes${qs({ codes: list.join(",") })}`, { anon: true }); },
-    async importPincodes(cityId, pins) { need("admin"); return post("/admin/pincodes/import", { city_id: Number(cityId), pincodes: pins }); },
+    async addAreasBulk(cityId, areas) { need("admin"); return post(`/cities/${N(cityId) || 1}/areas/bulk`, { areas }); },   // rows from a sheet; existing ones are skipped
     async partnerDocs(id) { need("admin"); return get(`/users/${id}/documents`); },
     /* Every upload goes to Cloudinary: ask our server for a signed request (the API secret stays there), then send the file straight to Cloudinary. */
     async uploadFile(file, purpose) {

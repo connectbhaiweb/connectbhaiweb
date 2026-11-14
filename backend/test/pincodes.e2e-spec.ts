@@ -2,7 +2,7 @@ import { actors, bearer, createCtx, Ctx, P } from './helpers';
 import { PincodeService } from '../src/locations/pincode.service';
 
 /** India Post is mocked: tests never touch the network. */
-describe('PIN code lookup and import (India Post)', () => {
+describe('PIN code lookup (India Post)', () => {
   let c: Ctx; let a: Awaited<ReturnType<typeof actors>>; let svc: PincodeService;
   beforeAll(async () => { c = await createCtx(); a = await actors(c); svc = c.app.get(PincodeService); });
   afterAll(() => c.app.close());
@@ -51,28 +51,5 @@ describe('PIN code lookup and import (India Post)', () => {
     mockPost({ '110001': offices('110001', ['Connaught Place'], 'New Delhi', 'Delhi') });
     const r = await c.http().get(`${P}/locations/pincode/110001`).expect(200);
     expect(r.body).toMatchObject({ valid: true, serviceable: false, state: 'Delhi' });
-  });
-
-  describe('POST /admin/pincodes/import', () => {
-    it('admin imports PINs from India Post as areas of a city, and repeating it adds nothing new', async () => {
-      const table = { '453001': offices('453001', ['Ujjain City', 'Freeganj']), '999996': none };
-      mockPost(table);
-      const city = await c.prisma.city.upsert({ where: { name: 'Ujjain' }, update: {}, create: { name: 'Ujjain', status: 'soon' } });
-      const body = { city_id: Number(city.id), pincodes: ['453001', '999996'] };
-      const r = await c.http().post(`${P}/admin/pincodes/import`).set(bearer(a.admin)).send(body).expect(201);
-      expect(r.body.added).toEqual([{ pincode: '453001', areas: 2 }]);
-      expect(r.body.skipped).toEqual([{ pincode: '999996', reason: expect.stringMatching(/not found/i) }]);
-      expect(await c.prisma.area.count({ where: { city_id: city.id, pincode: '453001' } })).toBe(2);
-      const again = await c.http().post(`${P}/admin/pincodes/import`).set(bearer(a.admin)).send(body).expect(201);
-      expect(again.body.added).toEqual([{ pincode: '453001', areas: 0 }]);
-    });
-    it('is admin-only and validates its input', async () => {
-      const body = { city_id: 1, pincodes: ['452010'] };
-      await c.http().post(`${P}/admin/pincodes/import`).send(body).expect(401);
-      await c.http().post(`${P}/admin/pincodes/import`).set(bearer(a.dream)).send(body).expect(403);
-      await c.http().post(`${P}/admin/pincodes/import`).set(bearer(a.admin)).send({ city_id: 1, pincodes: [] }).expect(400);
-      await c.http().post(`${P}/admin/pincodes/import`).set(bearer(a.admin)).send({ city_id: 1, pincodes: ['abc'] }).expect(400);
-      await c.http().post(`${P}/admin/pincodes/import`).set(bearer(a.admin)).send({ city_id: 99999, pincodes: ['452010'] }).expect(404);
-    });
   });
 });

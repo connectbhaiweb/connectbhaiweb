@@ -21,7 +21,7 @@ const routes: [string, string, Role[]][] = [
   // locations (admin writes)
   ['POST', '/cities', ['admin']], ['PATCH', `/cities/${X}`, ['admin']], ['POST', `/cities/${X}/areas`, ['admin']], ['DELETE', `/areas/${X}`, ['admin']],
   ['GET', '/admin/tip-pincodes', ['admin']], ['POST', '/admin/tip-pincodes', ['admin']], ['PATCH', `/admin/tip-pincodes/${X}`, ['admin']], ['DELETE', `/admin/tip-pincodes/${X}`, ['admin']],
-  ['POST', '/admin/pincodes/import', ['admin']],
+  ['POST', `/cities/${X}/areas/bulk`, ['admin']], ['PATCH', `/areas/${X}`, ['admin']],
   // catalogue (admin writes)
   ['POST', '/plan-categories', ['admin']], ['PATCH', `/plan-categories/${X}`, ['admin']], ['POST', '/ott-apps', ['admin']], ['PATCH', `/ott-apps/${X}`, ['admin']],
   ['POST', '/plans', ['admin']], ['PATCH', `/plans/${X}`, ['admin']], ['PUT', `/plans/${X}/ott-apps`, ['admin']], ['PUT', '/pincodes/452010/plans', ['admin']],

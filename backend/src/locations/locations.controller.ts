@@ -5,9 +5,9 @@ import { Public, Roles } from '../common/decorators';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
-import { ImportPinsDto, ReverseQuery } from './locations.dto';
+import { ReverseQuery } from './locations.dto';
 import { PincodeService } from './pincode.service';
-import { CreateAreaDto, CreateCityDto, PINCODE_RE, TipPincodeDto, TipPincodeQuery, TipPincodeUpdateDto, UpdateAreaDto, UpdateCityDto } from './locations.dto';
+import { BulkAreasDto, CreateAreaDto, CreateCityDto, PINCODE_RE, TipPincodeDto, TipPincodeQuery, TipPincodeUpdateDto, UpdateAreaDto, UpdateCityDto } from './locations.dto';
 
 @ApiTags('locations') @Controller()
 export class LocationsController {
@@ -33,21 +33,6 @@ export class LocationsController {
   /** Several PINs in one call: GET /locations/pincodes?codes=452010,452016 */
   @Public() @Throttle({ default: { limit: 20, ttl: 60_000 } }) @Get('locations/pincodes')
   lookupMany(@Query('codes') codes?: string) { return this.pins.lookupMany((codes ?? '').split(/[,\s]+/)); }
-
-  /** Admin: type 2-3 PIN codes, fetch them from India Post and add their post offices as areas of a city. Safe to repeat. */
-  @ApiBearerAuth() @Roles('admin') @Post('admin/pincodes/import')
-  async importPins(@Body() d: ImportPinsDto) { this.cache.clear();
-    const city = await this.prisma.city.findUnique({ where: { id: d.city_id } });
-    if (!city) throw new NotFoundException('City not found');
-    const infos = await this.pins.lookupMany(d.pincodes);
-    const added: { pincode: string; areas: number }[] = [], skipped: { pincode: string; reason: string }[] = [];
-    for (const i of infos) {
-      if (!i.valid || !i.areas.length) { skipped.push({ pincode: i.pincode, reason: (i as any).error ?? 'PIN code not found in the India Post directory' }); continue; }
-      const r = await this.prisma.area.createMany({ data: i.areas.map((name) => ({ city_id: city.id, name: `${name}, ${i.district ?? city.name}`.slice(0, 120), pincode: i.pincode })), skipDuplicates: true });
-      added.push({ pincode: i.pincode, areas: r.count });
-    }
-    return { city: city.name, added, skipped };
-  }
 
   /** "Use my current location": GPS coordinates -> PIN code (+ area, city) through the configured geocoder. */
   @Public() @Throttle({ default: { limit: 20, ttl: 60_000 } }) @Get('locations/reverse')
@@ -99,6 +84,16 @@ export class LocationsController {
   async createArea(@Param('id', ParseIntPipe) id: number, @Body() d: CreateAreaDto) { this.cache.clear();
     if (!(await this.prisma.city.findUnique({ where: { id } }))) throw new NotFoundException('City not found');
     return this.prisma.area.create({ data: { city_id: id, name: d.name.trim(), pincode: d.pincode } });
+  }
+
+  /** Admin: add many PIN / area rows at once (from a sheet). Rows that already exist are skipped, not an error. */
+  @ApiBearerAuth() @Roles('admin') @Post('cities/:id/areas/bulk')
+  async createAreas(@Param('id', ParseIntPipe) id: number, @Body() d: BulkAreasDto) {
+    if (!(await this.prisma.city.findUnique({ where: { id } }))) throw new NotFoundException('City not found');
+    const data = d.areas.map((a) => ({ city_id: id, name: a.name.trim(), pincode: a.pincode })).filter((a) => a.name.length >= 2);
+    const r = await this.prisma.area.createMany({ data, skipDuplicates: true });
+    this.cache.clear();
+    return { added: r.count, skipped: d.areas.length - r.count };
   }
 
   /** Admin: rename an area. Leads link to the area by id, so every place that shows a lead's area picks up the new name. */
