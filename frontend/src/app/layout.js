@@ -26,6 +26,7 @@ import ConnectBhaiRuntime from "@/components/ConnectBhaiRuntime";
 import LangRuntime from "@/components/LangRuntime";
 import RouteScroll from "@/components/RouteScroll";
 import ResponsiveTables from "@/components/ResponsiveTables";
+import MotionRuntime from "@/components/MotionRuntime";
 import TableTools from "@/components/TableTools";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 
@@ -61,6 +62,7 @@ export default function RootLayout({ children }) {
         <LangRuntime />
         <RouteScroll />
         <ResponsiveTables />
+        <MotionRuntime />
         <TableTools />
       </body>
     </html>

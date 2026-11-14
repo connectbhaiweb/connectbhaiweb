@@ -1,5 +1,7 @@
 "use client";
-import { useId } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
+import { animate } from "motion";
+import { reduceMotion } from "@/components/MotionRuntime";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, MapPin, Phone } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -16,11 +18,30 @@ export function PortalHead({ title, sub, pins }) {
   );
 }
 
+/* The big number counts up from 0 when the tile first appears ("12,500", "₹1,200", "96%"; other values stay as they are). */
+function CountUp({ value }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || reduceMotion()) return;
+    const m = /^(D*?)(d[d,]*(?:.d+)?)(D*)$/.exec(String(value));
+    if (!m) return;
+    const end = parseFloat(m[2].replace(/,/g, ""));
+    if (!(end > 0)) return;
+    const dec = (m[2].split(".")[1] || "").length, comma = m[2].includes(",");
+    const fmt = n => (comma ? n.toLocaleString("en-IN", { minimumFractionDigits: dec, maximumFractionDigits: dec }) : n.toFixed(dec));
+    el.textContent = m[1] + fmt(0) + m[3];
+    const run = animate(0, end, { duration: 0.9, ease: "easeOut", onUpdate: v => { el.textContent = m[1] + fmt(v) + m[3]; } });
+    return () => run.stop();
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps -- counts once, when the tile appears
+  return <b ref={ref}>{value}</b>;
+}
+
 export function Kpi({ tone, Icon, label, value, sub, up, href, filter }) {   // href: the card opens that page; filter: [sessionStorage key, value] the page reads once to pre-select its filter
   const body = (
     <>
       <span className="pt-kpi-ico"><Icon aria-hidden="true" /></span>
-      <div className="pt-kpi-txt"><span>{label}</span><b>{value}</b>{sub ? <small className={up ? "is-up" : ""}>{up ? <i className="pt-up" aria-hidden="true" /> : null}{sub}</small> : null}</div>
+      <div className="pt-kpi-txt"><span>{label}</span><CountUp value={value} />{sub ? <small className={up ? "is-up" : ""}>{up ? <i className="pt-up" aria-hidden="true" /> : null}{sub}</small> : null}</div>
     </>
   );
   if (!href) return <div className={`pt-kpi tone-${tone}`}>{body}</div>;
