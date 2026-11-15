@@ -1,4 +1,5 @@
 import { actors, bearer, createCtx, Ctx, inDays, makeCustomer, newLead, P, PIN, planId, uniquePhone } from './helpers';
+const IDS = { telephone_no: '07312345678', order_no: 'ORD-1001' };   // assigning a TIP needs both
 
 describe('leads', () => {
   let c: Ctx; let a: Awaited<ReturnType<typeof actors>>; let pid: number;
@@ -197,8 +198,8 @@ describe('leads', () => {
         await c.http().patch(`${P}/leads/${l.id}/status`).set(bearer(a.dsa1)).send({ status: 'contacted' }).expect(200);
 
         // a TIP is assigned to a booked lead only
-        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(400);
-        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dream }).expect(400);
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream, ...IDS }).expect(400);
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dream, ...IDS }).expect(400);
 
         // the DSA books it, with no TIP yet
         const bk = (await c.http().post(`${P}/bookings`).set(bearer(a.dsa1)).send({ lead_id: l.id, scheduled_at: tomorrow() }).expect(201)).body;
@@ -209,9 +210,18 @@ describe('leads', () => {
         await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dream)).expect(404);
 
         // the lead's DSA assigns the TIP; the booking follows
-        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa2)).send({ tip_user_id: a.ids.dream }).expect(404);          // another DSA cannot
-        const assigned = (await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(200)).body;
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa2)).send({ tip_user_id: a.ids.dream, ...IDS }).expect(404);          // another DSA cannot
+        const assigned = (await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream, ...IDS }).expect(200)).body;
         expect(assigned.tip.id).toBe(a.ids.dream);
+        expect(assigned).toMatchObject({ telephone_no: '07312345678', order_no: 'ORD-1001' });   // stored on the lead, visible on every portal
+        const asg = (b: object) => c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream, ...b });
+        await asg({ telephone_no: undefined, order_no: undefined }).expect(400);                  // both are required
+        await asg({ telephone_no: '07312345678' }).expect(400);
+        await asg({ telephone_no: '0731-234567', order_no: 'ORD-1' }).expect(400);                 // telephone: digits only
+        await asg({ telephone_no: '073123456789', order_no: 'ORD-1' }).expect(400);                // max 11
+        await asg({ telephone_no: '07312345678', order_no: 'ORD 1 2 3' }).expect(400);              // order: letters, digits, dash only
+        await asg({ telephone_no: '07312345678', order_no: 'ORDER1234567' }).expect(400);          // max 11
+        expect((await asg({ telephone_no: '07311111111', order_no: 'ORD-2002' }).expect(200)).body).toMatchObject({ telephone_no: '07311111111', order_no: 'ORD-2002' });   // same TIP, corrected numbers
         expect(assigned.bookings[0]).toMatchObject({ id: bk.id });
         expect((await c.prisma.booking.findUniqueOrThrow({ where: { id: bk.id } })).tip_user_id).toBe(BigInt(a.ids.dream));
         await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dream)).expect(200);                     // now the TIP sees it
@@ -249,16 +259,16 @@ describe('leads', () => {
       it('the TIP can be changed while the booking is open, and the booking follows; not after installation', async () => {
         const l = await newLead(c, a, { by: 'dsa1' });
         const bk = (await c.http().post(`${P}/bookings`).set(bearer(a.dsa1)).send({ lead_id: l.id, scheduled_at: tomorrow() }).expect(201)).body;
-        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dsa2 }).expect(400);            // a DSA is not a TIP
-        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(200);
-        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat }).expect(200);          // reassigned
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dsa2, ...IDS }).expect(400);            // a DSA is not a TIP
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream, ...IDS }).expect(200);
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat, ...IDS }).expect(200);          // reassigned
         expect((await c.prisma.booking.findUniqueOrThrow({ where: { id: bk.id } })).tip_user_id).toBe(BigInt(a.ids.doulat));
         await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.dream)).expect(404);                                                      // the first TIP lost it
         await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.doulat)).expect(200);
         const got = (await c.http().get(`${P}/leads/${l.id}`).set(bearer(a.admin)).expect(200)).body;
         expect(got.dsa.phone).toBeTruthy(); expect(got.tip.phone).toBeTruthy();                                                         // contact details for both partners
         await c.http().post(`${P}/bookings/${bk.id}/complete`).set(bearer(a.doulat)).send({ connection_id: 'CID-2' }).expect(200);
-        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dream }).expect(400);          // installed: locked
+        await c.http().patch(`${P}/leads/${l.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.dream, ...IDS }).expect(400);          // installed: locked
       });
       it('the TIP picker: admin and the lead\'s DSA see approved TIPs, those covering the PIN first; nobody else can', async () => {
         const l = await newLead(c, a, { by: 'dsa1' });

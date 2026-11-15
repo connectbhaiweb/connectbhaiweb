@@ -16,7 +16,7 @@ import { BookingQuery, CompleteBookingDto, CreateBookingDto, UpdateBookingDto } 
 /** What the background job needs after an installation is marked complete (ids and numbers only: it is stored in the job table). */
 interface InstallationDone { lead_id: number; tip_user_id: number; connection_id?: string | null; commission: { dsa_user_id: number; amount: number } | null; charge: { total_amount: number } | null }
 
-const BOOKING_VIEW = { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, customer_user_id: true, brought_by_user_id: true, address: true, pincode: true, status: true, care_plan: true, plan: { select: { id: true, plan_code: true, name: true, price: true, speed_mbps: true, install_charge: true, category: { select: { id: true, name: true, type: true, logo_url: true } } } } } }, tip: { select: { id: true, name: true, partner_code: true, phone: true } } } satisfies Prisma.BookingInclude;
+const BOOKING_VIEW = { lead: { select: { id: true, ref_code: true, customer_name: true, customer_phone: true, customer_user_id: true, brought_by_user_id: true, telephone_no: true, order_no: true, address: true, pincode: true, status: true, care_plan: true, plan: { select: { id: true, plan_code: true, name: true, price: true, speed_mbps: true, install_charge: true, category: { select: { id: true, name: true, type: true, logo_url: true } } } } } }, tip: { select: { id: true, name: true, partner_code: true, phone: true } } } satisfies Prisma.BookingInclude;
 
 @Injectable()
 export class BookingsService {

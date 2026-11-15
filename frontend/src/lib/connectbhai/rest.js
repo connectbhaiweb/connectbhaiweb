@@ -115,7 +115,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     const b = bk ? { id: S(bk.id), status: BS[bk.status] || bk.status, scheduled_date: bk.scheduled_at ? String(bk.scheduled_at).slice(0, 10) : null, installed_at: bk.completed_at, connection_ref: bk.connection_id } : (l.booking || null);
     return { id: S(l.id), ref_code: l.ref_code, customer_id: S(l.customer_user_id), name: l.customer_name, phone: l.customer_phone, email: l.customer_email || "", pincode: l.pincode, area: l.area ? l.area.name : null, area_id: l.area ? S(l.area.id) : null, address: l.address,
       plan_id: S(l.plan_id), plan: l.plan ? mapPlan({ ...l.plan, category: l.plan.category }) : null, preferred_date: null, source: l.source, product: l.plan && l.plan.category && ["ott"].includes(l.plan.category.type) ? "ott" : "broadband", status: l.status === "new" && (l.brought_by_user_id || l.tip_user_id) ? "assigned" : (LS[l.status] || l.status),   // the API has no "assigned" status: a new lead with a DSA (or, on an old lead, a TIP) is shown as Assigned
-      assigned_dsa_id: S(l.brought_by_user_id), assigned_tip_id: S(l.tip_user_id), dsa: pc(l.dsa), tip: pc(l.tip), next_follow_up: l.followup_at ? String(l.followup_at).slice(0, 10) : null, lost_reason: l.lost_reason, notes: l.notes,
+      assigned_dsa_id: S(l.brought_by_user_id), assigned_tip_id: S(l.tip_user_id), dsa: pc(l.dsa), tip: pc(l.tip), next_follow_up: l.followup_at ? String(l.followup_at).slice(0, 10) : null, lost_reason: l.lost_reason, notes: l.notes, telephone_no: l.telephone_no || "", order_no: l.order_no || "",
       care_plan: !!l.care_plan, consent: true, created_at: l.created_at, updated_at: l.updated_at, installed_at: l.installed_at, booking: b };
   };
   const BS = { scheduled: "scheduled", rescheduled: "scheduled", completed: "installed", cancelled: "cancelled" };
@@ -126,7 +126,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     const out = { id: S(b.id), ref_code: "BK-" + String(b.id).padStart(6, "0"), lead_id: S(b.lead_id), customer_id: S(ld.customer_user_id), plan_id: S(ld.plan && ld.plan.id), plan: ld.plan ? mapPlan(ld.plan) : null,
       tip_partner_id: S(b.tip_user_id), dsa_partner_id: S(ld.brought_by_user_id), status: BS[b.status] || b.status, scheduled_date: b.scheduled_at ? String(b.scheduled_at).slice(0, 10) : null, installed_at: b.completed_at, connection_ref: b.connection_id,
       ont_serial: b.router_serial, authorized: b.status === "completed", created_at: b.created_at, care_plan: !!ld.care_plan,
-      lead: { id: S(ld.id || b.lead_id), ref_code: ld.ref_code, name: ld.customer_name, phone: ld.customer_phone, email: "", address: ld.address, pincode: ld.pincode, status: LS[ld.status] || ld.status },
+      lead: { id: S(ld.id || b.lead_id), ref_code: ld.ref_code, name: ld.customer_name, phone: ld.customer_phone, email: "", address: ld.address, pincode: ld.pincode, status: LS[ld.status] || ld.status, telephone_no: ld.telephone_no || "", order_no: ld.order_no || "" },
       tip: pc(b.tip), dsa: null, device: dv ? { ...mapDevice(dv), booking_id: S(b.id) } : null };
     bookingCache.set(out.id, out); return out;
   };
@@ -265,7 +265,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       await patch(`/leads/${id}/status`, { status: LSBACK[status] || status, note: note || undefined, followup_at: next ? new Date(next + "T09:00:00").toISOString() : undefined, lost_reason: status === "lost" ? (note || undefined) : undefined }); return true;
     },
     /* A lead is assigned to a DSA first (admin, before it is booked); once the DSA has booked it, admin or the lead's DSA assigns the TIP who installs it. */
-    async assignLead(id, dsa, tip) { need("admin", "dsa"); const b = {}; if (dsa) b.dsa_user_id = Number(dsa); if (tip) b.tip_user_id = Number(tip); await patch(`/leads/${id}/assign`, b); return true; },
+    async assignLead(id, dsa, tip, ids) { need("admin", "dsa"); const b = {}; if (dsa) b.dsa_user_id = Number(dsa); if (tip) { b.tip_user_id = Number(tip); if (ids) { b.telephone_no = ids.telephone_no; b.order_no = ids.order_no; } } await patch(`/leads/${id}/assign`, b); return true; },
     async tipOptions(id) { need("admin", "dsa"); return (await get(`/leads/${id}/tip-options`)).map(t => ({ id: S(t.id), name: t.name, firm: t.business_name || "", covers_pin: !!t.covers_pin, internal: !!t.is_internal })); },   // approved TIPs, those covering the lead's PIN first
     async dsaAddLead(f) {
       need("dsa"); if (!f.consent) fail("Confirm the customer agreed to be contacted.");

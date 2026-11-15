@@ -92,6 +92,7 @@ function BookingCard({ lead, booking, events }) {
           <h2 id="cu-bk-title">Booking #{lead.ref_code}</h2>
           <p className="cu-plan"><b>{planTitle(lead.plan)}</b><span className="cu-dot" aria-hidden="true">·</span><span>{planPrice(lead.plan)}</span></p>
           <span className="cu-loc"><MapPin aria-hidden="true" />{[lead.pincode, lead.area, cityOf(lead.pincode)].filter(Boolean).join(", ")}</span>
+          {(lead.telephone_no || lead.order_no) && <span className="cu-loc">Telephone no. <b>{lead.telephone_no || "—"}</b><span className="cu-dot" aria-hidden="true">·</span>Order no. <b>{lead.order_no || "—"}</b></span>}
         </div>
         <span className={`cu-chip cu-chip-${tone} cu-bk-chip`}><ChipIcon aria-hidden="true" />{chip}</span>
       </div>

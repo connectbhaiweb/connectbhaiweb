@@ -64,5 +64,8 @@ export class LeadStatusDto {
 export class AssignDto {
   @IsOptional() @Type(() => Number) @IsInt() dsa_user_id?: number;
   @IsOptional() @Type(() => Number) @IsInt() tip_user_id?: number;
+  /** required together with tip_user_id: the customer's telephone number (digits, max 11) and the Order No. (letters, digits, dash, max 11) */
+  @IsOptional() @IsString() @Matches(/^\d{1,11}$/, { message: 'telephone_no must be 1 to 11 digits' }) telephone_no?: string;
+  @IsOptional() @IsString() @Matches(/^[A-Za-z0-9-]{1,11}$/, { message: 'order_no must be 1 to 11 letters, digits or dashes' }) order_no?: string;
 }
 export class NoteDto { @IsString() @MinLength(1) @MaxLength(500) note: string; }

@@ -194,6 +194,7 @@ export class LeadsService {
   async assign(id: number, d: AssignDto, u: AuthUser) {
     if (d.dsa_user_id === undefined && d.tip_user_id === undefined) throw new BadRequestException('Choose a DSA or a TIP');
     if (d.dsa_user_id !== undefined && u.role !== 'admin') throw new ForbiddenException('Only admin can assign a DSA');
+    if (d.tip_user_id !== undefined && (!d.telephone_no || !d.order_no)) throw new BadRequestException('Enter the Telephone number and the Order No. to assign a TIP');
     const lead = await this.getScoped(id, u);   // a DSA only reaches their own leads
     if (lead.status === 'installed') throw new BadRequestException('Installed leads cannot be reassigned');
 
@@ -217,14 +218,17 @@ export class LeadsService {
         if (!tip) throw new BadRequestException('tip_user_id is not an approved TIP');
       }
     }
-    if (!dsa && !tip) return lead;   // already with this DSA / TIP: nothing to change
+    const idsChanged = d.tip_user_id !== undefined && (d.telephone_no !== lead.telephone_no || d.order_no !== lead.order_no);
+    if (!dsa && !tip && !idsChanged) return lead;   // already with this DSA / TIP and the same numbers: nothing to change
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const data: Prisma.LeadUncheckedUpdateInput = {};
       if (dsa) data.brought_by_user_id = dsa.id;
       if (tip) data.tip_user_id = tip.id;
+      if (d.tip_user_id !== undefined) { data.telephone_no = d.telephone_no; data.order_no = d.order_no; }
       const l = await tx.lead.update({ where: { id }, data, include: leadInclude });
       if (dsa) await this.log(tx, id, u.id, 'assigned', { note: `dsa_user_id=${dsa.id}${curDsa ? ` (was ${curDsa})` : ''}` });
+      if (!tip && idsChanged) await this.log(tx, id, u.id, 'edited', { note: `Telephone no. ${d.telephone_no}, Order no. ${d.order_no}` });
       if (tip) {
         // the open booking is the TIP's job: it follows the lead
         await tx.booking.updateMany({ where: { lead_id: id, status: { in: ['scheduled', 'rescheduled'] } }, data: { tip_user_id: tip.id } });
@@ -341,6 +345,6 @@ export class LeadsService {
     const phone = normalizePhone(rawPhone);
     const lead = phone ? await this.prisma.lead.findFirst({ where: { ref_code, customer_phone: phone }, include: leadInclude }) : null;
     if (!lead) throw new NotFoundException('No request found for these details');
-    return { ref_code: lead.ref_code, status: lead.status, plan: lead.plan, pincode: lead.pincode, created_at: lead.created_at, installed_at: lead.installed_at };
+    return { ref_code: lead.ref_code, status: lead.status, plan: lead.plan, pincode: lead.pincode, created_at: lead.created_at, installed_at: lead.installed_at, telephone_no: lead.telephone_no, order_no: lead.order_no };
   }
 }

@@ -387,6 +387,8 @@ model Lead {
   care_plan          Boolean    @default(false)
   care_plan_at       DateTime?  @db.DateTime(3)
   installed_at       DateTime?  @db.DateTime(3)
+  telephone_no       String?    @db.VarChar(11)   // entered by the DSA/admin when the TIP is assigned; visible on every portal
+  order_no           String?    @db.VarChar(11)
   created_at         DateTime   @default(now()) @db.DateTime(3)
   updated_at         DateTime   @default(now()) @updatedAt @db.DateTime(3)
 

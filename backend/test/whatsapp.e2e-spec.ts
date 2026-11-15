@@ -1,5 +1,6 @@
 import { PaymentReminderService } from '../src/notifications/payment-reminder.service';
 import { FeedbackRequestService } from '../src/notifications/feedback-request.service';
+const IDS = { telephone_no: '07312345678', order_no: 'ORD-1001' };   // the TIP assignment needs both
 import { actors, bearer, createCtx, Ctx, inDays, makeCustomer, newLead, P, uniquePhone } from './helpers';
 
 /** Which WhatsApp messages the app records at each step (nothing is really sent in tests: AISENSY_API_KEY is empty). */
@@ -37,12 +38,12 @@ describe('WhatsApp messages at each step', () => {
     const job = (tipId: number) => c.prisma.notification.findMany({ where: { user_id: tipId, template: 'tip_job_assigned' } }).then((r) => r.filter((n) => (n.payload as any).ref_code === lead.ref_code));
     expect(await sent(lead.customer_phone, 'installation_in_progress')).toHaveLength(0);   // no TIP yet: nobody to name
     expect(await job(a.ids.dream)).toHaveLength(0);
-    await c.http().patch(`${P}/leads/${lead.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream }).expect(200);
+    await c.http().patch(`${P}/leads/${lead.id}/assign`).set(bearer(a.dsa1)).send({ tip_user_id: a.ids.dream, ...IDS }).expect(200);
     expect(await job(a.ids.dream)).toHaveLength(1);
     const progress = await sent(lead.customer_phone, 'installation_in_progress');
     expect(progress).toHaveLength(1);
     expect((progress[0].payload as any).technician).toBeTruthy();
-    await c.http().patch(`${P}/leads/${lead.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat }).expect(200);
+    await c.http().patch(`${P}/leads/${lead.id}/assign`).set(bearer(a.admin)).send({ tip_user_id: a.ids.doulat, ...IDS }).expect(200);
     expect(await job(a.ids.doulat)).toHaveLength(1);                      // the new TIP is told
     expect(await sent(lead.customer_phone, 'installation_in_progress')).toHaveLength(1);   // the customer is not told twice
     expect(b.body.id).toBeTruthy();
