@@ -92,6 +92,12 @@ export class LeadsService {
       if (!dsa) throw new BadRequestException('brought_by_user_id is not an active DSA');
     }
     if (!customer_user_id) customer_user_id = existingCustomer ? Number(existingCustomer.id) : null;
+    // the customer's account takes the name they give on a request: a logged-in customer can change it any time; a request that is not logged in
+    // can only replace the "Customer" placeholder (it must never rename someone just because their number was typed)
+    if (customer_user_id) {
+      const self = actor?.role === 'customer' && actor.id === customer_user_id, name = d.customer_name.trim();
+      await this.prisma.user.updateMany({ where: { id: customer_user_id, role: 'customer', ...(self ? { name: { not: name } } : { name: 'Customer' }) }, data: { name } });
+    }
     // a DSA's own lead stays theirs; every other lead goes to the DSA serving the PIN code with the fewest open leads (or waits for admin)
     if (!brought_by && autoAssign) { brought_by = await this.pickDsa(d.pincode); autoAssigned = brought_by !== null; }
 

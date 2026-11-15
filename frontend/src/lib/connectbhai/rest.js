@@ -236,6 +236,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
       const sim = f.sim ? `SIM request: ${JSON.stringify(f.sim)}` : "";
       const l = await post("/leads", { customer_name: f.name.trim(), customer_phone: f.phone, customer_email: f.email || undefined, address: f.address || undefined, pincode: f.pincode, plan_id: N(f.plan_id),
         source: f.plan_id ? "website" : "callback", notes: [f.preferred_date ? "Preferred date: " + f.preferred_date : "", f.area ? "Area: " + f.area : "", sim].filter(Boolean).join(" | ") || undefined });
+      if (me && me.role === "customer" && f.name.trim() && me.full_name !== f.name.trim()) me = { ...me, full_name: f.name.trim(), name: f.name.trim() };   // the server renamed the account to the name on this request
       return { lead_id: S(l.id), ref_code: l.ref_code };
     },
     async applyPartner(f) {

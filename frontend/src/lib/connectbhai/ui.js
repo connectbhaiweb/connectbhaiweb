@@ -529,7 +529,7 @@ function openRequest(planId) {
    ${air ? `<p class="notice info" style="margin-bottom:12px">Air Fiber uses a small outdoor unit and an indoor Wi-Fi router. The installer checks the signal at your home before installing.</p>` : ""}
    <form class="stack" data-form="request" data-plan="${planId || ""}" data-product="${product}" novalidate>
      <div class="grid2">
-       ${field("rq-name", "Full name", `<input id="rq-name" name="name" autocomplete="name" value="${esc(u && u.role === "customer" ? u.full_name : "")}">`)}
+       ${field("rq-name", "Full name", `<input id="rq-name" name="name" autocomplete="name" value="${esc(u && u.role === "customer" && u.full_name !== "Customer" ? u.full_name : "")}">`)}
        ${field("rq-phone", "Mobile number", `<input id="rq-phone" name="phone" inputmode="numeric" maxlength="16" autocomplete="tel-national" value="${esc(u && u.role === "customer" ? u.phone || "" : "")}">`)}
        ${field("rq-pin", "PIN code", `<input id="rq-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(S.pin)}" placeholder="Enter your PIN code">`)}
        ${field("rq-area", "Area / colony", `<input id="rq-area" name="area" value="${esc(S.areas[0] || "")}">`)}

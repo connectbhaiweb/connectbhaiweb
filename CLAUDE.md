@@ -41,6 +41,7 @@ npx expo install <pkg>      # ALWAYS, never npm/yarn add
 - `backend/.env` from `.env.example`. Validated at boot (`src/config/env.validation.ts`). Prod refuses placeholder secrets and `OTP_DEV_CODE`.
 - `frontend/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1` → real API via `lib/connectbhai/rest.js`. Without it: in-browser demo data (`api.js`); Supabase vars are legacy/optional.
 - `mobile/.env`: `EXPO_PUBLIC_API_URL`.
+- Customer names: a number that logs in without a name gets the account name "Customer". Any connection request replaces it with the name given (`leads.service.create`): a logged-in customer can rename themself on a request; a request that is not logged in only replaces the "Customer" placeholder, so nobody is renamed by someone typing their number.
 - Dev logins: OTP `123456`. Backend admin `9999999999` / `Admin@12345`. Frontend demo: `9876500001` customer · `…101` DSA · `…201` TIP · `…999` admin, password `Demo@1234`.
 
 ## Frontend architecture

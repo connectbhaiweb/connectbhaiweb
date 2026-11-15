@@ -66,6 +66,19 @@ describe('leads', () => {
       const r = await c.http().post(`${P}/leads`).set(bearer(cust.token)).send(body({ customer_phone: cust.phone })).expect(201);
       expect(r.body.customer_user_id).toBe(Number(cust.user.id));
     });
+    it("the customer's account takes the name on their request; a request that is not logged in only replaces the 'Customer' placeholder", async () => {
+      const nameOf = async (id: bigint) => (await c.prisma.user.findUniqueOrThrow({ where: { id } })).name;
+      // a number that logged in without a name is called "Customer" until a request gives a real name
+      const placeholder = await makeCustomer(c, 'Customer');
+      await c.http().post(`${P}/leads`).send(body({ customer_phone: placeholder.phone, customer_name: 'Rahul Sharma' })).expect(201);   // not logged in
+      expect(await nameOf(placeholder.user.id)).toBe('Rahul Sharma');
+      // a real name is never changed by someone who is not logged in as that customer
+      await c.http().post(`${P}/leads`).send(body({ customer_phone: placeholder.phone, customer_name: 'Someone Else', pincode: '452011' })).expect(201);
+      expect(await nameOf(placeholder.user.id)).toBe('Rahul Sharma');
+      // the logged-in customer can change it by giving another name on a request
+      await c.http().post(`${P}/leads`).set(bearer(placeholder.token)).send(body({ customer_phone: placeholder.phone, customer_name: 'Rahul K Sharma', pincode: '452012' })).expect(201);
+      expect(await nameOf(placeholder.user.id)).toBe('Rahul K Sharma');
+    });
     it('normalises the phone number and blocks duplicate open requests for the same PIN', async () => {
       const phone = uniquePhone();
       const first = await c.http().post(`${P}/leads`).send(body({ customer_phone: `+91 ${phone.slice(0, 5)} ${phone.slice(5)}` })).expect(201);
