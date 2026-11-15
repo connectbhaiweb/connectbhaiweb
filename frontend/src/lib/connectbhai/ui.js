@@ -1022,7 +1022,7 @@ async function openCoverage() {
    LOGIN
    ===================================================================== */
 function openLogin(tab) {
-  const acc = LIVE ? [] : API.demoAccounts(), otp = tab === "otp";
+  const acc = LIVE ? [] : API.demoAccounts(), otp = tab !== "pw";
   const desc = { customer: "Bookings, complaints, my modem (restart, Wi-Fi), speed tests", dsa: "Leads, follow-ups, installation status, commission", tip: "Bookings, installations, tickets, modem control", admin: "DSAs &amp; TIPs, plans, team logins, payments, reports" };
   openModal(`<h2>Log in to Connect Bhai</h2>
     <div class="chips" style="margin:10px 0 14px"><button type="button" class="chip" data-act="login-tab" data-v="pw" aria-pressed="${!otp}">Mobile + password</button><button type="button" class="chip" data-act="login-tab" data-v="otp" aria-pressed="${otp}">WhatsApp OTP</button></div>
