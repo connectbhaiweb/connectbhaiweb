@@ -140,7 +140,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .search .pinacts{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
 .search .resetbtn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:0;border-radius:999px;background:var(--blue-soft,#E8EFFF);color:var(--blue,#1450E6);font:700 13px var(--body,Manrope,system-ui,sans-serif);cursor:pointer}
 .search .resetbtn:hover{background:var(--blue,#1450E6);color:#fff}
-.search .pinrow input::placeholder{color:#CDD4E2;opacity:1;letter-spacing:.08em;font-weight:400}
+.search .pinrow input::placeholder{color:#8C97AE;opacity:1;font-family:var(--body);font-size:16px;letter-spacing:0;font-weight:500}
 .search .pinrow input:focus{border-color:var(--blue);outline:none}
 .ptabs{display:flex;gap:4px;background:var(--blue-soft);border-radius:14px;padding:4px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
 .ptabs::-webkit-scrollbar{display:none}
