@@ -401,7 +401,7 @@ function searchBody() {
   if (S.product === "sim") return `<h2>Book a SIM online</h2><p class="muted small" style="margin-top:2px">Get a new number or keep your number and switch (port). Delivered to your door in Indore with e-KYC.</p>
     <div class="chips" style="margin:12px 0">${[["prepaid", "Prepaid"], ["postpaid", "Postpaid"]].map(([k, l]) => `<button type="button" class="chip" data-act="sim-type" data-v="${k}" aria-pressed="${(S.simType || "prepaid") === k}">${l}</button>`).join("")}</div>
     <button class="btn btn-primary btn-block" type="submit">Show SIM plans</button>`;
-  return `<h2>OTT packs</h2><p class="muted small" style="margin-top:2px">Streaming app bundles you can add to any connection.</p><button class="btn btn-primary btn-block" type="submit" style="margin-top:12px">Show OTT packs</button>`;
+  return pinUI("OTT packs", "Streaming app bundles you can add to any connection. Check what's available at your PIN code.");
 }
 /* Clears the PIN, its results and the compare list, and puts the search card back to its empty state. */
 function resetSearch() {
@@ -496,7 +496,9 @@ function planCard(p) {
     ${demoBadge(p.is_demo)}
     <div class="prov">${plogo(p.provider)}<span>${esc(p.provider.name)}<br><span class="muted small" style="font-weight:600">${esc(CATS[p.category] || "")}</span></span></div>
     <div class="pname">${esc(p.name)}</div>
-    <div class="row" style="justify-content:space-between;align-items:flex-end"><div class="speed">${planBig(p)}</div><div class="price">${inr(p.price_monthly)}<small>${priceUnit(p)}</small></div></div>
+    <div class="row" style="justify-content:space-between;align-items:flex-end">${p.category === "tv"
+      ? `<div class="speed"><b>${inr(p.price_monthly)}</b><span>${priceUnit(p)}</span></div><div class="muted" style="font-weight:700;font-size:14px;white-space:nowrap">${p.tv_channels ? `<b>${p.tv_channels}</b> <span>channels</span>` : ""}</div>`
+      : `<div class="speed">${planBig(p)}</div><div class="price">${inr(p.price_monthly)}<small>${priceUnit(p)}</small></div>`}</div>
     <div class="facts">${planFacts(p)}</div>
     <div class="ott">${p.ott_apps.length ? p.ott_apps.map(o => `<em>${esc(o)}</em>`).join("") : `<span class="muted small">No OTT apps included</span>`}</div>
     <div class="acts"><label class="check small"><input type="checkbox" data-act="toggle-compare" data-id="${p.id}" ${sel ? "checked" : ""}> Compare</label><button class="btn btn-primary btn-sm" data-act="request" data-plan="${p.id}" type="button">${ctaFor(p)}</button></div>
@@ -2031,7 +2033,7 @@ const forms = {
       if (!setErr(f, e)) return;
       const r = await guard(btn, () => API.joinWaitlist(d)); S.wlDone = { city_id: d.city_id, phone: d.phone, waiting: r.waiting }; renderSearchCard(); toast("You're on the list for " + r.city + "."); return;
     }
-    return ["sim", "ott"].includes(S.product) ? showCatalog() : searchPin(val(f, "pin"));
+    return S.product === "sim" ? showCatalog() : searchPin(val(f, "pin"));
   },
   "pw-login": async (f, btn) => {
     const phone = val(f, "phone"), pw = f.elements.password.value, e = {};
