@@ -62,6 +62,9 @@ npx expo install <pkg>      # ALWAYS, never npm/yarn add
 - "Assigned" is a **UI-only** status: `rest.js` shows a server `new` lead that has a DSA (or, on an old lead, a TIP) as `assigned`. Filters: `status=new&unassigned=1` (no DSA, no TIP) / `status=new&assigned=1`. The API has no `assigned` status.
 - The lead carries its latest booking (`bookings[0]`); a Booked lead shows **Install** to its TIP, and **Assign TIP** to its DSA / admin.
 
+## Plan payment (customer pays Connect Bhai directly)
+A customer can pay the **plan price** of their lead any day (`POST /charges/customer {lead_id}`; Razorpay via the normal charge flow). The server always prices it from `plan.price` (GST-inclusive); no amount or description is accepted from the client, a ₹0 plan cannot be paid, and an open payment for the same lead is reused. Admin, or the TIP assigned to the lead, can instead mark it received outside the app: `POST /leads/:id/payment/offline {reference?}` (creates the charge if none is open, then settles it as `offline`). Leads carry their latest paid `customer_payment` as `charges[0]` (`payment` in `rest.js`), shown as Paid on the customer booking card, the lead dialog and the TIP table.
+
 ## Admin edit / delete (any status)
 Admin can edit and delete leads and DSA/TIP partners in **any** status: `PATCH|DELETE /leads/:id`, `PATCH|DELETE /users/:id` (`leads.service.adminUpdate/adminDelete`, `users.service.updatePartner/deletePartner`). Deletes are one transaction: a lead takes its bookings, payout, modem and chat with it (invoices stay, unlinked); a partner's leads stay (DSA/TIP cleared) while their bookings, payouts, charges, tickets and messages go. Connect Bhai's internal TIP cannot be deleted. The status machine and the assign locks above are **not** relaxed. The partner Edit dialog saves name, firm, mobile, email, address, PIN only (per-install amount and lead target are global settings).
 

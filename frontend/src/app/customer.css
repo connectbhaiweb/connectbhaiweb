@@ -298,3 +298,7 @@ html[data-shell] .dsh-page,html[data-shell-pending] .dsh-page{display:block}
 }
 /* QA: a lead with no DSA shows only the installer card, so it takes the full row */
 .cu-people>:only-child{grid-column:1/-1}
+
+.cu-bk-pay{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:16px;padding:14px 16px;border:1px solid var(--cu-line,#e3e8f5);border-radius:14px;background:#f5f8ff}
+.cu-bk-pay>div{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.cu-bk-pay>div>span{font-size:13px;opacity:.75}

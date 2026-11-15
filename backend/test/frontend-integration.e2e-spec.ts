@@ -34,22 +34,35 @@ describe('frontend integration', () => {
   });
 
   describe('customer payments (mock gateway)', () => {
-    it('customer creates a GST-inclusive charge and settles it with mock-pay; others cannot touch it', async () => {
+    const ownLead = async (cust: Awaited<ReturnType<typeof makeCustomer>>) => {
+      const l = await newLead(c, a);
+      await c.prisma.lead.update({ where: { id: l.id }, data: { customer_user_id: cust.user.id, customer_phone: cust.phone } });
+      return l;
+    };
+    it('customer pays the lead plan price (GST-inclusive; no amount is accepted from the client) and settles it with mock-pay; others cannot touch it', async () => {
       const cust = await makeCustomer(c);
-      const ch = await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ description: 'Router rental', amount: 236 }).expect(201);
-      expect(Number(ch.body.total_amount)).toBeCloseTo(236, 0);
+      const lead = await ownLead(cust);
+      const price = Number((await c.prisma.plan.findUniqueOrThrow({ where: { id: lead.plan_id } })).price);
+      const ch = await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ lead_id: lead.id }).expect(201);
+      expect(Number(ch.body.total_amount)).toBeCloseTo(price, 0);
+      await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ lead_id: lead.id, amount: 1 }).expect(400);   // a client-sent amount is refused
+      const again = await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ lead_id: lead.id }).expect(201);
+      expect(again.body.id).toBe(ch.body.id);                                                    // an open payment is reused, not duplicated
       await c.http().post(`${P}/charges/${ch.body.id}/mock-pay`).expect(403);                  // anonymous
       await c.http().post(`${P}/charges/${ch.body.id}/mock-pay`).set(bearer(a.dream)).expect(403); // someone else
       const paid = await c.http().post(`${P}/charges/${ch.body.id}/mock-pay`).set(bearer(cust.token)).expect(200);
       expect(paid.body.status).toBe('paid');
       expect(paid.body.invoice_no).toMatch(/^CB-INV-\d{6}$/);
       await c.http().post(`${P}/charges/${ch.body.id}/mock-pay`).set(bearer(cust.token)).expect(400); // already paid
+      const seen = await c.http().get(`${P}/leads/${lead.id}`).set(bearer(cust.token)).expect(200);
+      expect(seen.body.charges[0]).toMatchObject({ id: ch.body.id });                            // the lead now shows Paid
     });
-    it('DSAs and TIPs cannot use the customer charge endpoint; amount is validated', async () => {
-      await c.http().post(`${P}/charges/customer`).set(bearer(a.dsa1)).send({ description: 'x y z', amount: 100 }).expect(403);
+    it('DSAs and TIPs cannot use the customer charge endpoint; it needs the customer\'s own lead', async () => {
+      await c.http().post(`${P}/charges/customer`).set(bearer(a.dsa1)).send({ lead_id: 1 }).expect(403);
       const cust = await makeCustomer(c);
-      await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ description: 'Router', amount: 0 }).expect(400);
-      await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ description: 'Router', amount: 99999999 }).expect(400);
+      await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ description: 'Router', amount: 236 }).expect(400);   // no lead, no free amount
+      const other = await newLead(c, a);
+      await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ lead_id: other.id }).expect(400);                    // not their lead
     });
   });
 

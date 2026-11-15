@@ -116,7 +116,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     return { id: S(l.id), ref_code: l.ref_code, customer_id: S(l.customer_user_id), name: l.customer_name, phone: l.customer_phone, email: l.customer_email || "", pincode: l.pincode, area: l.area ? l.area.name : null, area_id: l.area ? S(l.area.id) : null, address: l.address,
       plan_id: S(l.plan_id), plan: l.plan ? mapPlan({ ...l.plan, category: l.plan.category }) : null, preferred_date: null, source: l.source, product: l.plan && l.plan.category && ["ott"].includes(l.plan.category.type) ? "ott" : "broadband", status: l.status === "new" && (l.brought_by_user_id || l.tip_user_id) ? "assigned" : (LS[l.status] || l.status),   // the API has no "assigned" status: a new lead with a DSA (or, on an old lead, a TIP) is shown as Assigned
       assigned_dsa_id: S(l.brought_by_user_id), assigned_tip_id: S(l.tip_user_id), dsa: pc(l.dsa), tip: pc(l.tip), next_follow_up: l.followup_at ? String(l.followup_at).slice(0, 10) : null, lost_reason: l.lost_reason, notes: l.notes, telephone_no: l.telephone_no || "", order_no: l.order_no || "",
-      care_plan: !!l.care_plan, consent: true, created_at: l.created_at, updated_at: l.updated_at, installed_at: l.installed_at, booking: b };
+      care_plan: !!l.care_plan, payment: l.charges && l.charges[0] ? { id: S(l.charges[0].id), amount: num(l.charges[0].total_amount), paid_at: l.charges[0].paid_at, via: l.charges[0].pay_mode, invoice_no: l.charges[0].invoice_no } : null, consent: true, created_at: l.created_at, updated_at: l.updated_at, installed_at: l.installed_at, booking: b };
   };
   const BS = { scheduled: "scheduled", rescheduled: "scheduled", completed: "installed", cancelled: "cancelled" };
   const mapDevice = d => d && ({ id: S(d.id), booking_id: null, lead_id: S(d.lead_id), state: d.online == null ? "unknown" : d.online ? "online" : "offline", last_seen: d.last_seen_at, rx_dbm: num(d.rx_power_dbm), ssid: d.wifi_ssid, clients: d.connected_clients,
@@ -381,7 +381,8 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     async adminCharges() { need("admin"); return (await all("/charges")).items.map(mapCharge); },
     async carePlanCharge(leadId) { need("tip"); const c = await post("/charges/care-plan", { lead_ids: [Number(leadId)] }); const paid = await payFlow(c.id); return mapCharge(await get("/charges/" + c.id).catch(() => paid)); },   // TIP adds Care Plan to one lead (any time, also after install), then pays the charge
     async payCharge(id) { const paid = await payFlow(id); return mapCharge(await get("/charges/" + id).catch(() => paid)); },
-    async customerPay(f) { need("customer"); const c = await post("/charges/customer", { description: f.description.trim(), amount: Number(f.amount), lead_id: N(f.lead_id) }); return mapCharge(c); },
+    async customerPay(f) { need("customer"); const c = await post("/charges/customer", { lead_id: Number(f.lead_id) }); return mapCharge(c); },   // the server prices it from the lead's plan
+    async markLeadPaid(leadId, reference) { if (!me || !["admin", "tip"].includes(me.role)) fail("Only admin or the installing TIP can mark a payment."); await post(`/leads/${leadId}/payment/offline`, { reference: (reference || "").trim() || undefined }); return true; },
     async adminCreateCharge(f) {
       need("admin"); const payer = f.payer_type === "partner" ? f.partner_id : f.customer_id; if (!payer) fail("Choose who pays.");
       const c = await post("/charges", { payer_user_id: Number(payer), kind: CKBACK[f.kind] || "other", description: f.description.trim(), base_amount: Number(f.base) }); return mapCharge(c).ref_code;

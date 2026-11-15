@@ -111,6 +111,16 @@ function BookingCard({ lead, booking, events }) {
       </ol>
       {lost && <p className="cu-note">This request was closed. Search your PIN code again to request a new connection.</p>}
 
+      {!lost && lead.plan && Number(lead.plan.price_monthly) > 0 && (
+        <div className="cu-bk-pay">
+          <div>
+            <b>{lead.payment ? "Plan paid" : "Pay your plan"}</b>
+            <span>{lead.payment ? `${inr(lead.payment.amount)}${lead.payment.paid_at ? ` · ${fDate(lead.payment.paid_at)}` : ""}` : `${inr(lead.plan.price_monthly)} incl. GST · pay Connect Bhai directly, any day`}</span>
+          </div>
+          <button type="button" className={`cu-btn ${lead.payment ? "cu-btn-soft" : "cu-btn-primary"}`} data-act="pay-plan" data-id={lead.id} data-name={lead.plan.name} data-amount={lead.plan.price_monthly}>Pay {inr(lead.plan.price_monthly)} <ArrowRight aria-hidden="true" /></button>
+        </div>
+      )}
+
       <div className="cu-people">
         {lead.dsa && <Person label="Your agent" city={cityOf(lead.pincode)} p={lead.dsa} kind="DSA" text={`Namaste, about my Connect Bhai request ${lead.ref_code}`} />}   {/* only when a DSA brought this lead */}
         <Person label="Your installer" city={cityOf(lead.pincode)} p={lead.tip} kind="Installation partner" text={`Namaste, about my connection ${lead.ref_code}`} store />

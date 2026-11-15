@@ -818,6 +818,8 @@ async function openLead(id) {
       : `<p class="notice info">${l.status === "booked" ? (u.role === "tip" ? "Booked. Update the installation when you are on site." : l.tip ? "Booked. The installer completes the installation." : "Booked. Choose the TIP who will install it.") : l.status === "installed" ? "Installed. No further lead updates needed." : "Waiting for admin assignment."}</p>`}
     ${["tip", "dsa", "admin"].includes(u.role) && open && !noInstall ? `<button class="btn btn-soft btn-block" style="margin-top:10px" data-act="book" data-id="${l.id}" type="button">Schedule booking</button>` : ""}
     ${["dsa", "admin"].includes(u.role) && l.status === "booked" ? `<button class="btn btn-soft btn-block" style="margin-top:10px" data-act="assign" data-id="${l.id}" type="button">${l.tip ? "Change TIP" : "Assign TIP"}</button>` : ""}
+    ${l.plan && Number(l.plan.price_monthly) > 0 ? (l.payment ? `<p class="notice info" style="margin-top:10px">Plan payment received: <b>${inr(l.payment.amount)}</b>${l.payment.paid_at ? " on " + fdate(l.payment.paid_at) : ""}${l.payment.via === "offline" ? " (marked by admin / TIP)" : ""}.</p>` : `<p class="muted small" style="margin-top:10px">Plan payment not received yet (${inr(l.plan.price_monthly)}).</p>`) : ""}
+    ${["admin", "tip"].includes(u.role) && !l.payment && l.plan && Number(l.plan.price_monthly) > 0 && l.status !== "lost" ? `<button class="btn btn-soft btn-block" style="margin-top:10px" data-act="mark-paid" data-id="${l.id}" type="button">Mark plan payment received</button>` : ""}
     <h3 style="font-size:16px;margin:18px 0 10px">History</h3>
     <div class="timeline">${l.events.slice().reverse().map(e => `<div><b>${e.to_status ? LEAD[e.to_status] : "Update"}</b>${e.note ? " · " + esc(e.note) : ""}<small>${fdt(e.created_at)}</small></div>`).join("")}</div>`);
 }
@@ -1106,18 +1108,11 @@ const chargeRows = cs => `<div class="list">${cs.map(c => `<div class="item"><di
     <div class="meta"><span>${KIND_NAME[c.kind] || c.kind}</span><span>${inr(c.base_amount)} + GST ${inr(c.gst_amount)} = <b>${inr(c.amount)}</b></span><span>${c.status === "paid" ? "Paid " + fdate(c.paid_at) + (c.gateway_payment_id ? ` · <span class="mono">${esc(c.gateway_payment_id)}</span>` : "") : "Raised " + fdate(c.created_at)}</span></div>
     ${["due", "failed"].includes(c.status) ? `<div class="row"><button class="btn btn-primary btn-sm" data-act="pay" data-id="${c.id}" type="button">Pay ${inr(c.amount)}</button><span class="muted small">UPI, cards, net banking via Razorpay</span></div>` : ""}</div>`).join("")}</div>`;
 function customerPayCard(leads) {
-  const o = [];
-  leads.filter(l => l.status !== "lost" && l.plan).forEach(l => {
-    o.push([`${l.id}|First month rental · ${l.plan.name}|${l.plan.price_monthly}`, `First month rental · ${l.plan.name} (${l.ref_code}) · ${inr(l.plan.price_monthly)}`]);
-    if (Number(l.plan.install_charge) > 0) o.push([`${l.id}|Installation charge · ${l.plan.name}|${l.plan.install_charge}`, `Installation charge · ${l.plan.name} (${l.ref_code}) · ${inr(l.plan.install_charge)}`]);
-    o.push([`${l.id}|Monthly bill / recharge · ${l.plan.name}|${l.plan.price_monthly}`, `Monthly bill / recharge (${l.ref_code}) · ${inr(l.plan.price_monthly)}`]);
-  });
-  o.push(["|Router / accessory purchase|", "Router / accessory purchase (enter amount)"], ["|Other payment to Connect Bhai|", "Other payment (enter amount)"]);
-  const first = o[0][0].split("|")[2] || "";
+  const ls = leads.filter(l => l.status !== "lost" && l.plan && Number(l.plan.price_monthly) > 0);
+  if (!ls.length) return `<div class="card paycard" style="margin-bottom:18px;border-left:4px solid var(--blue)"><h3>Pay your plan</h3><p class="muted small">There is no plan amount to pay yet.</p></div>`;
   return `<form class="card paycard" data-form="cust-pay" novalidate style="margin-bottom:18px;border-left:4px solid var(--blue)">
-    <div><h3>Make a payment</h3><p class="muted small">Pay Connect Bhai online. The amount includes GST. The payment then shows below under <b>Paid</b>.</p></div>
-    <div class="grid2">${field("cp-what", "What are you paying for", `<select id="cp-what" name="what">${o.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join("")}</select>`)}
-    ${field("cp-amt", "Amount (₹, incl. GST)", `<input id="cp-amt" name="amount" type="number" min="1" step="1" inputmode="numeric" value="${esc(first)}">`)}</div>
+    <div><h3>Pay your plan</h3><p class="muted small">Pay your plan price directly to Connect Bhai, any day. The amount is the plan price and includes GST.</p></div>
+    <div class="grid2">${field("cp-what", "Which plan", `<select id="cp-what" name="what">${ls.map(l => `<option value="${esc(l.id)}" data-name="${esc(l.plan.name)}" data-amt="${esc(l.plan.price_monthly)}">${esc(l.plan.name)} (${esc(l.ref_code)}) · ${inr(l.plan.price_monthly)}</option>`).join("")}</select>`)}</div>
     <div class="methods" aria-label="Payment methods"><span>UPI · GPay, PhonePe, Paytm, BHIM</span><span>Debit / credit card</span><span>Net banking</span><span>Wallets</span></div>
     <div class="row"><button class="btn btn-primary" type="submit">Continue to pay</button><span class="muted small">Secure checkout by Razorpay</span></div></form>`;
 }
@@ -1132,6 +1127,11 @@ function activationCard(p, cs, dsa) {
     <p class="muted">${p.approved_at ? "Leads, bookings and payouts open as soon as the payment is confirmed." : "Admin is verifying your KYC and agreement. You'll get a WhatsApp message when approved."}</p>
     ${fee ? `<div class="facts"><div><span>${esc(fee.description)}</span><b>${inr(fee.base_amount)}</b></div><div><span>GST</span><b>${inr(fee.gst_amount)}</b></div><div><span>Total</span><b>${inr(fee.amount)}</b></div></div>
       <div class="row"><button class="btn btn-primary" data-act="pay" data-id="${fee.id}" type="button">Pay ${inr(fee.amount)} now</button><span class="muted small">UPI, cards, net banking via Razorpay</span></div>` : ""}</div>`;
+}
+/** Customer pays the plan price of one lead (the server prices it from the plan; name and amount here only label the demo layer). */
+async function payPlan(leadId, btn, name, amount) {
+  const c = await guard(btn, () => API.customerPay({ lead_id: leadId, description: "Plan payment · " + name, amount: Number(amount) }));
+  await openPay(c.id);
 }
 async function openPay(id) {
   const c = (await API.myCharges()).find(x => x.id === id); if (!c) { toast("Payment not found.", true); return; }
@@ -1904,6 +1904,10 @@ const actions = {
       <button class="btn btn-primary" type="submit">Add lead</button></form>`),
   "approve-partner": async b => { await guard(b, () => API.approvePartner(b.dataset.id)); toast("DSA / TIP approved. Registration fee sent on WhatsApp."); render(); },
   "pay": b => openPay(b.dataset.id),
+  "pay-plan": b => payPlan(b.dataset.id, b, b.dataset.name, b.dataset.amount),
+  "mark-paid": b => openModal(`<h2>Mark payment received</h2><p class="muted">Use this when the customer paid the plan price to you directly (cash or UPI). The customer gets a payment receipt.</p>
+    <form class="stack" data-form="mark-paid" data-id="${esc(b.dataset.id)}" novalidate>${field("mp-ref", "Reference (optional)", `<input id="mp-ref" name="reference" maxlength="80" placeholder="Cash, UPI reference…">`)}
+    <button class="btn btn-primary" type="submit">Mark as paid</button></form>`),
   "charge-action": b => openChargeAction(b.dataset.id, b.dataset.a),
   "new-charge": () => openNewCharge(),
   "billing-filter": b => { S.billFilter = b.dataset.v; resetServerTable("adm-bills"); render(); },
@@ -2077,11 +2081,10 @@ const forms = {
     if (d.name.length < 2) e["pf-name"] = "Enter your name."; if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) e["pf-email"] = "Enter a valid email.";
     if (!setErr(f, e)) return; await guard(btn, () => API.setMyProfile(d)); closeModal(); toast("Details saved."); renderHeader(); render();
   },
-  "cust-pay": async (f, btn) => {
-    const [lead_id, description] = val(f, "what").split("|"), amount = Number(val(f, "amount"));
-    if (!setErr(f, amount >= 1 ? {} : { "cp-amt": "Enter an amount of ₹1 or more." })) return;
-    const c = await guard(btn, () => API.customerPay({ lead_id: lead_id || null, description, amount }));
-    await openPay(c.id);
+  "cust-pay": async (f, btn) => { const o = f.querySelector("#cp-what").selectedOptions[0]; await payPlan(o.value, btn, o.dataset.name, o.dataset.amt); },
+  "mark-paid": async (f, btn) => {
+    await guard(btn, () => API.markLeadPaid(f.dataset.id, val(f, "reference")));
+    closeModal(); toast("Payment marked as received."); render();
   },
   "pay-public": async (f, btn) => {
     const m = (f.querySelector("input[name=method]:checked") || {}).value || "upi"; btn.disabled = true; btn.textContent = "Processing payment…";

@@ -31,6 +31,8 @@ const leadInclude = {
   area: { select: { id: true, name: true } },
   /** the latest booking, so a screen can offer "Install" once a lead is booked */
   bookings: { orderBy: { id: 'desc' }, take: 1, select: { id: true, status: true, scheduled_at: true, completed_at: true, connection_id: true } },
+  /** the latest plan payment received (online or marked by admin / TIP), so every screen can show Paid */
+  charges: { where: { kind: 'customer_payment', status: 'paid' }, orderBy: { id: 'desc' }, take: 1, select: { id: true, total_amount: true, paid_at: true, pay_mode: true, invoice_no: true } },
 } satisfies Prisma.LeadInclude;
 
 @Injectable()

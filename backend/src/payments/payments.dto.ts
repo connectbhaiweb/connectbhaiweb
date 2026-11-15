@@ -24,8 +24,9 @@ export class CreateChargeDto {
   @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(1) @Max(10000000) base_amount: number;
   @IsOptional() @Type(() => Number) @IsInt() lead_id?: number;
 }
+/** The amount is always the lead's plan price (read from the plan on the server), so the customer sends only the lead. */
 export class CustomerChargeDto {
-  @IsString() @MinLength(3) @MaxLength(200) description: string;
-  @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(1) @Max(200000) amount: number;
-  @IsOptional() @Type(() => Number) @IsInt() lead_id?: number;
+  @Type(() => Number) @IsInt() lead_id: number;
 }
+/** Admin or the lead's TIP records a plan payment taken outside the app (cash, UPI to the TIP). */
+export class LeadOfflinePaidDto { @IsOptional() @IsString() @MaxLength(80) reference?: string; }

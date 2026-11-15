@@ -140,7 +140,7 @@ function Leads({ stats, partner }) {
             <div className="pt-tr" role="row" key={l.id}>
               <span role="cell" className="pt-name"><span><b>{l.name}</b><small>{l.ref_code}{l.dsa ? ` · DSA ${l.dsa.name}` : ""}</small></span></span>
               <span role="cell"><Pin>{[l.pincode, l.area].filter(Boolean).join(", ")}</Pin></span>
-              <span role="cell" className="pt-plan"><b>{planName(l.plan)}</b><small>{planPrice(l.plan)}</small></span>
+              <span role="cell" className="pt-plan"><b>{planName(l.plan)}</b><small>{planPrice(l.plan)}{l.payment ? " · Paid" : ""}</small></span>
               <span role="cell"><Chip s={l.status} /></span>
               <span role="cell" className="pt-mono">{l.telephone_no || "—"}</span>
               <span role="cell" className="pt-mono">{l.order_no || "—"}</span>
@@ -152,6 +152,7 @@ function Leads({ stats, partner }) {
                 {l.status === "installed" && !l.care_plan && <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="care-plan-buy" data-id={l.id}>Add Care plan</button>}   {/* when it is active, the Care plan column says so */}
                 {["assigned", "contacted", "follow_up"].includes(l.status) && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="book" data-id={l.id}>Schedule booking</button>}
                 {l.status === "booked" && l.booking && l.booking.id && <button type="button" className="cu-btn cu-btn-primary pt-sm" data-act="booking-status" data-id={String(l.booking.id)}>Install</button>}
+                {["booked", "installed"].includes(l.status) && !l.payment && l.plan && Number(l.plan.price_monthly) > 0 && <button type="button" className="cu-btn cu-btn-soft pt-sm" data-act="mark-paid" data-id={l.id}>Mark paid</button>}
                 {l.status === "installed" && <button type="button" className="cu-btn cu-btn-soft pt-sm" data-go="tip" data-go-tab="careplan">Manage modem</button>}
               </span>
             </div>

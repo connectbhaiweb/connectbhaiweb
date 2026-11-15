@@ -10,7 +10,7 @@ import { pageArgs, paged } from '../common/pagination';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ChargesService } from './charges.service';
 import { SettingsService } from '../settings/settings.service';
-import { CarePlanPurchaseDto, ChargeQuery, CreateChargeDto, CustomerChargeDto, OfflinePaidDto, PayDto, VerifyPaymentDto } from './payments.dto';
+import { CarePlanPurchaseDto, ChargeQuery, CreateChargeDto, CustomerChargeDto, LeadOfflinePaidDto, OfflinePaidDto, PayDto, VerifyPaymentDto } from './payments.dto';
 import { AuthService } from '../auth/auth.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { dateIST } from '../notifications/whatsapp-campaigns';
@@ -139,14 +139,36 @@ export class PaymentsController {
     return charge;
   }
 
-  /** Customer starts a payment for themselves (rental, installation, bill). `amount` is the GST-inclusive total they will pay. */
+  /** The customer's plan payment for one of their leads. The amount is always the plan price (GST-inclusive, read from the plan), never taken from the request. */
+  private async planCharge(lead: { id: bigint; ref_code: string | null; plan: { name: string; price: Prisma.Decimal } | null }, payer: { id: bigint; gst_state_code: string | null }) {
+    const price = Number(lead.plan?.price ?? 0);
+    if (!lead.plan || !(price > 0)) throw new BadRequestException('This plan has no price to pay');
+    const open = await this.prisma.charge.findFirst({ where: { kind: 'customer_payment', status: 'pending', lead_id: lead.id, payer_user_id: payer.id }, orderBy: { id: 'desc' } });
+    if (open) return open;   // one open payment per connection: a second click reuses it
+    const pct = await this.settings.getNumber('gst_percent');
+    const base = Math.round((price * 100) / (100 + pct) * 100) / 100;
+    return this.prisma.$transaction((tx) => this.charges.create(tx, { kind: 'customer_payment', payer, base, description: `Plan payment · ${lead.plan!.name} (${lead.ref_code})`, lead_id: lead.id }));
+  }
+
+  /** Customer pays the plan price of their own lead, any day. */
   @ApiBearerAuth() @Roles('customer') @Post('charges/customer')
   async customerCharge(@Body() d: CustomerChargeDto, @CurrentUser() u: AuthUser) {
     const payer = await this.prisma.user.findUniqueOrThrow({ where: { id: u.id } });
-    if (d.lead_id && !(await this.prisma.lead.findFirst({ where: { id: d.lead_id, OR: [{ customer_user_id: u.id }, { customer_phone: payer.phone }] } }))) throw new BadRequestException('Connection not found');
-    const pct = await this.settings.getNumber('gst_percent');
-    const base = Math.round((d.amount * 100) / (100 + pct) * 100) / 100;
-    return this.prisma.$transaction((tx) => this.charges.create(tx, { kind: 'customer_payment', payer, base, description: d.description, lead_id: d.lead_id }));
+    const lead = await this.prisma.lead.findFirst({ where: { id: d.lead_id, OR: [{ customer_user_id: u.id }, { customer_phone: payer.phone }] }, include: { plan: { select: { name: true, price: true } } } });
+    if (!lead) throw new BadRequestException('Connection not found');
+    if (lead.status === 'lost' || lead.status === 'cancelled') throw new BadRequestException('This request is closed');
+    return this.planCharge(lead, payer);
+  }
+
+  /** Admin, or the TIP assigned to the lead, marks the plan price as received outside the app. Creates the charge if the customer has not started one. */
+  @ApiBearerAuth() @Roles('admin', 'tip') @Post('leads/:id/payment/offline') @HttpCode(200)
+  async leadOffline(@Param('id', ParseIntPipe) id: number, @Body() d: LeadOfflinePaidDto, @CurrentUser() u: AuthUser) {
+    const lead = await this.prisma.lead.findUnique({ where: { id }, include: { plan: { select: { name: true, price: true } } } });
+    if (!lead || (u.role === 'tip' && Number(lead.tip_user_id) !== u.id)) throw new NotFoundException('Lead not found');
+    const payer = lead.customer_user_id ? await this.prisma.user.findUnique({ where: { id: lead.customer_user_id } }) : await this.prisma.user.findFirst({ where: { phone: lead.customer_phone, role: 'customer' } });
+    if (!payer) throw new BadRequestException('The customer has no account yet');
+    const charge = await this.planCharge(lead, payer);
+    return this.charges.settle(charge.id, { status: 'paid', pay_mode: 'offline', offline_reference: d.reference?.trim() || (u.role === 'tip' ? 'Received by TIP' : 'Received by admin'), recorded_by: u.id });
   }
 
   @ApiBearerAuth() @Roles('tip') @Post('charges/care-plan')

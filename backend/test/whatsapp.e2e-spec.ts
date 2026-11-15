@@ -161,12 +161,14 @@ describe('WhatsApp messages at each step', () => {
     it('a customer with an unpaid charge gets the reminder too, once', async () => {
       const svc = c.app.get(PaymentReminderService);
       const cust = await makeCustomer(c);
-      const ch = await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ description: 'Router rental', amount: 590 }).expect(201);
+      const lead = await newLead(c, a);
+      await c.prisma.lead.update({ where: { id: lead.id }, data: { customer_user_id: cust.user.id, customer_phone: cust.phone } });
+      const ch = await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ lead_id: lead.id }).expect(201);
       await svc.run(new Date(Date.now() + 31 * 60_000));
       await svc.run(new Date(Date.now() + 90 * 60_000));
       const n = await sent(cust.phone, 'payment_due');
       expect(n).toHaveLength(1);
-      expect(n[0].payload).toMatchObject({ what: 'Router rental', charge_id: Number(ch.body.id) });
+      expect(n[0].payload).toMatchObject({ what: expect.stringContaining('Plan payment'), charge_id: Number(ch.body.id) });
     });
     it('a bill raised by admin on a TIP or a customer is announced at once and not reminded again', async () => {
       const svc = c.app.get(PaymentReminderService);

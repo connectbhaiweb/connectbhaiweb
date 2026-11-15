@@ -37,6 +37,38 @@ describe('payments (charges, Razorpay, Care Plan)', () => {
     });
   });
 
+  describe('plan payment marked by admin or the installing TIP', () => {
+    const custLead = async (tip?: 'dream') => {
+      const cust = await makeCustomer(c);
+      const l = await newLead(c, a, { tip });
+      await c.prisma.lead.update({ where: { id: l.id }, data: { customer_user_id: cust.user.id, customer_phone: cust.phone } });
+      return { cust, lead: l };
+    };
+    it('the lead\'s TIP marks it paid at the plan price; the customer is notified and the lead shows Paid', async () => {
+      const { cust, lead } = await custLead('dream');
+      const r = await c.http().post(`${P}/leads/${lead.id}/payment/offline`).set(bearer(a.dream)).send({ reference: 'Cash' }).expect(200);
+      expect(r.body).toMatchObject({ status: 'paid', pay_mode: 'offline', offline_reference: 'Cash', payer_user_id: Number(cust.user.id) });
+      const price = Number((await c.prisma.plan.findUniqueOrThrow({ where: { id: lead.plan_id } })).price);
+      expect(Number(r.body.total_amount)).toBeCloseTo(price, 0);
+      const seen = await c.http().get(`${P}/leads/${lead.id}`).set(bearer(a.dream)).expect(200);
+      expect(seen.body.charges[0]).toMatchObject({ pay_mode: 'offline' });
+      await c.http().post(`${P}/leads/${lead.id}/payment/offline`).set(bearer(a.dream)).send({}).expect(200);   // repeat is a no-op
+    });
+    it('another TIP, a DSA and the customer cannot mark it; admin can', async () => {
+      const { cust, lead } = await custLead('dream');
+      await c.http().post(`${P}/leads/${lead.id}/payment/offline`).set(bearer(a.doulat)).send({}).expect(404);
+      await c.http().post(`${P}/leads/${lead.id}/payment/offline`).set(bearer(a.dsa1)).send({}).expect(403);
+      await c.http().post(`${P}/leads/${lead.id}/payment/offline`).set(bearer(cust.token)).send({}).expect(403);
+      await c.http().post(`${P}/leads/${lead.id}/payment/offline`).set(bearer(a.admin)).send({}).expect(200);
+    });
+    it('reuses the open charge the customer already started', async () => {
+      const { cust, lead } = await custLead('dream');
+      const started = await c.http().post(`${P}/charges/customer`).set(bearer(cust.token)).send({ lead_id: lead.id }).expect(201);
+      const r = await c.http().post(`${P}/leads/${lead.id}/payment/offline`).set(bearer(a.dream)).send({}).expect(200);
+      expect(r.body.id).toBe(started.body.id);
+    });
+  });
+
   describe('Razorpay checkout', () => {
     it('pay -> verify with a valid signature marks it paid and issues an invoice', async () => {
       const { charge } = await installFee();

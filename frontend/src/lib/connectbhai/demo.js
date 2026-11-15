@@ -628,6 +628,7 @@ const Demo = (() => {
       const c = newCharge("customer_payment", null, me.id, b ? b.id : null, f.description.trim() + (l ? " · " + l.ref_code : ""), +amt.toFixed(2), { inclusive: true, lead_id: l ? l.id : null });
       return done(c);
     }),
+    markLeadPaid: wrap(() => { fail("Marking a payment is available with the live API."); }),
     setMyProfile: wrap(f => {
       if (!me) fail("Log in first."); if (!f.name || f.name.trim().length < 2) fail("Enter your name.");
       if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email)) fail("Enter a valid email.");

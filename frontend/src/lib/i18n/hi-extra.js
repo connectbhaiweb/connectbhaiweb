@@ -15,6 +15,13 @@ export const PLACES = {
 const MONTHS = { Jan: "जन", Feb: "फ़र", Mar: "मार्च", Apr: "अप्रैल", May: "मई", Jun: "जून", Jul: "जुल", Aug: "अग", Sept: "सित", Sep: "सित", Oct: "अक्टू", Nov: "नव", Dec: "दिस", am: "पूर्वाह्न", pm: "अपराह्न" };
 
 export const EXTRA = {
+  "Pay your plan": "अपना प्लान चुकाएं", "Plan paid": "प्लान का भुगतान हुआ", "Which plan": "कौन सा प्लान",
+  "Pay your plan price directly to Connect Bhai, any day. The amount is the plan price and includes GST.": "अपने प्लान की कीमत किसी भी दिन सीधे Connect Bhai को चुकाएं। राशि प्लान की कीमत है और उसमें GST शामिल है।",
+  "There is no plan amount to pay yet.": "अभी चुकाने के लिए कोई प्लान राशि नहीं है।",
+  "{x} incl. GST · pay Connect Bhai directly, any day": "{x} GST सहित · किसी भी दिन सीधे Connect Bhai को चुकाएं",
+  "Mark paid": "भुगतान हुआ मार्क करें", "Mark plan payment received": "प्लान का भुगतान मिला मार्क करें",
+  "Mark payment received": "भुगतान मिला मार्क करें", "Reference (optional)": "रेफरेंस (वैकल्पिक)", "Payment marked as received.": "भुगतान मिला मार्क कर दिया गया।",
+  "Use this when the customer paid the plan price to you directly (cash or UPI). The customer gets a payment receipt.": "जब ग्राहक ने प्लान की कीमत सीधे आपको (नकद या UPI) दी हो तब इसका उपयोग करें। ग्राहक को भुगतान रसीद मिलेगी।",
   "Enter your PIN code": "अपना PIN code डालें", "Enter PIN codes, e.g. 452010, 452016": "PIN code डालें, जैसे 452010, 452016",
   "Sharing": "साझा करना", "Legal": "कानूनी", "Partners": "पार्टनर", "Equipment": "उपकरण",
   "Main": "मुख्य", "Plans": "प्लान", "Mobile": "मोबाइल", "Back": "वापस", "Ping": "पिंग", "Download": "डाउनलोड", "Upload": "अपलोड", "DOWNLOAD": "डाउनलोड",
