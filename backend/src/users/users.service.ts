@@ -30,10 +30,17 @@ export class UsersService {
     });
   }
 
+  /** One mobile number = one role. Throws if the number already has an account (other than `exceptId`). */
+  private async assertPhoneFree(phone: string, exceptId?: number) {
+    const x = await this.prisma.user.findFirst({ where: { phone, ...(exceptId ? { id: { not: exceptId } } : {}) }, select: { role: true } });
+    if (x) throw new ConflictException(`This mobile number is already registered as ${x.role === 'admin' ? 'an admin' : x.role === 'customer' ? 'a customer' : x.role === 'dsa' ? 'a DSA' : 'a TIP'}. Use a different number.`);
+  }
+
   /** Public partner sign-up. DSA: free. TIP: an onboarding charge (+GST) is created and must be paid before approval. */
   async registerPartner(d: RegisterPartnerDto) {
     const phone = normalizePhone(d.phone);
     if (!phone) throw new BadRequestException('Enter a valid 10-digit mobile number');
+    await this.assertPhoneFree(phone);
     if (d.role === 'tip' && !d.business_name) throw new BadRequestException('business_name is required for TIP');
     // KYC documents: when Cloudinary is configured all three are required, and each must be a genuine upload from our KYC folder
     const docs: Record<string, any> = {};
@@ -106,6 +113,7 @@ export class UsersService {
   async createAdmin(d: CreateAdminDto) {
     const phone = normalizePhone(d.phone);
     if (!phone) throw new BadRequestException('Enter a valid 10-digit mobile number');
+    await this.assertPhoneFree(phone);
     const u = await this.prisma.user.create({ data: { role: 'admin', name: d.name, phone, password_hash: await bcrypt.hash(d.password, 10) } });
     return publicUser(u);
   }
@@ -127,6 +135,7 @@ export class UsersService {
     if (d.phone !== undefined) {
       const phone = normalizePhone(d.phone);
       if (!phone) throw new BadRequestException('Enter a valid 10-digit mobile number');
+      if (phone !== u.phone) await this.assertPhoneFree(phone, id);
       data.phone = phone;
     }
     if (d.service_pincodes !== undefined && u.role !== 'dsa') throw new BadRequestException("A TIP's PIN codes are managed with coverage, not here");

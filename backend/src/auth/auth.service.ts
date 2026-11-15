@@ -51,6 +51,8 @@ export class AuthService {
     let user = await this.prisma.user.findUnique({ where: { role_phone: { role, phone } } });
     if (!user) {
       if (role !== 'customer') throw new UnauthorizedException('No account found for this number');
+      const other = await this.prisma.user.findFirst({ where: { phone }, select: { role: true } });
+      if (other) throw new UnauthorizedException(`This number is registered as ${other.role === 'admin' ? 'an admin' : other.role === 'dsa' ? 'a DSA' : 'a TIP'}. Log in with that account.`);
       user = await this.prisma.user.create({ data: { role: 'customer', phone, name: name?.trim() || 'Customer' } });
     }
     await this.assertCanLogin(user);
