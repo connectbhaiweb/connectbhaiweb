@@ -497,7 +497,7 @@ function planCard(p) {
     <div class="prov">${plogo(p.provider)}<span>${esc(p.provider.name)}<br><span class="muted small" style="font-weight:600">${esc(CATS[p.category] || "")}</span></span></div>
     <div class="pname">${esc(p.name)}</div>
     <div class="row" style="justify-content:space-between;align-items:flex-end">${p.category === "tv"
-      ? `<div class="speed"><b>${inr(p.price_monthly)}</b><span>${priceUnit(p)}</span></div><div class="muted" style="font-weight:700;font-size:14px;white-space:nowrap">${p.tv_channels ? `<b>${p.tv_channels}</b> <span>channels</span>` : ""}</div>`
+      ? `<div class="speed"><b style="color:var(--ink)">${inr(p.price_monthly)}</b><span>${priceUnit(p)}</span></div><div style="color:var(--blue);font-weight:700;font-size:14px;white-space:nowrap">${p.tv_channels ? `<b>${p.tv_channels}</b> <span>channels</span>` : ""}</div>`
       : `<div class="speed">${planBig(p)}</div><div class="price">${inr(p.price_monthly)}<small>${priceUnit(p)}</small></div>`}</div>
     <div class="facts">${planFacts(p)}</div>
     <div class="ott">${p.ott_apps.length ? p.ott_apps.map(o => `<em>${esc(o)}</em>`).join("") : `<span class="muted small">No OTT apps included</span>`}</div>
