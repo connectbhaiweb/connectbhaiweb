@@ -153,10 +153,15 @@ export class CarePlanController {
   async acsDevices() {
     let items;
     try { items = await this.acs.listDevices(); } catch { throw new ServiceUnavailableException('GenieACS could not be reached. Check /api/v1/health/acs.'); }
-    const linked = await this.prisma.carePlanDevice.findMany({ select: { genieacs_device_id: true, serial_number: true, lead: { select: { ref_code: true, customer_name: true } } } });
+    const linked = await this.prisma.carePlanDevice.findMany({ select: { genieacs_device_id: true, serial_number: true, is_active: true, lead: { select: { id: true, ref_code: true, customer_name: true, care_plan: true } } } });
     const byId = new Map(), bySerial = new Map();
-    linked.forEach((l) => { if (l.genieacs_device_id) byId.set(l.genieacs_device_id, l.lead); if (l.serial_number) bySerial.set(l.serial_number, l.lead); });
-    return { mock: this.acs.isMock, total: items.length, items: items.map((d) => ({ ...d, linked_to: byId.get(d.id) ?? (d.serial ? bySerial.get(d.serial) : undefined) ?? null })) };
+    const view = (l: (typeof linked)[number]) => ({ id: Number(l.lead.id), ref_code: l.lead.ref_code, customer_name: l.lead.customer_name, care_plan_active: l.lead.care_plan && l.is_active });
+    linked.forEach((l) => { if (l.genieacs_device_id) byId.set(l.genieacs_device_id, view(l)); if (l.serial_number) bySerial.set(l.serial_number, view(l)); });
+    // modems not on any Care Plan record yet: match the serial the installer typed on the booking, so admin can switch Care Plan on for that customer
+    const serials = items.map((d) => d.serial).filter(Boolean) as string[];
+    const bks = serials.length ? await this.prisma.booking.findMany({ where: { router_serial: { in: serials }, status: 'completed' }, orderBy: { id: 'asc' }, select: { router_serial: true, lead: { select: { id: true, ref_code: true, customer_name: true, care_plan: true } } } }) : [];
+    const byBooking = new Map(bks.map((b) => [b.router_serial, { id: Number(b.lead.id), ref_code: b.lead.ref_code, customer_name: b.lead.customer_name, care_plan_active: b.lead.care_plan }]));
+    return { mock: this.acs.isMock, total: items.length, items: items.map((d) => ({ ...d, linked_to: byId.get(d.id) ?? (d.serial ? bySerial.get(d.serial) ?? byBooking.get(d.serial) : undefined) ?? null })) };
   }
 
   /** Admin / scheduler: refresh every ACTIVE device (Care Plan only). The server also does this by itself every CARE_PLAN_SYNC_MINUTES (default 10). */

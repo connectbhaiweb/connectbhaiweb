@@ -44,6 +44,13 @@ export default function CarePlanPage({ base, tab }) {
   const [q, setQ] = useState(""), [f, setF] = useState("all");
   const [acs, setAcs] = useState(null), [acsBusy, setAcsBusy] = useState(false), [acsErr, setAcsErr] = useState("");
   const [linkFor, setLinkFor] = useState(null), [cands, setCands] = useState(null), [pick, setPick] = useState(""), [linkBusy, setLinkBusy] = useState(false), [linkErr, setLinkErr] = useState("");
+  const [careBusy, setCareBusy] = useState("");
+  const activateCare = async d => {   // admin: switch Care plan on for this modem's customer
+    setCareBusy(d.id); setAcsErr("");
+    try { const { API } = await import("@/lib/connectbhai/api"); await API.carePlanCharge(d.linked_to.id); await fetchAcs(); }
+    catch (e) { setAcsErr((e && e.message) || "Could not add Care plan."); }
+    setCareBusy("");
+  };
   const startLink = async d => {   // admin: choose which customer this modem belongs to
     setLinkFor(d); setPick(""); setLinkErr(""); setCands(null);
     try { const { API } = await import("@/lib/connectbhai/api"); setCands(await API.carePlanLinkCandidates()); } catch (e) { setCands([]); setLinkErr((e && e.message) || "Could not load customers."); }
@@ -101,7 +108,7 @@ export default function CarePlanPage({ base, tab }) {
           {acs.mock ? <p className="pt-muted">Genie is not connected on this server (mock mode), so there is nothing to list.</p>
             : acs.items.length ? (
               <div className="pt-table cp-table" role="table" aria-label="Modems in Genie">
-                <div className="pt-tr pt-th" role="row">{["Customer", "Status", "IP", "Signal", "Last seen", "Model", "SSID", "Firmware", "Linked"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
+                <div className="pt-tr pt-th" role="row">{["Customer", "Status", "IP", "Signal", "Last seen", "Model", "SSID", "Firmware", "Care plan", "Linked"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
                 {acs.items.map(d => (
                   <div className="pt-tr" role="row" key={d.id}>
                     <span role="cell" className="pt-name"><span><b>{d.linked_to ? d.linked_to.customer_name : "Not linked yet"}</b><small>{d.linked_to ? d.linked_to.ref_code : "no customer"}</small></span></span>
@@ -112,6 +119,7 @@ export default function CarePlanPage({ base, tab }) {
                     <span role="cell" data-l="Model" className="pt-ell">{[d.manufacturer, d.model].filter(Boolean).join(" ") || "—"}<small className="cp-sn">{d.serial || d.id}</small></span>
                     <span role="cell" data-l="SSID" className="pt-ell">{d.wifi_ssid || "—"}</span>
                     <span role="cell" data-l="Firmware" className="pt-ell">{d.firmware || "—"}</span>
+                    <span role="cell" data-l="Care plan">{!d.linked_to ? "—" : d.linked_to.care_plan_active ? <Chip label="Active" tone="green" /> : <><Chip label="Not active" tone="red" /> <button type="button" className="cu-btn cu-btn-soft" onClick={() => activateCare(d)} disabled={careBusy === d.id}>{careBusy === d.id ? "Adding…" : "Care plan"}</button></>}</span>
                     <span role="cell" data-l="Linked">{d.linked_to ? <Chip label="Linked" tone="green" /> : <button type="button" className="cu-btn cu-btn-soft" onClick={() => startLink(d)}>Link…</button>}</span>
                   </div>
                 ))}

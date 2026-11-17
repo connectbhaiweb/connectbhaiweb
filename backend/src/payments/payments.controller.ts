@@ -171,9 +171,18 @@ export class PaymentsController {
     return this.charges.settle(charge.id, { status: 'paid', pay_mode: 'offline', offline_reference: d.reference?.trim() || (u.role === 'tip' ? 'Received by TIP' : 'Received by admin'), recorded_by: u.id });
   }
 
-  @ApiBearerAuth() @Roles('tip') @Post('charges/care-plan')
+  /** TIP buys Care Plan for their own leads; admin does the same for the TIP the leads are assigned to (the charge is that TIP's). */
+  @ApiBearerAuth() @Roles('tip', 'admin') @Post('charges/care-plan')
   async carePlan(@Body() d: CarePlanPurchaseDto, @CurrentUser() u: AuthUser) {
-    const tip = await this.prisma.user.findUniqueOrThrow({ where: { id: u.id } });
+    let payerId = u.id;
+    if (u.role === 'admin') {
+      const leads = await this.prisma.lead.findMany({ where: { id: { in: d.lead_ids } }, select: { tip_user_id: true } });
+      const tips = new Set(leads.map((l) => (l.tip_user_id == null ? null : Number(l.tip_user_id))));
+      if (leads.length !== new Set(d.lead_ids).size) throw new BadRequestException('Some leads were not found');
+      if (tips.size !== 1 || tips.has(null)) throw new BadRequestException('Care Plan needs the leads to be assigned to one TIP');
+      payerId = [...tips][0] as number;
+    }
+    const tip = await this.prisma.user.findUniqueOrThrow({ where: { id: payerId } });
     return this.charges.createCarePlanCharge(tip, d.lead_ids);
   }
 }
