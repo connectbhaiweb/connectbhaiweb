@@ -94,6 +94,9 @@ export class ChargesService {
       if (leads.some((l) => l.status === 'lost' || l.status === 'cancelled')) throw new BadRequestException('Lost or cancelled leads cannot get Care Plan');
       // free leads whose earlier attempt failed/was cancelled; block ones that still have a live charge
       await tx.chargeLead.deleteMany({ where: { lead_id: { in: ids }, charge: { status: { in: ['failed', 'cancelled'] } } } });
+      // an unpaid Care Plan charge for exactly these leads (a payment window that was closed) is reused instead of blocking a new try
+      const open = await tx.charge.findFirst({ where: { kind: 'tip_care_plan_fee', status: 'pending', payer_user_id: tip.id, charge_leads: { some: { lead_id: { in: ids } } } }, include: { charge_leads: true } });
+      if (open && open.charge_leads.length === ids.length && open.charge_leads.every((c) => ids.includes(Number(c.lead_id)))) return open;
       if (await tx.chargeLead.count({ where: { lead_id: { in: ids } } })) throw new ConflictException('A Care Plan payment is already pending for some of these leads');
       const charge = await this.create(tx, { kind: 'tip_care_plan_fee', payer: tip, base: fee * ids.length, description: `Care Plan for ${ids.length} lead(s)` });
       await tx.chargeLead.createMany({ data: ids.map((lead_id) => ({ charge_id: charge.id, lead_id, base_amount: fee })) });

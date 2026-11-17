@@ -1,0 +1,1 @@
+{"version":"0.0.1","configurations":[{"name":"web","runtimeExecutable":"npm","runtimeArgs":["--prefix","frontend","run","dev"],"port":3000},{"name":"api","runtimeExecutable":"npm","runtimeArgs":["--prefix","backend","run","start:dev"],"port":4000}]}
