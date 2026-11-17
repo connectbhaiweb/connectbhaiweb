@@ -30,7 +30,7 @@ const leadInclude = {
   dsa: { select: { id: true, name: true, partner_code: true, phone: true, business_name: true } },
   area: { select: { id: true, name: true } },
   /** the latest booking, so a screen can offer "Install" once a lead is booked */
-  bookings: { orderBy: { id: 'desc' }, take: 1, select: { id: true, status: true, scheduled_at: true, completed_at: true, connection_id: true } },
+  bookings: { orderBy: { id: 'desc' }, take: 1, select: { id: true, status: true, scheduled_at: true, completed_at: true, connection_id: true, router_serial: true } },
   /** the latest plan payment received (online or marked by admin / TIP), so every screen can show Paid */
   charges: { where: { kind: 'customer_payment', status: 'paid' }, orderBy: { id: 'desc' }, take: 1, select: { id: true, total_amount: true, paid_at: true, pay_mode: true, invoice_no: true } },
 } satisfies Prisma.LeadInclude;
@@ -309,8 +309,26 @@ export class LeadsService {
     }
     if (pincode !== lead.pincode) { data.pincode = pincode; changed.push('PIN code'); }
     if (areaId !== (lead.area_id != null ? Number(lead.area_id) : null)) { data.area_id = areaId; changed.push('area'); }
+    // FTTH number and modem serial: stored on the lead's installed booking, so they can be fixed in any status once installed
+    const bookingData: Prisma.BookingUncheckedUpdateInput = {};
+    let bookingId: bigint | number | null = null;
+    if (d.connection_id !== undefined || d.router_serial !== undefined) {
+      const bk = await this.prisma.booking.findFirst({ where: { lead_id: id, status: 'completed' }, orderBy: { id: 'desc' }, select: { id: true, connection_id: true, router_serial: true } });
+      if (!bk) throw new BadRequestException('FTTH number and modem serial can be edited once the lead is installed');
+      if (d.connection_id !== undefined) {
+        const v = d.connection_id.trim();
+        if (!v) throw new BadRequestException('FTTH number cannot be empty');
+        if (v !== bk.connection_id) { bookingData.connection_id = v; changed.push('FTTH number'); }
+      }
+      if (d.router_serial !== undefined) {
+        const v = d.router_serial.trim().toUpperCase() || null;
+        if (v !== bk.router_serial) { bookingData.router_serial = v; changed.push('modem serial'); }
+      }
+      bookingId = bk.id;
+    }
     if (!changed.length) return this.prisma.lead.findUnique({ where: { id }, include: leadInclude });
     return this.prisma.$transaction(async (tx) => {
+      if (bookingId !== null && Object.keys(bookingData).length) await tx.booking.update({ where: { id: bookingId }, data: bookingData });
       const updated = await tx.lead.update({ where: { id }, data, include: leadInclude });
       await this.log(tx, id, u.id, 'edited', { note: `Admin edited: ${changed.join(', ')}` });
       return updated;

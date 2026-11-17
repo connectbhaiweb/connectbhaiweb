@@ -26,6 +26,10 @@ export class UpdateLeadDto {
   /** null clears the plan (callback lead) */
   @IsOptional() @Type(() => Number) @IsInt() plan_id?: number | null;
   @IsOptional() @IsString() @MaxLength(1000) notes?: string;
+  /** FTTH number of the installed connection (admin edit, installed leads only) */
+  @IsOptional() @IsString() @MaxLength(60) connection_id?: string;
+  /** modem serial number; empty string clears it */
+  @IsOptional() @IsString() @MaxLength(60) router_serial?: string;
 }
 export class LeadQuery extends PageQuery {
   @IsOptional() @IsIn(['new', 'contacted', 'followup', 'scheduled', 'installed', 'lost', 'cancelled']) status?: string;

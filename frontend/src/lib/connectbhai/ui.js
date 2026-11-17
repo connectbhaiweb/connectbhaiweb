@@ -1845,6 +1845,7 @@ const actions = {
         ${field("le-email", "Email", `<input id="le-email" name="email" type="email" value="${esc(l.email || "")}">`)}${field("le-pin", "PIN code", `<input id="le-pin" name="pincode" inputmode="numeric" maxlength="6" value="${esc(l.pincode || "")}" placeholder="Enter your PIN code">`)}</div>
         ${areas.length ? field("le-area", "Area", `<select id="le-area" name="area_id"><option value="">— None —</option>${areas.map(a => `<option value="${esc(a.id)}" ${String(a.id) === String(l.area_id) ? "selected" : ""}>${esc(a.area)}</option>`).join("")}</select>`, "Changing the PIN code clears the area.") : ""}
         ${field("le-addr", "Address", `<input id="le-addr" name="address" value="${esc(l.address || "")}" maxlength="255">`)}
+        ${l.status === "installed" && l.booking ? `<div class="grid2">${field("le-ftth", "FTTH number", `<input id="le-ftth" name="connection_ref" value="${esc(l.booking.connection_ref || "")}" maxlength="60" autocomplete="off">`)}${field("le-ont", "Modem serial number", `<input id="le-ont" name="ont_serial" value="${esc(l.booking.ont_serial || "")}" maxlength="60" autocapitalize="characters" autocomplete="off">`)}</div>` : ""}
         ${field("le-notes", "Notes", `<textarea id="le-notes" name="notes" maxlength="1000">${esc(l.notes || "")}</textarea>`)}
         <button class="btn btn-primary" type="submit">Save</button></form>`);
   },
@@ -2234,7 +2235,9 @@ const forms = {
   "lead-edit": async (f, btn) => {
     const d = { name: val(f, "name"), phone: val(f, "phone"), email: val(f, "email"), pincode: val(f, "pincode"), address: val(f, "address"), notes: val(f, "notes") }, e = {};
     if (d.name.length < 2) e["le-name"] = "Enter the customer name."; if (!isPhone(d.phone)) e["le-phone"] = "Enter a valid 10-digit mobile."; if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)) e["le-email"] = "Enter a valid email.";
-    if (!isPin(d.pincode)) e["le-pin"] = "Enter a valid 6-digit PIN code."; if (!setErr(f, e)) return;
+    if (!isPin(d.pincode)) e["le-pin"] = "Enter a valid 6-digit PIN code.";
+    if (f.elements.connection_ref) { d.connection_ref = val(f, "connection_ref"); d.ont_serial = val(f, "ont_serial"); if (!d.connection_ref) e["le-ftth"] = "Enter the FTTH number."; }
+    if (!setErr(f, e)) return;
     if (d.pincode === f.dataset.pin && f.elements.area_id) d.area_id = val(f, "area_id");   // a new PIN code drops the old area on the server
     await guard(btn, () => API.updateLead(f.dataset.id, d)); closeModal(); toast("Lead saved."); render();
   },
