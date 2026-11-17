@@ -312,6 +312,7 @@ export class LeadsService {
     // FTTH number and modem serial: stored on the lead's installed booking, so they can be fixed in any status once installed
     const bookingData: Prisma.BookingUncheckedUpdateInput = {};
     let bookingId: bigint | number | null = null;
+    let deviceSerial: string | null | undefined;
     if (d.connection_id !== undefined || d.router_serial !== undefined) {
       const bk = await this.prisma.booking.findFirst({ where: { lead_id: id, status: 'completed' }, orderBy: { id: 'desc' }, select: { id: true, connection_id: true, router_serial: true } });
       if (!bk) throw new BadRequestException('FTTH number and modem serial can be edited once the lead is installed');
@@ -322,13 +323,22 @@ export class LeadsService {
       }
       if (d.router_serial !== undefined) {
         const v = d.router_serial.trim().toUpperCase() || null;
-        if (v !== bk.router_serial) { bookingData.router_serial = v; changed.push('modem serial'); }
+        if (v !== bk.router_serial) {
+          bookingData.router_serial = v; changed.push('modem serial');
+          // keep the Care Plan modem record in step: Genie matches a modem to its customer by this serial
+          if (v) {
+            const taken = await this.prisma.carePlanDevice.findFirst({ where: { serial_number: v, NOT: { lead_id: id } }, select: { lead: { select: { ref_code: true } } } });
+            if (taken) throw new ConflictException(`This modem serial is already linked to ${taken.lead.ref_code}`);
+          }
+          deviceSerial = v;
+        }
       }
       bookingId = bk.id;
     }
     if (!changed.length) return this.prisma.lead.findUnique({ where: { id }, include: leadInclude });
     return this.prisma.$transaction(async (tx) => {
       if (bookingId !== null && Object.keys(bookingData).length) await tx.booking.update({ where: { id: bookingId }, data: bookingData });
+      if (deviceSerial !== undefined) await tx.carePlanDevice.updateMany({ where: { lead_id: id }, data: { serial_number: deviceSerial } });
       const updated = await tx.lead.update({ where: { id }, data, include: leadInclude });
       await this.log(tx, id, u.id, 'edited', { note: `Admin edited: ${changed.join(', ')}` });
       return updated;
