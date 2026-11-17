@@ -119,7 +119,7 @@ export default function CarePlanPage({ base, tab }) {
                     <span role="cell" data-l="Model" className="pt-ell">{[d.manufacturer, d.model].filter(Boolean).join(" ") || "—"}<small className="cp-sn">{d.serial || d.id}</small></span>
                     <span role="cell" data-l="SSID" className="pt-ell">{d.wifi_ssid || "—"}</span>
                     <span role="cell" data-l="Firmware" className="pt-ell">{d.firmware || "—"}</span>
-                    <span role="cell" data-l="Care plan">{!d.linked_to ? "—" : d.linked_to.care_plan_active ? <Chip label="Active" tone="green" /> : <><Chip label="Not active" tone="red" /> <button type="button" className="cu-btn cu-btn-soft" onClick={() => activateCare(d)} disabled={careBusy === d.id}>{careBusy === d.id ? "Adding…" : "Care plan"}</button></>}</span>
+                    <span role="cell" data-l="Care plan">{!d.linked_to ? "—" : d.linked_to.care_plan_active ? <Chip label="Active" tone="green" /> : <><Chip label="Not active" tone="red" /> <button type="button" className="cu-btn cu-btn-soft" onClick={() => activateCare(d)} disabled={careBusy === d.id}>{careBusy === d.id ? "Adding…" : "Buy Care plan"}</button></>}</span>
                     <span role="cell" data-l="Linked">{d.linked_to ? <Chip label="Linked" tone="green" /> : <button type="button" className="cu-btn cu-btn-soft" onClick={() => startLink(d)}>Link…</button>}</span>
                   </div>
                 ))}

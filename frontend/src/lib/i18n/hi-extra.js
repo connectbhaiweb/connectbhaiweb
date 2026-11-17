@@ -26,6 +26,7 @@ export const EXTRA = {
   "Sharing": "साझा करना", "Legal": "कानूनी", "Partners": "पार्टनर", "Equipment": "उपकरण",
   "Main": "मुख्य", "Plans": "प्लान", "Mobile": "मोबाइल", "Back": "वापस", "Ping": "पिंग", "Download": "डाउनलोड", "Upload": "अपलोड", "DOWNLOAD": "डाउनलोड",
   "Jitter": "जिटर", "4K streaming": "4K स्ट्रीमिंग", "Customers": "ग्राहक", "FAQ": "सवाल-जवाब", "Contact": "संपर्क", "Customer": "ग्राहक",
+  "Buy Care plan": "केयर प्लान खरीदें",
   "Care plan activated.": "केयर प्लान चालू हो गया।", "Care plan:": "केयर प्लान:",
   "Care plan": "केयर प्लान", "Active": "सक्रिय", "Not active": "सक्रिय नहीं", "Activate Care plan": "केयर प्लान चालू करें", "Activating…": "चालू हो रहा है…", "Could not activate Care plan.": "केयर प्लान चालू नहीं हो सका।",
   "FTTH number": "FTTH नंबर", "Modem serial number": "मॉडेम सीरियल नंबर", "Enter the FTTH number.": "FTTH नंबर डालें।",
