@@ -81,6 +81,22 @@ export const EXTRA = {
   "Air Fiber ({n})": "एयर फाइबर ({n})", "TV ({n})": "TV ({n})", "OTT pack ({n})": "OTT पैक ({n})", "SIM · Prepaid ({n})": "SIM · प्रीपेड ({n})", "SIM · Postpaid ({n})": "SIM · पोस्टपेड ({n})",
   "{n} approved": "{n} मंज़ूर", "Show the top {n} areas": "शीर्ष {n} क्षेत्र दिखाएं", "{n} d {n} h": "{n} दिन {n} घंटे", "Welcome, {x}.": "स्वागत है, {x}।",
   "Namaste, {x}": "नमस्ते, {x}", "{n} provider": "{n} प्रोवाइडर", "{n} providers": "{n} प्रोवाइडर",
+  /* Home page About section (components/HomeAbout.jsx) */
+  "About Connect Bhai": "Connect Bhai के बारे में",
+  "Connect Bhai is a broadband marketplace for Madhya Pradesh, live in Indore. Compare. Choose. Connect. Care.": "Connect Bhai मध्य प्रदेश के लिए ब्रॉडबैंड मार्केटप्लेस है, जो इंदौर में शुरू हो चुका है। तुलना करें। चुनें। जुड़ें। केयर पाएं।",
+  "Enter your PIN code": "अपना पिन कोड डालें",
+  "Type your 6-digit PIN code or area. We show only the plans and partners that serve your address.": "अपना 6 अंकों का पिन कोड या इलाका लिखें। हम सिर्फ वही प्लान और पार्टनर दिखाते हैं जो आपके पते पर सेवा देते हैं।",
+  "Compare plans": "प्लान की तुलना करें",
+  "Compare BSNL, Jio, Airtel and local ISP fiber, SIM, TV and OTT plans side by side.": "BSNL, Jio, Airtel और लोकल ISP के फाइबर, SIM, TV और OTT प्लान साथ-साथ देखें।",
+  "Request a connection": "कनेक्शन का अनुरोध करें",
+  "Send a request. A partner calls you, confirms the plan and books the installation.": "अनुरोध भेजें। एक पार्टनर आपको कॉल करके प्लान पक्का करता है और इंस्टॉलेशन बुक करता है।",
+  "Get installed and cared for": "इंस्टॉल कराएं और केयर पाएं",
+  "An installer visits your address. Your Care plan lets you check and restart your router from your phone.": "इंस्टॉलर आपके पते पर आता है। Care प्लान से आप अपने फोन से राउटर देख और रीस्टार्ट कर सकते हैं।",
+  "Areas we serve": "हमारे सेवा क्षेत्र",
+  "Page not found": "पेज नहीं मिला", "The page you opened does not exist or has moved.": "आपने जो पेज खोला वह मौजूद नहीं है या हट गया है।",
+  "Go to the home page": "होम पेज पर जाएं", "Run a speed test": "स्पीड टेस्ट चलाएं",
+  "Run the free Wi-Fi speed test": "मुफ्त Wi-Fi स्पीड टेस्ट चलाएं",
+  "How the Care plan fixes router and Wi-Fi problems": "Care प्लान राउटर और Wi-Fi की समस्या कैसे ठीक करता है",
 };
 
 export const EXTRA_PATTERNS = [

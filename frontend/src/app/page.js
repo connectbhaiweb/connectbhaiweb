@@ -4,9 +4,15 @@ import Faq from "@/components/Faq";
 import { ITEMS } from "@/lib/faqData";
 import { BUSINESS_ADDRESS, BUSINESS_AREAS, SOCIAL_FACEBOOK, SOCIAL_INSTAGRAM, SUPPORT_PHONE_E164 } from "@/lib/contact";
 
-const SITE = "https://www.connectbhai.com";
-/* Structured data for Google: local business, service and FAQ (same questions the page shows). */
+import HomeAbout from "@/components/HomeAbout";
+import { SITE_URL as SITE, SITE_NAME, DEFAULT_DESCRIPTION, pageMeta } from "@/lib/site";
+
+export const metadata = pageMeta({ title: "Connect Bhai: Compare Broadband Plans in Indore", path: "/", description: DEFAULT_DESCRIPTION });
+
+/* Structured data for Google: organization, website, local business, service and FAQ (same questions the page shows). */
 const SCHEMA = [
+  { "@context": "https://schema.org", "@type": "Organization", name: SITE_NAME, url: SITE, logo: `${SITE}/brand/logo-full.png`, telephone: SUPPORT_PHONE_E164, sameAs: [SOCIAL_FACEBOOK, SOCIAL_INSTAGRAM] },
+  { "@context": "https://schema.org", "@type": "WebSite", name: SITE_NAME, url: SITE, inLanguage: "en-IN" },
   {
     "@context": "https://schema.org", "@type": "LocalBusiness", name: "Connect Bhai", url: SITE, telephone: SUPPORT_PHONE_E164,
     description: "Compare BSNL, Jio, Airtel and local ISP fiber, SIM, TV and OTT plans by PIN code in Indore. Book a connection and get Connect Bhai Care.",
@@ -33,6 +39,7 @@ export default function HomePage() {
       <ViewRoute view="home" />
       <AppDownload />
       <Faq />
+      <HomeAbout />
     </>
   );
 }

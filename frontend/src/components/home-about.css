@@ -1,0 +1,15 @@
+/* Home page "About" section (server-rendered). Uses the same tokens and card look as .step in globals.css. */
+.aboutsec .about-steps{list-style:none;margin:0 0 28px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+@media (max-width:1000px){.aboutsec .about-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.aboutsec .about-steps{grid-template-columns:minmax(0,1fr)}}
+.aboutsec .about-step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;display:grid;gap:8px;align-content:start}
+.aboutsec .about-step h3{font-size:18px;margin:0}
+.aboutsec .about-step p{color:var(--muted);margin:0}
+.aboutsec .about-num{width:36px;height:36px;border-radius:12px;background:var(--blue);color:var(--blue-ink);display:grid;place-items:center;font-weight:800}
+.aboutsec .about-areas{display:grid;gap:10px}
+.aboutsec .about-areas h3{font-size:18px;margin:0}
+.aboutsec .about-areas ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.aboutsec .about-areas li{background:var(--blue-soft);color:var(--ink);border-radius:999px;padding:6px 14px;font-weight:600}
+.aboutsec .about-areas .about-links{display:grid;gap:6px}
+.aboutsec .about-areas .about-links li{background:none;padding:0;border-radius:0;font-weight:400}
+.aboutsec .about-areas a{color:var(--blue);font-weight:600;text-decoration:underline}
