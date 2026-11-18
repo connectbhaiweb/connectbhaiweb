@@ -19,7 +19,7 @@ const nextConfig = {
     return [
       { source: "/router", destination: "/care", permanent: true },
       /* Old domain: every path goes to the same path on the main site. */
-      ...OLD_HOSTS.map(host => ({ source: "/:path*", has: [{ type: "host", value: host }], destination: `${SITE_URL}/:path*`, permanent: true })),
+      ...OLD_HOSTS.map(host => ({ source: "/:path*", has: [{ type: "host", value: host }], destination: `${SITE_URL}/:path*`, statusCode: 301 })),
     ];
   },
   async headers() {
