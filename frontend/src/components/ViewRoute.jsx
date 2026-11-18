@@ -8,8 +8,8 @@ export default function ViewRoute({ view, tab = null }) {
     import("@/lib/connectbhai/ui").then(async ui => {
       if (cancelled) return;
       await ui.show(view, tab);
-      /* The painted view has its own h1: hide the server-rendered SEO intro (components/SeoIntro.jsx). */
-      if (!cancelled) document.querySelectorAll("[data-seo-intro]").forEach(el => { el.hidden = true; });
+      /* The painted view has its own h1: tell the server-rendered SEO intro to remove itself (components/SeoIntro.jsx). */
+      if (!cancelled) window.dispatchEvent(new Event("cb:seo-intro-done"));
     });
     return () => { cancelled = true; };
   }, [view, tab]);
