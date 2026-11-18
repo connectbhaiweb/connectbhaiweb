@@ -29,10 +29,12 @@ import ResponsiveTables from "@/components/ResponsiveTables";
 import MotionRuntime from "@/components/MotionRuntime";
 import TableTools from "@/components/TableTools";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import { SITE_URL, SITE_NAME, pageMeta } from "@/lib/site";
 
 export const metadata = {
-  title: "Connect Bhai",
-  description: "Connect Bhai: compare broadband plans by PIN code in Indore and request a connection. Compare. Choose. Connect. Care.",
+  metadataBase: new URL(SITE_URL),
+  ...pageMeta({ title: "Connect Bhai: Compare Broadband Plans in Indore", path: "/" }),
+  applicationName: SITE_NAME,
 };
 
 export const viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };

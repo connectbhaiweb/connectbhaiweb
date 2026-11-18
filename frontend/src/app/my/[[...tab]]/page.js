@@ -1,8 +1,11 @@
 import { Suspense } from "react";
+import { pageMeta } from "@/lib/site";
 import ViewRoute from "@/components/ViewRoute";
 import CarePlanPage from "@/components/careplan/CarePlan";
 
 import CustomerDashboard from "@/components/customer/CustomerDashboard";
+
+export const metadata = pageMeta({ title: "My Connect Bhai", path: "/my", noindex: true });
 
 /* /my and /my/<tab>  (replaces the old #my and #my-<tab> hash URLs). Home/Bookings is a React page; other tabs are the app's views. */
 export default async function Page({ params }) {

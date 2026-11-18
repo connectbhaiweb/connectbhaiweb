@@ -1,6 +1,7 @@
 import LegalPage from "@/components/LegalPage";
+import { pageMeta } from "@/lib/site";
 
-export const metadata = { title: "Shipping Policy | Connect Bhai" };
+export const metadata = pageMeta({ title: "Shipping Policy", path: "/shipping", description: "Connect Bhai sells connections, not parcels. How installation and equipment setup work in Indore, Depalpur, Mhow and Sanwer." });
 
 export default function Page() {
   return (

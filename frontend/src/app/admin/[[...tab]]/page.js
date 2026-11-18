@@ -1,9 +1,12 @@
 import { Suspense } from "react";
+import { pageMeta } from "@/lib/site";
 import ViewRoute from "@/components/ViewRoute";
 import CarePlanPage from "@/components/careplan/CarePlan";
 import { AdminCustomers, BillingBreakdown } from "@/components/portal/AdminExtra";
 
 import AdminDashboard from "@/components/portal/AdminDashboard";
+
+export const metadata = pageMeta({ title: "Connect Bhai Admin", path: "/admin", noindex: true });
 
 /* /admin and /admin/<tab>  (replaces the old #admin and #admin-<tab> hash URLs) */
 export default async function Page({ params }) {

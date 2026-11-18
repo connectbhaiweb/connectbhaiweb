@@ -1,6 +1,7 @@
 import LegalPage from "@/components/LegalPage";
+import { pageMeta } from "@/lib/site";
 
-export const metadata = { title: "Refund Policy | Connect Bhai" };
+export const metadata = pageMeta({ title: "Refund Policy", path: "/refund", description: "How refunds work for payments made on Connect Bhai: how to ask for one, how we check it and what is not refundable." });
 
 export default function Page() {
   return (

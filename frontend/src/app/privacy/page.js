@@ -1,6 +1,7 @@
 import LegalPage from "@/components/LegalPage";
+import { pageMeta } from "@/lib/site";
 
-export const metadata = { title: "Privacy Policy | Connect Bhai" };
+export const metadata = pageMeta({ title: "Privacy Policy", path: "/privacy", description: "How Connect Bhai collects, uses and protects your personal data when you compare plans and request a broadband connection in Indore." });
 
 export default function Page() {
   return (

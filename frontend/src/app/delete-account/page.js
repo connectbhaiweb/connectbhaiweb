@@ -1,6 +1,7 @@
 import LegalPage from "@/components/LegalPage";
+import { pageMeta } from "@/lib/site";
 
-export const metadata = { title: "Account Deletion | Connect Bhai" };
+export const metadata = pageMeta({ title: "Account Deletion", path: "/delete-account", description: "How to ask Connect Bhai to delete your account and personal data, and what happens to invoices and open requests." });
 
 export default function Page() {
   return (
