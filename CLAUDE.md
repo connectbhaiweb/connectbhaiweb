@@ -40,6 +40,7 @@ npx expo install <pkg>      # ALWAYS, never npm/yarn add
 ## Env
 - `backend/.env` from `.env.example`. Validated at boot (`src/config/env.validation.ts`). Prod refuses placeholder secrets and `OTP_DEV_CODE`.
 - `frontend/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1` → real API via `lib/connectbhai/rest.js`. Without it: in-browser demo data (`api.js`); Supabase vars are legacy/optional.
+- `frontend` SEO: `NEXT_PUBLIC_SITE_URL` (canonical, Open Graph, sitemap, `connectbhai.in` redirect target) and `NEXT_PUBLIC_ENV`. Only `production` is indexed; anything else (staging, unset) gets noindex meta + `X-Robots-Tag`, a Disallow-all `robots.txt` and an empty sitemap. Shared metadata helper: `src/lib/site.js` (`pageMeta`); every public page sets its own title, description and canonical. `/my`, `/dsa`, `/tip`, `/admin` are noindex everywhere. Share image: `public/og.png` (1200x630); `public/llms.txt` is static (production URLs).
 - `mobile/.env`: `EXPO_PUBLIC_API_URL`.
 - Customer names: a number that logs in without a name gets the account name "Customer". Any connection request replaces it with the name given (`leads.service.create`): a logged-in customer can rename themself on a request; a request that is not logged in only replaces the "Customer" placeholder, so nobody is renamed by someone typing their number.
 - Dev logins: OTP `123456`. Backend admin `9999999999` / `Admin@12345`. Frontend demo: `9876500001` customer · `…101` DSA · `…201` TIP · `…999` admin, password `Demo@1234`.
