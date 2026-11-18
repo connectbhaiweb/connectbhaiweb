@@ -1,0 +1,27 @@
+# Connect Bhai
+
+> Connect Bhai is a broadband marketplace for Madhya Pradesh, live in Indore (also serving Depalpur, Mhow and Sanwer). Enter a PIN code, compare BSNL, Jio, Airtel and local ISP fiber, SIM, TV and OTT plans, request a connection and get Connect Bhai Care for router and Wi-Fi help. Tagline: Compare. Choose. Connect. Care.
+
+Office: 215-A, Mahalaxmi Nagar, Indore (M.P.) 452010. Support: call or WhatsApp +91 94799 35365, open daily 08:00 to 18:00.
+
+## Who uses it
+
+- Customer: compares plans by PIN code, requests a connection, tracks the installation and uses the Care plan.
+- DSA (agent): brings and works customer leads in assigned PIN codes, then books the connection.
+- TIP (installer partner): installs the booked connection at the customer's address.
+
+## Key pages
+
+- [Home: compare plans by PIN code and FAQ](https://www.connectbhai.com/)
+- [Care plan: router and Wi-Fi help](https://www.connectbhai.com/care)
+- [Free Wi-Fi speed test](https://www.connectbhai.com/speed)
+- [Privacy Policy](https://www.connectbhai.com/privacy)
+- [Terms of Service](https://www.connectbhai.com/terms)
+- [Refund Policy](https://www.connectbhai.com/refund)
+- [Shipping Policy](https://www.connectbhai.com/shipping)
+- [Account Deletion](https://www.connectbhai.com/delete-account)
+
+## Notes for AI tools
+
+- Dashboards (/my, /dsa, /tip, /admin) need a login and are not for crawling.
+- Plans and prices are set by the providers and can change. Check the site for current plans in your area.
