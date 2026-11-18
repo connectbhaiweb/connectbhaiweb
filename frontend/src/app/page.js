@@ -5,6 +5,7 @@ import { ITEMS } from "@/lib/faqData";
 import { BUSINESS_ADDRESS, BUSINESS_AREAS, SOCIAL_FACEBOOK, SOCIAL_INSTAGRAM, SUPPORT_PHONE_E164 } from "@/lib/contact";
 
 import HomeAbout from "@/components/HomeAbout";
+import SeoIntro from "@/components/SeoIntro";
 import { SITE_URL as SITE, SITE_NAME, DEFAULT_DESCRIPTION, pageMeta } from "@/lib/site";
 
 export const metadata = pageMeta({ title: "Connect Bhai: Compare Broadband Plans in Indore", path: "/", description: DEFAULT_DESCRIPTION });
@@ -36,6 +37,10 @@ export default function HomePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(SCHEMA).replace(/</g, "\\u003c") }} />
+      <SeoIntro title="Compare. Choose. Connect. Care.">
+        <p>Connect Bhai is a broadband marketplace in Indore. Enter your 6-digit PIN code to see the broadband plans and partners that serve your address, compare BSNL, Jio, Airtel and local ISP fiber, SIM, TV and OTT plans, and request a connection. A partner calls you, and an installer visits your address.</p>
+        <p>Connect Bhai serves Indore, Depalpur, Mhow and Sanwer. Our office is at {BUSINESS_ADDRESS}.</p>
+      </SeoIntro>
       <ViewRoute view="home" />
       <AppDownload />
       <Faq />

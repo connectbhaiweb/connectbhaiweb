@@ -5,7 +5,12 @@ import { useEffect } from "react";
 export default function ViewRoute({ view, tab = null }) {
   useEffect(() => {
     let cancelled = false;
-    import("@/lib/connectbhai/ui").then(ui => { if (!cancelled) ui.show(view, tab); });
+    import("@/lib/connectbhai/ui").then(async ui => {
+      if (cancelled) return;
+      await ui.show(view, tab);
+      /* The painted view has its own h1: hide the server-rendered SEO intro (components/SeoIntro.jsx). */
+      if (!cancelled) document.querySelectorAll("[data-seo-intro]").forEach(el => { el.hidden = true; });
+    });
     return () => { cancelled = true; };
   }, [view, tab]);
   return null;
