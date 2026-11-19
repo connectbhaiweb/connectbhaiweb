@@ -1,7 +1,13 @@
 import Link from "next/link";
-import { pageMeta } from "@/lib/site";
 
-export const metadata = pageMeta({ title: "Page not found", path: "/", noindex: true, description: "This Connect Bhai page does not exist. Go back to the home page to compare broadband plans in Indore." });
+/* Next.js already adds <meta name="robots" content="noindex"> to every 404, so robots is cleared here (null) to avoid a second,
+   conflicting tag from the root layout. A 404 has no canonical: it must not point at the home page. */
+export const metadata = {
+  title: { absolute: "Page not found | Connect Bhai" },
+  description: "This Connect Bhai page does not exist. Go back to the home page to compare broadband plans in Indore.",
+  robots: null,
+  alternates: { canonical: null },
+};
 
 export default function NotFound() {
   return (
