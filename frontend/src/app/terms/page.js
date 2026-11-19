@@ -1,6 +1,7 @@
 import LegalPage from "@/components/LegalPage";
+import { pageMeta } from "@/lib/site";
 
-export const metadata = { title: "Terms of Service | Connect Bhai" };
+export const metadata = pageMeta({ title: "Terms of Service", path: "/terms", description: "The terms for using Connect Bhai, an independent marketplace to compare broadband plans and request a connection in Indore." });
 
 export default function Page() {
   return (

@@ -1,8 +1,11 @@
 import { Suspense } from "react";
+import { pageMeta } from "@/lib/site";
 import ViewRoute from "@/components/ViewRoute";
 import CarePlanPage from "@/components/careplan/CarePlan";
 
 import TipDashboard from "@/components/portal/TipDashboard";
+
+export const metadata = pageMeta({ title: "Connect Bhai TIP Portal", path: "/tip", noindex: true });
 
 /* /tip and /tip/<tab>  (replaces the old #tip and #tip-<tab> hash URLs) */
 export default async function Page({ params }) {

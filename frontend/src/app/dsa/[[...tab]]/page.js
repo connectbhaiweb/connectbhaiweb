@@ -1,8 +1,11 @@
 import { Suspense } from "react";
+import { pageMeta } from "@/lib/site";
 import ViewRoute from "@/components/ViewRoute";
 import CarePlanPage from "@/components/careplan/CarePlan";
 
 import DsaDashboard from "@/components/portal/DsaDashboard";
+
+export const metadata = pageMeta({ title: "Connect Bhai DSA Portal", path: "/dsa", noindex: true });
 
 /* /dsa and /dsa/<tab>  (replaces the old #dsa and #dsa-<tab> hash URLs) */
 export default async function Page({ params }) {
