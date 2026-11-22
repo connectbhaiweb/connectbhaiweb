@@ -77,6 +77,8 @@ Modules in `src/<feature>/` (auth, leads, bookings, payments, care-plan, commiss
 
 ## Mobile
 Routes in `src/app/` (`_layout.tsx` = navigators); non-route code in `src/components`, `src/lib`. Never hand-edit `ios/`/`android/`. Check versioned Expo docs before using any API.
+- Rebuilt from scratch (Expo SDK 58, TypeScript, bundle ID `com.connectbhai.app`, iOS + Android, one project for both). Same backend, no new APIs. `src/lib/api.ts` = fetch client (tokens in `expo-secure-store`, auto refresh on 401); `src/lib/session.tsx` = login state; `src/app/login.tsx` = phone + OTP; `src/app/_layout.tsx` guards routes with `Stack.Protected`. Role dashboards are still to build.
+- First iOS build: `export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` (CocoaPods crashes without it), then `npx expo run:ios`; later `npx expo start --dev-client`. `ios/` and `android/` are generated and git-ignored.
 
 ## Rules for Claude
 1. Next 16 and Expo 58 differ from training data — read the versioned docs first.
