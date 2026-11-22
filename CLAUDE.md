@@ -11,7 +11,7 @@ Broadband marketplace (Indore, MP). Roles: **Customer** (`/my`), **DSA** (`/dsa`
 | `frontend/` | Next.js 16 App Router, React 19, **plain JavaScript**, Tailwind v4 (no preflight), shadcn/ui, Magic UI |
 | `backend/` | NestJS 11, Prisma 6, MySQL 8, TypeScript. API prefix `/api/v1` |
 | `mobile/` | Expo SDK 58, React Native, TypeScript, Expo Router |
-| root | `package.json` runs backend + frontend together; `docker-compose.yml`; `ConnectBhai Mobile App Plan.md` |
+| root | `package.json` runs backend + frontend together; `docker-compose.yml`; `ConnectBhai Mobile App Final Plan.md` |
 
 ## Branches
 Feature branch → `staging` (testing) → `main` (production). Never commit straight to `main`.
