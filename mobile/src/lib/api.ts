@@ -70,10 +70,16 @@ export async function api<T = any>(method: string, path: string, body?: unknown,
   return data as T;
 }
 
-export const requestOtp = (phone: string) => api('POST', '/auth/otp/request', { phone }, { anon: true });
+export const requestOtp = (phone: string, role?: 'customer') => api('POST', '/auth/otp/request', { phone, role }, { anon: true });
 
-export async function verifyOtp(phone: string, code: string, name?: string): Promise<User> {
-  const d = await api<Tokens & { user: User }>('POST', '/auth/otp/verify', { phone, code, name }, { anon: true });
+export async function verifyOtp(phone: string, code: string, name?: string, role?: 'customer'): Promise<User> {
+  const d = await api<Tokens & { user: User }>('POST', '/auth/otp/verify', { phone, code, name, role }, { anon: true });
+  await save({ access_token: d.access_token, refresh_token: d.refresh_token });
+  return d.user;
+}
+
+export async function passwordLogin(phone: string, password: string): Promise<User> {
+  const d = await api<Tokens & { user: User }>('POST', '/auth/login', { phone, password }, { anon: true });
   await save({ access_token: d.access_token, refresh_token: d.refresh_token });
   return d.user;
 }

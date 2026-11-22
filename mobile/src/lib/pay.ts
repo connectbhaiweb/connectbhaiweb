@@ -10,10 +10,12 @@ export async function payPlan(leadId: number, who: Who): Promise<void> {
 }
 
 /** Pays any charge that already exists (a TIP's fee to Connect Bhai, or a customer's plan charge). */
-export async function payCharge(id: number, who: Who): Promise<void> {
-  const o = await api<Order>('POST', `/charges/${id}/pay`, {});
+export async function payCharge(id: number, who: Who, token?: string): Promise<void> {
+  const body = token ? { payment_token: token } : {};   // a new TIP pays the registration fee before they can log in
+  const opt = token ? { anon: true } : {};
+  const o = await api<Order>('POST', `/charges/${id}/pay`, body, opt);
   if (o.mock) {
-    await api('POST', `/charges/${id}/mock-pay`, {});
+    await api('POST', `/charges/${id}/mock-pay`, body, opt);
     return;
   }
   let Checkout: { open: (opts: Record<string, unknown>) => Promise<{ razorpay_payment_id: string; razorpay_signature: string }> };
@@ -34,5 +36,5 @@ export async function payCharge(id: number, who: Who): Promise<void> {
     const err = e as { description?: string; error?: { description?: string } };
     throw new Error(err.description || err.error?.description || 'Payment was cancelled.');
   }
-  await api('POST', `/charges/${id}/verify`, { razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature });
+  await api('POST', `/charges/${id}/verify`, { ...body, razorpay_payment_id: res.razorpay_payment_id, razorpay_signature: res.razorpay_signature }, opt);
 }

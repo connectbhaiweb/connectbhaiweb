@@ -32,7 +32,7 @@ export default function MyBookings() {
             <View style={s.role}><UserRound size={15} color={colors.actionInk} strokeWidth={2.2} /><Text style={s.roleText}>Customer</Text></View>
             <T v="small" style={{ fontSize: 13.5 }}>Manage your bookings, payments and service requests.</T>
           </View>
-          <Button block iconRight={ArrowRight} label={hasPlan ? 'New connection' : 'Find plans'} onPress={() => router.navigate('/find')} />
+          <Button block iconRight={ArrowRight} label={hasPlan ? 'New connection' : 'Find plans'} onPress={() => router.navigate('/')} />
 
           {busy && !data && <ActivityIndicator size="large" color={colors.blue} style={{ marginTop: 24 }} />}
           {!!error && !data && (

@@ -1,5 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
-import { api } from './api';
+import { api, hasSession } from './api';
 
 export type Category = 'fiber' | 'air_fiber' | 'tv' | 'ott';
 export const CATEGORIES: { key: Category; label: string; long: string }[] = [
@@ -50,11 +50,12 @@ export async function popularPins() {
 export const areaNames = (info: PinInfo) =>
   [...new Set(info.areas.flatMap((a) => a.name.split(',').map((x) => x.trim()).filter((x) => x && x.toLowerCase() !== (info.city?.name ?? '').toLowerCase())))].slice(0, 3).join(', ');
 
-export type RequestForm = { name: string; phone: string; pincode: string; address?: string; plan_id?: number };
+export type RequestForm = { name: string; phone: string; pincode: string; address?: string; email?: string; area?: string; preferredDate?: string; plan_id?: number };
 export const requestConnection = (f: RequestForm) =>
   api<{ id: number; ref_code: string }>('POST', '/leads', {
-    customer_name: f.name.trim(), customer_phone: f.phone, pincode: f.pincode,
+    customer_name: f.name.trim(), customer_phone: f.phone, customer_email: f.email?.trim() || undefined, pincode: f.pincode,
     address: f.address?.trim() || undefined, plan_id: f.plan_id, source: f.plan_id ? 'website' : 'callback',
-  }, { anon: true });
+    notes: [f.preferredDate ? `Preferred date: ${f.preferredDate}` : '', f.area?.trim() ? `Area: ${f.area.trim()}` : ''].filter(Boolean).join(' | ') || undefined,
+  }, { anon: !hasSession() });   // a logged-in customer's request is linked to their account
 
 export const deleteMyAccount = (phone: string) => api('DELETE', '/users/me', { phone });

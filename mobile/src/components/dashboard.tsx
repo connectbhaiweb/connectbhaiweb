@@ -111,7 +111,7 @@ export function NoBooking() {
       <View style={s.ico}><Wifi size={28} color="#2B7BFF" strokeWidth={2.4} /></View>
       <T v="h2">No bookings yet</T>
       <T v="small" style={{ fontSize: 14.5 }}>Search your PIN code, compare plans and request a connection.</T>
-      <Button label="Find plans" iconRight={ArrowRight} onPress={() => router.navigate('/find')} />
+      <Button label="Find plans" iconRight={ArrowRight} onPress={() => router.navigate('/')} />
     </Card>
   );
 }

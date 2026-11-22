@@ -56,16 +56,16 @@ export default function Home() {
         {dash && (
           <>
             <View style={s.grid}>
-              <Kpi label="New leads" value={dash.leads.new} tone={colors.blue} onPress={() => router.navigate('/(tabs)/leads')} />
-              <Kpi label="Follow-ups" value={dash.leads.follow_up} onPress={() => router.navigate('/(tabs)/leads')} />
-              <Kpi label="Booked" value={dash.leads.booked} onPress={() => router.navigate(user?.role === 'dsa' ? '/(tabs)/installs' : '/(tabs)/leads')} />
-              <Kpi label="Installed" value={dash.leads.installed} tone={colors.green} onPress={() => router.navigate(user?.role === 'dsa' ? '/(tabs)/installs' : '/(tabs)/leads')} />
+              <Kpi label="New leads" value={dash.leads.new} tone={colors.blue} onPress={() => router.navigate('/portal/leads')} />
+              <Kpi label="Follow-ups" value={dash.leads.follow_up} onPress={() => router.navigate('/portal/leads')} />
+              <Kpi label="Booked" value={dash.leads.booked} onPress={() => router.navigate(user?.role === 'dsa' ? '/portal/installs' : '/portal/leads')} />
+              <Kpi label="Installed" value={dash.leads.installed} tone={colors.green} onPress={() => router.navigate(user?.role === 'dsa' ? '/portal/installs' : '/portal/leads')} />
             </View>
             {isTip ? (
               <Card style={{ gap: 6 }}>
                 <T v="label">Fees to pay</T>
                 <Text style={[s.commNum, { color: feeDue ? colors.warn : colors.ink }]}>{inr(feeDue)}</Text>
-                <Button small kind="outline" label="Open payments" onPress={() => router.navigate('/(tabs)/payments')} />
+                <Button small kind="outline" label="Open payments" onPress={() => router.navigate('/portal/payments')} />
               </Card>
             ) : (
             <Card style={{ gap: 6 }}>

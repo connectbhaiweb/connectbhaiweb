@@ -44,7 +44,7 @@ export default function PlansScreen() {
   }, [pin, type]);
 
   const ask = (plan?: Plan) =>
-    router.push({ pathname: '/request', params: { pincode: pin, plan_id: plan ? String(plan.id) : '', plan_name: plan ? `${plan.provider} ${plan.name}` : '' } });
+    router.push({ pathname: '/request', params: { pincode: pin, area: info ? areaNames(info) : '', plan_id: plan ? String(plan.id) : '', plan_name: plan ? `${plan.provider} ${plan.name}` : '' } });
 
   const speedy = type === 'fiber' || type === 'air_fiber';
   const providerNames = useMemo(() => [...new Set((plans ?? []).map((p) => p.provider))], [plans]);

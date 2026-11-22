@@ -1,45 +1,41 @@
 import { Tabs, router } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { CalendarDays, CreditCard, House, Menu, Search, ShieldCheck, Users, Wrench } from 'lucide-react-native';
+import { Gauge, LayoutDashboard, Menu, Search, ShieldCheck } from 'lucide-react-native';
+import { useEffect } from 'react';
+import type { ColorValue } from 'react-native';
 import { tr, useLang } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
 
-/** Bottom tabs per role, as on the website's phone view (first items in the bar, the rest under More). A tab a role does not use is hidden (href: null). */
-const SHOWN: Record<string, string[]> = {
-  guest: ['index', 'requests', 'account'],
-  customer: ['requests', 'devices', 'billing', 'account'],
-  dsa: ['home', 'leads', 'installs', 'account'],
-  tip: ['home', 'leads', 'payments', 'account'],
-  admin: ['home', 'leads', 'account'],
-};
-const LANDING: Record<string, '/requests' | '/home'> = { customer: '/requests', dsa: '/home', tip: '/home', admin: '/home' };
+/** The website's top menu as the bottom bar: Plans, Care plan, Speed test, and for a logged-in user their portal. */
+const PORTAL = { customer: 'My dashboard', dsa: 'DSA portal', tip: 'TIP portal', admin: 'Admin portal' } as const;
+const LANDING = { customer: '/portal/requests', dsa: '/portal/home', tip: '/portal/home', admin: '/portal/home' } as const;
+
+let landedFor = '';   // module level: this layout remounts when the user comes back from the portal, and must not redirect again
 
 export default function TabsLayout() {
   const { user } = useSession();
   const { lang } = useLang();
-  const role = user?.role ?? 'guest';
-  const shown = SHOWN[role];
-  const landed = useRef('');
-  useEffect(() => { if (landed.current !== role) { landed.current = role; if (LANDING[role]) router.navigate(LANDING[role]); } }, [role]);
-  const tab = (name: string, title: string, Icon: typeof Search) => (
-    <Tabs.Screen key={name} name={name} options={{ title: tr(title, lang), href: shown.includes(name) ? undefined : null, tabBarIcon: ({ color }) => <Icon size={22} color={color} strokeWidth={2.2} /> }} />
-  );
+  const role = user?.role;
+  useEffect(() => {
+    const key = role ?? '';
+    if (landedFor === key) return;
+    landedFor = key;
+    if (role) router.navigate(LANDING[role]);   // after login, open the portal like the website
+  }, [role]);
+
+  const icon = (Icon: typeof Search) => function TabIcon({ color }: { color: ColorValue }) { return <Icon size={22} color={color} strokeWidth={2.2} />; };
   return (
     <Tabs screenOptions={{
       headerShown: false, tabBarActiveTintColor: colors.blue, tabBarInactiveTintColor: '#7C8AA8',
       tabBarLabelStyle: { fontFamily: font.bodyBold, fontSize: 11.5 },
       tabBarStyle: { backgroundColor: '#fff', borderTopColor: colors.line, paddingTop: 6 },
     }}>
-      {tab('index', 'Plans', Search)}
-      {tab('requests', 'Bookings', CalendarDays)}
-      {tab('devices', 'Care plan', ShieldCheck)}
-      {tab('billing', 'Payments', CreditCard)}
-      {tab('home', role === 'admin' ? 'Overview' : 'Home', House)}
-      {tab('leads', 'Leads', Users)}
-      {tab('installs', 'Installs', Wrench)}
-      {tab('payments', 'Payments', CreditCard)}
-      {tab('account', 'More', Menu)}
+      <Tabs.Screen name="index" options={{ title: tr('Plans', lang), tabBarIcon: icon(Search) }} />
+      <Tabs.Screen name="care" options={{ title: tr('Care plan', lang), tabBarIcon: icon(ShieldCheck) }} />
+      <Tabs.Screen name="speed" options={{ title: tr('Speed test', lang), tabBarIcon: icon(Gauge) }} />
+      <Tabs.Screen name="dashboard" options={{ title: tr(role ? PORTAL[role] : 'Dashboard', lang), href: role ? undefined : null, tabBarIcon: icon(LayoutDashboard) }}
+        listeners={{ tabPress: (e) => { e.preventDefault(); if (role) router.navigate(LANDING[role]); } }} />
+      <Tabs.Screen name="account" options={{ title: tr('More', lang), tabBarIcon: icon(Menu) }} />
     </Tabs>
   );
 }
