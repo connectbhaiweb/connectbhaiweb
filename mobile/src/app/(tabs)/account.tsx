@@ -1,5 +1,5 @@
 import { router, usePathname } from 'expo-router';
-import { ChevronRight, Globe, LayoutDashboard, Handshake, IndianRupee, LogOut, Search, Trash2 } from 'lucide-react-native';
+import { ChevronRight, Globe, LayoutDashboard, MessagesSquare, Handshake, IndianRupee, LogOut, Search, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
@@ -18,9 +18,9 @@ type Go = Parameters<typeof router.navigate>[0];
 /** Pages that are not in the portal's bottom bar (the website's sidebar items), plus the way back to the website. */
 const MENU: Record<string, { label: string; to: Go; Icon: typeof Search }[]> = {
   customer: [],
-  dsa: [{ label: 'Commission', to: '/commission', Icon: IndianRupee }],
-  tip: [],
-  admin: [{ label: 'DSA & TIP', to: '/partners', Icon: Handshake }],
+  dsa: [{ label: 'Commission', to: '/commission', Icon: IndianRupee }, { label: 'Chat', to: '/chats', Icon: MessagesSquare }],
+  tip: [{ label: 'Chat', to: '/chats', Icon: MessagesSquare }],
+  admin: [{ label: 'DSA & TIP', to: '/partners', Icon: Handshake }, { label: 'Chat', to: '/chats', Icon: MessagesSquare }],
 };
 
 export default function Account() {

@@ -7,9 +7,9 @@ import { colors, font } from '@/lib/theme';
 /** The role dashboard (website: My dashboard / DSA portal / TIP portal / Admin portal). Its own bottom bar; "More" has the other pages and a way back to the website. */
 const SHOWN: Record<string, string[]> = {
   customer: ['requests', 'support', 'devices', 'billing', 'chat'],
-  dsa: ['home', 'leads', 'installs', 'more'],
-  tip: ['home', 'leads', 'payments', 'more'],
-  admin: ['home', 'leads', 'more'],
+  dsa: ['home', 'care', 'leads', 'installs', 'more'],
+  tip: ['home', 'care', 'leads', 'payments', 'more'],
+  admin: ['home', 'care', 'leads', 'more'],
 };
 
 export default function PortalLayout() {
@@ -32,6 +32,7 @@ export default function PortalLayout() {
       {tab('billing', 'Payments', CreditCard)}
       {tab('chat', 'Chat', MessagesSquare)}
       {tab('home', user?.role === 'admin' ? 'Overview' : 'Home', House)}
+      {tab('care', 'Care plan', ShieldCheck)}
       {tab('leads', 'Leads', Users)}
       {tab('installs', 'Installs', Wrench)}
       {tab('payments', 'Payments', CreditCard)}

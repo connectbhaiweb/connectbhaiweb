@@ -3,12 +3,15 @@ import { MessageCircle } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
+import { BackBar } from '@/components/BackBar';
 import { Card, T } from '@/components/ui';
+import { useSession } from '@/lib/session';
 import { loadThreads, type Thread } from '@/lib/support';
 import { colors, font } from '@/lib/theme';
 
 /* Website /my/chat: one thread per connection request, plus Connect Bhai support. */
 export default function ChatList() {
+  const { user } = useSession();
   const [threads, setThreads] = useState<Thread[] | null>(null);
   const [error, setError] = useState('');
   const load = useCallback(async () => { try { setThreads(await loadThreads()); setError(''); } catch (e) { setError(e instanceof Error ? e.message : 'Something went wrong.'); } }, []);
@@ -16,6 +19,7 @@ export default function ChatList() {
   return (
     <View style={s.screen}>
       <AppHeader />
+      {user?.role !== 'customer' && <BackBar />}
       <ScrollView contentContainerStyle={s.wrap} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
         <Text style={s.h1}>Chat</Text>
         <T v="small" style={{ fontSize: 13.5 }}>Messages here are also sent to WhatsApp.</T>

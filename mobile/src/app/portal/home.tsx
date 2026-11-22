@@ -1,11 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Plus } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
 import { Kpi, LeadRow } from '@/components/partner';
 import { Button, Card, T } from '@/components/ui';
 import { inr } from '@/lib/catalog';
+import { fDate } from '@/lib/customer';
 import { loadCommissions, loadDash, loadFees, loadLeads, type Commission, type Dash, type Fee, type Lead } from '@/lib/partner';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
@@ -48,12 +48,21 @@ export default function Home() {
     <View style={s.screen}>
       <AppHeader />
       <ScrollView contentContainerStyle={s.wrap} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
-        <Text style={s.hi}>Namaste, {first} 👋</Text>
-        <T v="small" style={{ fontSize: 14.5, marginTop: -6 }}>{isTip ? 'Your installs and payments.' : isAdmin ? 'Everything across Connect Bhai.' : 'Your leads, installs and commission.'}</T>
-        {!isTip && !isAdmin && <Button label="Add a lead" icon={Plus} onPress={() => router.push('/lead/new')} />}
+        {user?.role === 'dsa' ? (
+          <>
+            <Text style={s.title}>Agent portal</Text>
+            <T v="small" style={{ fontSize: 14.5, marginTop: -6 }}>Manage your leads, installations and earnings from Connect Bhai.</T>
+          </>
+        ) : (
+          <>
+            <Text style={s.hi}>Namaste, {first} 👋</Text>
+            <T v="small" style={{ fontSize: 14.5, marginTop: -6 }}>{isTip ? 'Your installs and payments.' : 'Everything across Connect Bhai.'}</T>
+          </>
+        )}
         {busy && <ActivityIndicator size="large" color={colors.blue} style={{ marginTop: 24 }} />}
         {!!error && <Text style={s.error}>{error}</Text>}
-        {dash && (
+        {dash && user?.role === 'dsa' && <DsaHome dash={dash} leads={leads} comm={comm} pins={String(user.service_pincodes ?? '')} />}
+        {dash && user?.role !== 'dsa' && (
           <>
             <View style={s.grid}>
               <Kpi label="New leads" value={dash.leads.new} tone={colors.blue} onPress={() => router.navigate('/portal/leads')} />
@@ -88,9 +97,59 @@ export default function Home() {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   wrap: { padding: 16, gap: 14, paddingBottom: 30 },
+  title: { fontFamily: font.displayXBold, fontSize: 26, color: colors.ink },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  link: { fontFamily: font.bodyBold, fontSize: 14.5, color: colors.blue },
+  pipe: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pipeBox: { width: '23%', flexGrow: 1, borderRadius: 12, padding: 10, gap: 4 },
+  pipeLabel: { fontFamily: font.bodyMd, fontSize: 13, color: colors.ink },
+  pipeNum: { fontFamily: font.displayXBold, fontSize: 22, color: colors.ink },
+  commSmall: { fontFamily: font.bodyBold, fontSize: 14, color: colors.ink },
   hi: { fontFamily: font.displayXBold, fontSize: 26, color: colors.ink },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   commRow: { flexDirection: 'row', gap: 36 },
   commNum: { fontFamily: font.displayXBold, fontSize: 24, color: colors.ink },
   error: { color: colors.bad, fontFamily: font.bodyMd },
 });
+
+function DsaHome({ dash, leads, comm }: { dash: Dash; leads: Lead[]; comm: Commission[]; pins: string }) {
+  const sum = (st: string[]) => comm.filter((c) => st.includes(c.status)).reduce((a, c) => a + c.amount, 0);
+  const total = leads.length;
+  const month = new Date().getMonth(), year = new Date().getFullYear();
+  const inMonth = (d: string) => { const x = new Date(d); return x.getMonth() === month && x.getFullYear() === year; };
+  const leadsMonth = leads.filter((l) => inMonth(l.createdAt)).length;
+  const installed = dash.leads.installed;
+  const installedMonth = leads.filter((l) => l.status === 'installed' && inMonth(l.createdAt)).length;
+  const conv = installed + dash.leads.lost ? Math.round((installed / (installed + dash.leads.lost)) * 100) : 0;
+  const pipeline: [string, number, string][] = [['New', leads.filter((l) => l.status === 'new').length, '#E3ECFF'], ['Assigned', leads.filter((l) => l.status === 'assigned').length, '#E3ECFF'], ['Contacted', dash.leads.contacted, '#FFEFD5'], ['Follow-up', dash.leads.follow_up, '#FFEFD5'], ['Booked', dash.leads.booked, '#E3ECFF'], ['Installed', installed, '#DDF5E4'], ['Lost', dash.leads.lost, '#FDE4E4']];
+  const call = leads.filter((l) => ['new', 'assigned', 'follow_up'].includes(l.status)).slice(0, 5);
+  return (
+    <>
+      <View style={s.grid}>
+        <Kpi label="Your leads" value={total} hint={`${leadsMonth} this month`} tone={colors.blue} />
+        <Kpi label="Installed" value={installed} hint={`${installedMonth} this month · ${conv}% conversion`} tone={colors.green} />
+        <Kpi label="Total earned" value={inr(sum(['pending', 'approved', 'paid']))} hint={`${inr(comm[0]?.amount ?? 0)} per installation`} />
+        <Kpi label="Paid to you" value={inr(sum(['paid']))} hint={`${inr(sum(['approved']))} approved · ${inr(sum(['pending']))} awaiting`} />
+      </View>
+      <Card style={{ gap: 12 }}>
+        <View style={s.rowBetween}><T v="h3">Lead pipeline</T><Text style={s.link} onPress={() => router.navigate('/portal/leads')}>All leads ({total}) →</Text></View>
+        <View style={s.pipe}>{pipeline.map(([l, n, bg]) => <View key={l} style={[s.pipeBox, { backgroundColor: bg }]}><Text numberOfLines={1} adjustsFontSizeToFit style={s.pipeLabel}>{l}</Text><Text style={s.pipeNum}>{n}</Text></View>)}</View>
+      </Card>
+      <View style={s.rowBetween}><T v="h2">Leads to call today</T><Text style={s.link} onPress={() => router.navigate('/portal/leads')}>View all leads</Text></View>
+      {call.length === 0 ? <T v="small" style={{ fontSize: 14.5 }}>You are all caught up. New leads will show here.</T> : call.map((l) => <LeadRow key={l.id} lead={l} />)}
+      <Card style={{ gap: 10 }}>
+        <View style={s.rowBetween}><T v="h3">My commission</T></View>
+        <View style={s.commRow}>
+          <View><Text style={[s.commNum, { color: colors.warn }]}>{inr(sum(['pending']))}</Text><T v="small">Pending</T></View>
+          <View><Text style={s.commNum}>{inr(sum(['approved']))}</Text><T v="small">Approved</T></View>
+          <View><Text style={[s.commNum, { color: colors.green }]}>{inr(sum(['paid']))}</Text><T v="small">Paid</T></View>
+        </View>
+      </Card>
+      <Card style={{ gap: 8 }}>
+        <View style={s.rowBetween}><T v="h3">Recent payout history</T><Text style={s.link} onPress={() => router.navigate('/commission')}>View all</Text></View>
+        {comm.slice(0, 3).map((c) => <View key={c.id} style={s.rowBetween}><T v="small">{`${fDate(c.createdAt)} · ${c.leadRef}`}</T><Text style={s.commSmall}>{inr(c.amount)} · {c.status}</Text></View>)}
+        {comm.length === 0 && <T v="small">No payouts yet.</T>}
+      </Card>
+    </>
+  );
+}

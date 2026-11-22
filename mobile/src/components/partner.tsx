@@ -1,51 +1,73 @@
 import { router } from 'expo-router';
-import { ChevronRight, MapPin, Phone } from 'lucide-react-native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Card, Chip } from '@/components/ui';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Button, Card, Chip } from '@/components/ui';
+import { useSession } from '@/lib/session';
 import { fDate, leadChip, planTitle, type Lead } from '@/lib/customer';
 import { colors, font, shadow } from '@/lib/theme';
 
-export function Kpi({ label, value, tone = colors.ink, onPress }: { label: string; value: number | string; tone?: string; onPress?: () => void }) {
+export function Kpi({ label, value, hint, tone = colors.ink, onPress }: { label: string; value: number | string; hint?: string; tone?: string; onPress?: () => void }) {
   return (
     <Pressable onPress={onPress} disabled={!onPress} style={[k.box, shadow.card]}>
-      <Text style={[k.num, { color: tone }]}>{value}</Text>
       <Text style={k.label}>{label}</Text>
+      <Text style={[k.num, { color: tone }]}>{value}</Text>
+      {!!hint && <Text style={k.hint}>{hint}</Text>}
     </Pressable>
   );
 }
 
+const KV = ({ k, v, mono }: { k: string; v?: string | null; mono?: boolean }) => (
+  <View style={r.kv}><Text style={r.k}>{k}</Text><Text style={[r.v, mono && { fontFamily: font.mono }]} numberOfLines={2}>{v || '—'}</Text></View>
+);
+
+/* One lead, laid out like the website's phone card: key / value rows and Update / Change TIP. */
 export function LeadRow({ lead }: { lead: Lead }) {
+  const { user } = useSession();
   const [label, tone] = leadChip(lead.status);
+  const open = () => router.push({ pathname: '/lead/[id]', params: { id: String(lead.id) } });
   return (
-    <Pressable onPress={() => router.push({ pathname: '/lead/[id]', params: { id: String(lead.id) } })}>
-      <Card style={{ gap: 8, padding: 14 }}>
-        <View style={r.top}>
-          <View style={{ flex: 1 }}>
-            <Text style={r.name} numberOfLines={1}>{lead.name || 'Customer'}</Text>
-            <Text style={r.ref}>{lead.ref} · {fDate(lead.createdAt)}</Text>
+    <Card style={{ gap: 6, padding: 14 }}>
+      <Text style={[r.ref, { fontFamily: font.mono }]}>{lead.ref}</Text>
+      <Text style={[r.ref, { fontFamily: font.mono }]}>{fDate(lead.createdAt)}</Text>
+      <View style={r.kv}>
+        <Text style={r.k}>Customer</Text>
+        <View style={{ alignItems: 'flex-end', gap: 6, flex: 1 }}>
+          <Text style={r.name}>{lead.name || 'Customer'}</Text>
+          <Text style={r.k}>+91 {lead.phone}</Text>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <Button small kind="outline" label="Call" onPress={() => Linking.openURL(`tel:+91${lead.phone}`)} />
+            <Button small kind="wa" label="WhatsApp" onPress={() => Linking.openURL(`https://wa.me/91${lead.phone}`)} />
+            <Button small kind="soft" label="Chat" onPress={() => router.push({ pathname: '/chat/[thread]', params: { thread: `lead:${lead.id}`, title: lead.name || 'Chat' } })} />
           </View>
-          <Chip label={label} tone={tone} />
         </View>
-        <View style={r.line}><Phone size={14} color={colors.muted} /><Text style={r.meta}>{lead.phone}</Text><MapPin size={14} color={colors.muted} style={{ marginLeft: 10 }} /><Text style={r.meta} numberOfLines={1}>{lead.pincode}{lead.area ? `, ${lead.area}` : ''}</Text></View>
-        {lead.plan && <Text style={r.plan} numberOfLines={1}>{planTitle(lead.plan)}</Text>}
-        <View style={r.more}><Text style={r.moreText}>Open</Text><ChevronRight size={16} color={colors.blue} /></View>
-      </Card>
-    </Pressable>
+      </View>
+      <KV k="PIN" v={lead.pincode} mono />
+      <KV k="Area" v={lead.area} />
+      <KV k="Plan" v={lead.plan ? planTitle(lead.plan) : 'Callback'} />
+      <View style={r.kv}><Text style={r.k}>Status</Text><Chip label={label} tone={tone} /></View>
+      <KV k="Next follow-up" v={lead.followUp ? fDate(lead.followUp) : null} />
+      {user?.role !== 'tip' && <KV k="TIP" v={lead.tip?.name} />}
+      {user?.role !== 'dsa' && <KV k="DSA" v={lead.dsa?.name} />}
+      {!!lead.telephoneNo && <KV k="Telephone no." v={lead.telephoneNo} mono />}
+      {!!lead.orderNo && <KV k="Order no." v={lead.orderNo} mono />}
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+        <Button small kind="soft" label="Update" onPress={open} />
+        {lead.status === 'booked' && user?.role !== 'tip' && <Button small label={lead.tip ? 'Change TIP' : 'Assign TIP'} onPress={open} />}
+        {lead.status === 'booked' && user?.role === 'tip' && <Button small label="Install" onPress={open} />}
+      </View>
+    </Card>
   );
 }
 
 const k = StyleSheet.create({
   box: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#fff', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.cardLine },
   num: { fontFamily: font.displayXBold, fontSize: 30 },
-  label: { fontFamily: font.bodyBold, fontSize: 13, color: colors.muted, marginTop: 2 },
+  label: { fontFamily: font.bodyBold, fontSize: 14, color: colors.ink, marginBottom: 6 },
+  hint: { fontFamily: font.body, fontSize: 13, color: colors.muted, marginTop: 2 },
 });
 const r = StyleSheet.create({
-  top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { fontFamily: font.display, fontSize: 17, color: colors.ink },
-  ref: { fontFamily: font.body, fontSize: 12.5, color: colors.muted, marginTop: 1 },
-  line: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  meta: { fontFamily: font.bodyMd, fontSize: 14, color: colors.text, flexShrink: 1 },
-  plan: { fontFamily: font.bodyBold, fontSize: 14, color: colors.actionInk },
-  more: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end' },
-  moreText: { fontFamily: font.bodyBold, fontSize: 13.5, color: colors.blue },
+  ref: { fontFamily: font.bodyBold, fontSize: 13.5, color: colors.ink },
+  name: { fontFamily: font.display, fontSize: 16.5, color: colors.ink },
+  kv: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 5 },
+  k: { fontFamily: font.body, fontSize: 14.5, color: colors.muted },
+  v: { fontFamily: font.bodyBold, fontSize: 14.5, color: colors.ink, flex: 1, textAlign: 'right' },
 });

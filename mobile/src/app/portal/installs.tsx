@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
 import { LeadRow } from '@/components/partner';
+import { PortalHead } from '@/components/PortalHead';
 import { Pill, T } from '@/components/ui';
 import { loadLeads, type Lead } from '@/lib/partner';
 import { colors, font } from '@/lib/theme';
@@ -24,10 +25,10 @@ export default function Installs() {
       <AppHeader />
       <FlatList
         data={shown} keyExtractor={(l) => String(l.id)} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 30 }}
+        contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 30 }}
         ListHeaderComponent={
           <View style={{ gap: 12 }}>
-            <Text style={s.title}>Installs</Text>
+            <PortalHead />
             <View style={s.chips}>
               <Pill label={`Booked ${leads.filter((l) => l.status === 'booked').length}`} on={f === 'booked'} onPress={() => setF('booked')} />
               <Pill label={`Installed ${leads.filter((l) => l.status === 'installed').length}`} on={f === 'installed'} onPress={() => setF('installed')} />

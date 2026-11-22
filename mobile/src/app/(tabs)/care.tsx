@@ -1,25 +1,15 @@
 import { router } from 'expo-router';
-import { Activity, Gauge, KeyRound, Pencil, RotateCw, ShieldCheck, Signal, Wifi, Wrench } from 'lucide-react-native';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
+import { CareExplainer } from '@/components/CareExplainer';
 import { Footer } from '@/components/Footer';
 import { RouterCard } from '@/components/dashboard';
-import { Button, Card, T } from '@/components/ui';
-import { tr, useLang } from '@/lib/i18n';
+import { Button, T } from '@/components/ui';
 import { useCustomer } from '@/lib/useCustomer';
-import { colors, font } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 
 /* Website /care: logged out (and DSA) see the explainer; a customer sees their own router. */
-const STEPS: [string, typeof Wrench, string, string][] = [
-  ['01', Wrench, 'Scans the ONT serial', 'Internet band hua? Aap se pehle Bhai ko pata chalega.'],
-  ['02', Activity, 'Modem reports every 5 minutes', "Bhai's Genie spots the problem and messages you on WhatsApp, while Bhai's team gets to work on it."],
-  ['03', Gauge, 'You control it in the app', 'Restart your Wi-Fi, change password and test speed on your app.'],
-];
-const FEATS: [typeof Wifi, string][] = [[Wifi, 'Online / Offline'], [Signal, 'Fiber signal'], [RotateCw, 'Restart modem'], [Pencil, 'Wi-Fi name'], [KeyRound, 'Wi-Fi password'], [Gauge, 'Line speed test']];
-
 export default function Care() {
-  const { lang } = useLang();
   const { user, data } = useCustomer();
   const lead = data?.leads.find((l) => l.booking?.status === 'installed');
   const device = data?.devices.find((d) => d.leadId === lead?.id);
@@ -38,28 +28,7 @@ export default function Care() {
               <Button kind="outline" label="Wi-Fi speed test" onPress={() => router.navigate('/speed')} />
             </>
           ) : (
-            <>
-              <View style={{ alignItems: 'center' }}>
-                <Svg width={260} height={180} viewBox="0 0 320 220">
-                  <Circle cx={160} cy={116} r={96} fill="#E3ECFF" />
-                  <Path d="M96 82c36-34 92-34 128 0M118 104c24-22 60-22 84 0" fill="none" stroke="#22D3EE" strokeWidth={7} strokeLinecap="round" />
-                  <Rect x={62} y={132} width={196} height={46} rx={14} fill="#2F54E0" />
-                  <Circle cx={92} cy={155} r={6} fill="#4ADE80" /><Circle cx={114} cy={155} r={6} fill="#fff" /><Circle cx={136} cy={155} r={6} fill="#fff" />
-                </Svg>
-              </View>
-              {!user && <Button icon={ShieldCheck} label="Log in to Care plan" onPress={() => router.push('/login')} />}
-              {!!user && <T v="small">Modem status is shown to the customer, the installing TIP and admin. The modem list for TIP and admin is not in the app yet.</T>}
-              {STEPS.map(([n, Icon, t, d]) => (
-                <Card key={n} style={{ gap: 6 }}>
-                  <View style={s.row}><View style={s.ico}><Icon size={20} color={colors.blue} /></View><T v="eyebrow">{n}</T></View>
-                  <T v="h2">{t}</T><T v="small" style={{ fontSize: 14.5, lineHeight: 21 }}>{d}</T>
-                </Card>
-              ))}
-              <Card style={{ gap: 12 }}>
-                <T v="h3">What you can do</T>
-                {FEATS.map(([Icon, l]) => <View key={l} style={s.row}><Icon size={20} color={colors.blue} /><Text style={s.feat}>{tr(l, lang)}</Text></View>)}
-              </Card>
-            </>
+            <CareExplainer />
           )}
         </View>
         <Footer />
@@ -67,9 +36,4 @@ export default function Care() {
     </View>
   );
 }
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg }, body: { padding: 16, gap: 14 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  ico: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.blueSoft, alignItems: 'center', justifyContent: 'center' },
-  feat: { fontFamily: font.bodyMd, fontSize: 15.5, color: colors.ink },
-});
+const s = StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.bg }, body: { padding: 16, gap: 14 } });

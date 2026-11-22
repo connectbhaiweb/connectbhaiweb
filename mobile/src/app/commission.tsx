@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } f
 import { AppHeader } from '@/components/AppHeader';
 import { BackBar } from '@/components/BackBar';
 import { Kpi } from '@/components/partner';
+import { PortalHead } from '@/components/PortalHead';
 import { Card, Chip, T } from '@/components/ui';
 import { inr } from '@/lib/catalog';
 import { fDate } from '@/lib/customer';
@@ -29,13 +30,14 @@ export default function CommissionTab() {
       <BackBar />
       <FlatList
         data={rows} keyExtractor={(c) => String(c.id)} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 30 }}
+        contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 30 }}
         ListHeaderComponent={
           <View style={{ gap: 12 }}>
-            <Text style={s.title}>Commission</Text>
+            <PortalHead />
             <View style={s.grid}>
+              <Kpi label="Pending approval" value={inr(sum(['pending']))} tone={colors.warn} />
+              <Kpi label="Approved" value={inr(sum(['approved']))} hint="awaiting payment" tone={colors.blue} />
               <Kpi label="Paid" value={inr(sum(['paid']))} tone={colors.green} />
-              <Kpi label="Pending" value={inr(sum(['pending', 'approved']))} tone={colors.warn} />
             </View>
             {busy && <ActivityIndicator size="large" color={colors.blue} />}
             {!!error && <Text style={s.error}>{error}</Text>}
