@@ -54,3 +54,14 @@ export const loadFees = () =>
     id: c.id, ref: c.invoice_no || `CH-${String(c.id).padStart(6, '0')}`, description: c.description || 'Fee', amount: Number(c.total_amount),
     status: c.status === 'pending' ? 'due' : c.status, paidAt: c.paid_at ?? null, createdAt: c.created_at,
   })));
+
+/* ---------- admin ---------- */
+export type Partner = { id: number; name: string; firm: string; phone: string; role: 'dsa' | 'tip'; status: string; code: string; active: boolean; pincode: string };
+export const loadPartners = (role: 'dsa' | 'tip') =>
+  all<any>(`/users?role=${role}`).then((r) => r.map((u): Partner => ({
+    id: u.id, name: u.name, firm: u.business_name || '', phone: u.phone, role, status: u.partner_status || 'pending',
+    code: u.partner_code || '', active: u.is_active !== false, pincode: u.pincode || '',
+  })));
+export const setPartnerStatus = (id: number, status: 'approved' | 'rejected' | 'suspended', reason?: string) =>
+  api('PATCH', `/users/${id}/partner-status`, { status, reason: reason || undefined });
+export const assignDsa = (leadId: number, dsaId: number) => api('PATCH', `/leads/${leadId}/assign`, { dsa_user_id: dsaId });

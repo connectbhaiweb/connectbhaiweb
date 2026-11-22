@@ -5,11 +5,11 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, Vi
 import { AppHeader } from '@/components/AppHeader';
 import { Button, Card, Chip, Field, Pill, T } from '@/components/ui';
 import { fDate, leadChip, planTitle } from '@/lib/customer';
-import { assignTip, bookInstall, completeInstall, startInstall, dayChoices, loadLead, setStatus, tipOptions, type Lead, type TipOption } from '@/lib/partner';
+import { assignDsa, assignTip, bookInstall, completeInstall, startInstall, dayChoices, loadLead, loadPartners, setStatus, tipOptions, type Lead, type Partner, type TipOption } from '@/lib/partner';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
 
-type Panel = '' | 'follow' | 'lost' | 'book' | 'tip' | 'done';
+type Panel = '' | 'follow' | 'lost' | 'book' | 'tip' | 'done' | 'dsa';
 
 export default function LeadDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +24,8 @@ export default function LeadDetail() {
   const [tipId, setTipId] = useState<number | null>(null);
   const [tel, setTel] = useState('');
   const [order, setOrder] = useState('');
+  const [dsas, setDsas] = useState<Partner[]>([]);
+  const [dsaId, setDsaId] = useState<number | null>(null);
   const [conn, setConn] = useState('');
   const [serial, setSerial] = useState('');
   const days = dayChoices();
@@ -43,6 +45,10 @@ export default function LeadDetail() {
     try { setTips(await tipOptions(Number(id))); } catch (e) { setError(e instanceof Error ? e.message : 'Could not load installers.'); }
   };
 
+  const openDsa = async () => {
+    setPanel('dsa');
+    try { setDsas((await loadPartners('dsa')).filter((p) => p.status === 'approved')); } catch (e) { setError(e instanceof Error ? e.message : 'Could not load DSAs.'); }
+  };
   const mine = user?.role === 'dsa' || user?.role === 'admin' || user?.role === 'tip';
   const installer = user?.role === 'tip' || user?.role === 'admin';
   const assigner = user?.role === 'dsa' || user?.role === 'admin';
@@ -104,6 +110,17 @@ export default function LeadDetail() {
               </Card>
             )}
 
+            {user?.role === 'admin' && open && (
+              <Card style={{ gap: 10 }}>
+                <T v="h3">{lead.dsa ? `DSA: ${lead.dsa.name}` : 'No DSA yet'}</T>
+                {panel !== 'dsa' ? <Button kind="outline" label={lead.dsa ? 'Change DSA' : 'Assign DSA'} onPress={openDsa} /> : (
+                  <View style={{ gap: 10 }}>
+                    <View style={s.chips}>{dsas.map((d) => <Pill key={d.id} label={d.name} on={dsaId === d.id} onPress={() => setDsaId(d.id)} />)}</View>
+                    <Button label="Assign" loading={busy} disabled={!dsaId} onPress={() => act(() => assignDsa(lead.id, dsaId!))} />
+                  </View>
+                )}
+              </Card>
+            )}
             {assigner && st === 'booked' && (
               <Card style={{ gap: 10 }}>
                 <T v="h3">{lead.tip ? 'Change installer' : 'Assign an installer'}</T>

@@ -20,10 +20,10 @@ export default function Home() {
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    if (user?.role !== 'dsa' && user?.role !== 'tip') { setBusy(false); return; }
+    if (user?.role !== 'dsa' && user?.role !== 'tip' && user?.role !== 'admin') { setBusy(false); return; }
     setError('');
     try {
-      const [d, l, c, f] = await Promise.all([loadDash(), loadLeads(), user.role === 'dsa' ? loadCommissions().catch(() => []) : Promise.resolve([]), user.role === 'tip' ? loadFees().catch(() => []) : Promise.resolve([])]);
+      const [d, l, c, f] = await Promise.all([loadDash(), loadLeads(), user.role === 'dsa' || user.role === 'admin' ? loadCommissions().catch(() => []) : Promise.resolve([]), user.role === 'tip' ? loadFees().catch(() => []) : Promise.resolve([])]);
       setDash(d); setLeads(l); setComm(c); setFees(f);
     } catch (e) { setError(e instanceof Error ? e.message : 'Something went wrong.'); }
     setBusy(false);
@@ -34,9 +34,10 @@ export default function Home() {
   const sum = (st: string[]) => comm.filter((c) => st.includes(c.status)).reduce((a, c) => a + c.amount, 0);
   const isTip = user?.role === 'tip';
   const feeDue = fees.filter((f) => f.status !== 'paid').reduce((a, f) => a + f.amount, 0);
-  const todo = leads.filter((l) => (isTip ? l.status === 'booked' : ['new', 'assigned', 'follow_up'].includes(l.status))).slice(0, 5);
+  const isAdmin = user?.role === 'admin';
+  const todo = leads.filter((l) => (isTip ? l.status === 'booked' : isAdmin ? l.status === 'new' && !l.dsa : ['new', 'assigned', 'follow_up'].includes(l.status))).slice(0, 5);
 
-  if (user && user.role !== 'dsa' && user.role !== 'tip') {
+  if (user && user.role !== 'dsa' && user.role !== 'tip' && user.role !== 'admin') {
     return (
       <View style={s.screen}><AppHeader />
         <View style={s.wrap}><Card style={{ gap: 8 }}><T v="h2">Hello, {first}</T><T v="small" style={{ fontSize: 14.5 }}>Your dashboard is being built for the app. Use the website for now.</T></Card></View>
@@ -48,8 +49,8 @@ export default function Home() {
       <AppHeader />
       <ScrollView contentContainerStyle={s.wrap} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
         <Text style={s.hi}>Namaste, {first} 👋</Text>
-        <T v="small" style={{ fontSize: 14.5, marginTop: -6 }}>{isTip ? 'Your installs and payments.' : 'Your leads, installs and commission.'}</T>
-        {!isTip && <Button label="Add a lead" icon={Plus} onPress={() => router.push('/lead/new')} />}
+        <T v="small" style={{ fontSize: 14.5, marginTop: -6 }}>{isTip ? 'Your installs and payments.' : isAdmin ? 'Everything across Connect Bhai.' : 'Your leads, installs and commission.'}</T>
+        {!isTip && !isAdmin && <Button label="Add a lead" icon={Plus} onPress={() => router.push('/lead/new')} />}
         {busy && <ActivityIndicator size="large" color={colors.blue} style={{ marginTop: 24 }} />}
         {!!error && <Text style={s.error}>{error}</Text>}
         {dash && (
@@ -75,8 +76,8 @@ export default function Home() {
               </View>
             </Card>
             )}
-            <T v="h2">{isTip ? 'Installs to do' : 'Needs your attention'}</T>
-            {todo.length === 0 && <T v="small" style={{ fontSize: 14.5 }}>{isTip ? 'No installs waiting. Booked leads assigned to you show here.' : 'You are all caught up. New leads will show here.'}</T>}
+            <T v="h2">{isTip ? 'Installs to do' : isAdmin ? 'Leads waiting for a DSA' : 'Needs your attention'}</T>
+            {todo.length === 0 && <T v="small" style={{ fontSize: 14.5 }}>{isTip ? 'No installs waiting. Booked leads assigned to you show here.' : isAdmin ? 'Every lead has a DSA.' : 'You are all caught up. New leads will show here.'}</T>}
             {todo.map((l) => <LeadRow key={l.id} lead={l} />)}
           </>
         )}
