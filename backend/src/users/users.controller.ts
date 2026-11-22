@@ -7,7 +7,7 @@ import { UploadsService } from '../uploads/uploads.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { fulltextIds } from '../common/utils/fulltext';
 import { publicUser } from '../common/utils/serialize';
-import { ActiveDto, CreateAdminDto, PartnerStatusDto, RegisterPartnerDto, UpdateMeDto, UpdatePartnerDto, UserQuery } from './users.dto';
+import { ActiveDto, CreateAdminDto, DeleteMeDto, PartnerStatusDto, RegisterPartnerDto, UpdateMeDto, UpdatePartnerDto, UserQuery } from './users.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('users') @Controller()
@@ -22,6 +22,10 @@ export class UsersController {
 
   @ApiBearerAuth() @Patch('users/me')
   async updateMe(@CurrentUser() u: AuthUser, @Body() d: UpdateMeDto) { return publicUser(await this.prisma.user.update({ where: { id: u.id }, data: d })); }
+
+  /** The signed-in customer / DSA / TIP deletes their own account. Declared before `users/:id`. */
+  @ApiBearerAuth() @Delete('users/me')
+  deleteMe(@CurrentUser() u: AuthUser, @Body() d: DeleteMeDto) { return this.users.deleteAccount(u.id, d); }
 
   @ApiBearerAuth() @Roles('admin') @Get('users')
   async list(@Query() q: UserQuery) {

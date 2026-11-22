@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
@@ -12,7 +12,7 @@ import { ChargesService } from '../payments/charges.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SettingsService } from '../settings/settings.service';
 import { UploadsService } from '../uploads/uploads.service';
-import { CreateAdminDto, PartnerStatusDto, RegisterPartnerDto, UpdatePartnerDto } from './users.dto';
+import { CreateAdminDto, DeleteMeDto, PartnerStatusDto, RegisterPartnerDto, UpdatePartnerDto } from './users.dto';
 
 @Injectable()
 export class UsersService {
@@ -165,6 +165,46 @@ export class UsersService {
     const u = await this.prisma.user.findUnique({ where: { id } });
     if (!u || !['dsa', 'tip'].includes(u.role)) throw new NotFoundException('DSA / TIP not found');
     if (u.is_internal) throw new ConflictException("This is Connect Bhai's own partner account and cannot be deleted. Suspend it instead.");
+    await this.removePartner(u);
+    return { deleted: true, id, phone: u.phone };
+  }
+
+  /** The signed-in customer, DSA or TIP deletes their own account (App Store / Play Store rule). Nothing blocks it: dues and open work do not stop the deletion.
+   *  DSA / TIP: same as admin delete. Customer: personal data is wiped and the row is kept disabled under a placeholder phone, so paid receipts and the DSA's / TIP's lead history stay intact. */
+  async deleteAccount(id: number, d: DeleteMeDto) {
+    const u = await this.prisma.user.findUnique({ where: { id } });
+    if (!u) throw new NotFoundException('Account not found');
+    if (u.role === 'admin') throw new ForbiddenException('Admin accounts cannot be deleted from the app.');
+    if (u.is_internal) throw new ConflictException("This is Connect Bhai's own partner account and cannot be deleted.");
+    if (normalizePhone(d.phone) !== u.phone) throw new BadRequestException('The mobile number does not match this account.');
+    if (u.role === 'customer') await this.removeCustomer(u); else await this.removePartner(u);
+    return { deleted: true };
+  }
+
+  private async removeCustomer(u: { id: bigint | number; phone: string }) {
+    const id = Number(u.id);
+    await this.prisma.$transaction(async (tx) => {
+      // their requests stay for the DSA / TIP, without the person's details
+      await tx.lead.updateMany({ where: { customer_user_id: id }, data: { customer_user_id: null, customer_name: 'Deleted customer', customer_phone: '0000000000', customer_email: null, address: null } });
+      await tx.leadEvent.updateMany({ where: { actor_user_id: id }, data: { actor_user_id: null } });
+      const ticketIds = (await tx.ticket.findMany({ where: { raised_by: id }, select: { id: true } })).map((t) => t.id);
+      if (ticketIds.length) {
+        await tx.chatMessage.deleteMany({ where: { thread_type: 'ticket', thread_id: { in: ticketIds } } });
+        await tx.chatRead.deleteMany({ where: { thread_type: 'ticket', thread_id: { in: ticketIds } } });
+      }
+      await tx.ticket.deleteMany({ where: { raised_by: id } });
+      await tx.ticket.updateMany({ where: { assigned_to: id }, data: { assigned_to: null } });
+      await tx.chatMessage.deleteMany({ where: { sender_user_id: id } });
+      await tx.chatRead.deleteMany({ where: { user_id: id } });
+      await tx.charge.deleteMany({ where: { payer_user_id: id, status: { not: 'paid' } } });   // paid plan payments stay (receipts, GST)
+      await tx.notification.deleteMany({ where: { OR: [{ user_id: id }, { phone: u.phone }] } });
+      await tx.otpCode.deleteMany({ where: { phone: u.phone } });
+      await tx.user.update({ where: { id }, data: { name: 'Deleted customer', phone: `d${id}`, email: null, address: null, pincode: null, city_id: null, password_hash: null, is_active: false } });
+    });
+  }
+
+  private async removePartner(u: { id: bigint | number; phone: string }) {
+    const id = Number(u.id);
     await this.prisma.$transaction(async (tx) => {
       // leads and their history stay; they just lose this partner
       await tx.lead.updateMany({ where: { brought_by_user_id: id }, data: { brought_by_user_id: null } });
@@ -196,6 +236,5 @@ export class UsersService {
       await tx.otpCode.deleteMany({ where: { phone: u.phone } });
       await tx.user.delete({ where: { id } });
     });
-    return { deleted: true, id, phone: u.phone };
   }
 }

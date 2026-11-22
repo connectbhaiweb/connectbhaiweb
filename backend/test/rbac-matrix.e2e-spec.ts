@@ -30,7 +30,7 @@ const routes: [string, string, Role[]][] = [
   ['PATCH', `/leads/${X}/status`, ['admin', 'dsa', 'tip', 'customer']], ['PATCH', `/leads/${X}/assign`, ['admin', 'dsa']], ['GET', `/leads/${X}/tip-options`, ['admin', 'dsa']],
   ['GET', '/bookings', ALL], ['POST', '/bookings', ['admin', 'dsa', 'tip']], ['PATCH', `/bookings/${X}`, ['admin', 'dsa', 'tip']], ['POST', `/bookings/${X}/complete`, ['admin', 'tip']],
   // money
-  ['GET', '/charges', ['admin', 'tip', 'customer']], ['GET', `/charges/${X}`, ['admin', 'tip', 'customer']], ['POST', '/charges', ['admin']], ['POST', '/charges/customer', ['customer']], ['POST', '/charges/care-plan', ['tip']],
+  ['GET', '/charges', ['admin', 'tip', 'customer']], ['GET', `/charges/${X}`, ['admin', 'tip', 'customer']], ['POST', '/charges', ['admin']], ['POST', '/charges/customer', ['customer']], ['POST', '/charges/care-plan', ['tip', 'admin']],
   ['POST', `/charges/${X}/offline`, ['admin']], ['POST', `/charges/${X}/waive`, ['admin']], ['POST', `/charges/${X}/cancel`, ['admin']],
   ['GET', '/commissions', ['admin', 'dsa']], ['POST', `/commissions/${X}/approve`, ['admin']], ['POST', `/commissions/${X}/pay`, ['admin']], ['POST', `/commissions/${X}/cancel`, ['admin']],
   // support

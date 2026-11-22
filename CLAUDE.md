@@ -69,6 +69,9 @@ A customer can pay the **plan price** of their lead any day (`POST /charges/cust
 ## Admin edit / delete (any status)
 Admin can edit and delete leads and DSA/TIP partners in **any** status: `PATCH|DELETE /leads/:id`, `PATCH|DELETE /users/:id` (`leads.service.adminUpdate/adminDelete`, `users.service.updatePartner/deletePartner`). Deletes are one transaction: a lead takes its bookings, payout, modem and chat with it (invoices stay, unlinked); a partner's leads stay (DSA/TIP cleared) while their bookings, payouts, charges, tickets and messages go. Connect Bhai's internal TIP cannot be deleted. The status machine and the assign locks above are **not** relaxed. The partner Edit dialog saves name, firm, mobile, email, address, PIN only (per-install amount and lead target are global settings).
 
+## Delete my account
+`DELETE /users/me {phone}` (customer, DSA or TIP; the phone must match the account; admin and the internal TIP are refused). Nothing blocks it: dues and open work do not stop it. DSA/TIP: same as admin delete. Customer: details wiped, row kept disabled as "Deleted customer" (phone `d<id>`) so paid receipts stay; their requests stay for the DSA/TIP without the customer's details. `rest.js` `deleteMyAccount()` (`users.service.deleteAccount`).
+
 ## Backend
 Modules in `src/<feature>/` (auth, leads, bookings, payments, care-plan, commissions, plans, settings, tickets, chat, …). Business rules (DSA payout, TIP fees + GST, Care Plan, Razorpay HMAC/idempotency) live in code and are covered by tests — see `backend/README.md`. `app_settings` DB values override env.
 

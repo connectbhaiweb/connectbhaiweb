@@ -54,7 +54,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     if (!r.ok) throw new AppError(r.status === 401 && !opt.anon ? "Please log in again." : r.status === 429 ? "Too many attempts. Please wait a minute and try again." : msgOf(data));
     return data;
   }
-  const get = (p, o) => req("GET", p, undefined, o), post = (p, b, o) => req("POST", p, b || {}, o), patch = (p, b) => req("PATCH", p, b || {}), put = (p, b) => req("PUT", p, b || {}), del = p => req("DELETE", p);
+  const get = (p, o) => req("GET", p, undefined, o), post = (p, b, o) => req("POST", p, b || {}, o), patch = (p, b) => req("PATCH", p, b || {}), put = (p, b) => req("PUT", p, b || {}), del = (p, b) => req("DELETE", p, b);
   /* A router speed test runs in the background on the server (1-3 min: the modem checks in about once a minute). The POST answers at once with a "running" row;
      this waits by reading the saved row until the server marks it done or failed, so the result is the one stored in MySQL (the same one the Care plan screens list). */
   const waitSpeedTest = async (deviceId, row, maxMs = 6 * 60 * 1000) => {
@@ -439,6 +439,7 @@ export function createRest({ AppError, BOOK_NEXT, ROLE_NAME }) {
     },
     async adminResetPassword() { fail("Partners and customers sign in with a WhatsApp OTP, so there is no password to reset."); },
     /** delete a PENDING DSA/TIP application with no activity (the API refuses anything else and says why) */
+    async deleteMyAccount() { await del("/users/me", { phone: me.phone }); saveTokens(null); me = null; return true; },   // customer, DSA or TIP; nothing blocks it
     async deletePartner(id) { need("admin"); await del("/users/" + id); return true; },   // any status; their leads stay
     async updateLead(id, f) {   // admin: details of a lead in any status
       need("admin"); const b = { customer_name: f.name.trim(), customer_phone: f.phone, customer_email: f.email || "", address: f.address || "", pincode: f.pincode, notes: f.notes || "" };

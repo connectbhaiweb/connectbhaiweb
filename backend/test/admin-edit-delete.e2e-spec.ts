@@ -1,4 +1,4 @@
-import { actors, bearer, createCtx, Ctx, install, makeCustomer, newLead, P, tokenFor, uniquePhone } from './helpers';
+import { actors, bearer, INTERNAL_TIP_PHONE, createCtx, Ctx, install, makeCustomer, newLead, P, tokenFor, uniquePhone } from './helpers';
 
 const partnerBody = (role: 'dsa' | 'tip', over: object = {}) => ({
   role, name: 'Edit Me', phone: uniquePhone(), address: '12 MG Road, Indore', pincode: '452001',
@@ -98,5 +98,48 @@ describe('admin can edit and delete partners and leads in any status', () => {
       await c.http().delete(`${P}/leads/${lead.id}`).set(bearer(a.admin)).expect(200);
       expect(await c.prisma.lead.findUnique({ where: { id: lead.id } })).toBeNull();
     });
+  });
+});
+
+describe('DELETE /users/me: a user deletes their own account', () => {
+  let c: Ctx; let a: Awaited<ReturnType<typeof actors>>;
+  beforeAll(async () => { c = await createCtx(); a = await actors(c); });
+  afterAll(() => c.app.close());
+
+  it('needs a login and the matching phone number; admin cannot use it', async () => {
+    const cust = await makeCustomer(c);
+    await c.http().delete(`${P}/users/me`).send({ phone: cust.phone }).expect(401);
+    await c.http().delete(`${P}/users/me`).set(bearer(cust.token)).send({ phone: '9876543210' }).expect(400);
+    await c.http().delete(`${P}/users/me`).set(bearer(cust.token)).send({}).expect(400);
+    await c.http().delete(`${P}/users/me`).set(bearer(a.admin)).send({ phone: '9999999999' }).expect(403);
+    expect((await c.prisma.user.findUniqueOrThrow({ where: { id: cust.user.id } })).is_active).toBe(true);
+  });
+  it('customer: personal data is wiped, the request stays for the DSA, the account can no longer sign in', async () => {
+    const cust = await makeCustomer(c, 'Real Name');
+    const lead = await newLead(c, a, { by: 'dsa1' });
+    await c.prisma.lead.update({ where: { id: lead.id }, data: { customer_user_id: cust.user.id } });
+    await c.http().delete(`${P}/users/me`).set(bearer(cust.token)).send({ phone: cust.phone }).expect(200);
+    const u = await c.prisma.user.findUniqueOrThrow({ where: { id: cust.user.id } });
+    expect(u).toMatchObject({ name: 'Deleted customer', is_active: false, email: null });
+    expect(u.phone).not.toBe(cust.phone);
+    const kept = await c.prisma.lead.findUniqueOrThrow({ where: { id: lead.id } });
+    expect(kept).toMatchObject({ customer_user_id: null, customer_name: 'Deleted customer', brought_by_user_id: BigInt(a.ids.dsa1) });
+    // the number is free again: a new OTP login makes a brand-new customer
+    const again = await makeCustomer(c);
+    expect(again.user.id).not.toBe(cust.user.id);
+  });
+  it('a DSA deletes their own account even with leads; the leads stay', async () => {
+    const reg = await c.http().post(`${P}/partners/register`).send({ role: 'dsa', name: 'Leaving Dsa', phone: uniquePhone(), address: '12 MG Road, Indore', pincode: '452001', aadhaar: '9999 1111 2222', pan: 'ABCDE1234F', bank_name: 'SBI', bank_account: '123456789012', bank_ifsc: 'SBIN0001234' }).expect(201);
+    const id = reg.body.user.id; const phone = reg.body.user.phone;
+    await c.prisma.user.update({ where: { id }, data: { partner_status: 'approved', approved_at: new Date() } });
+    const token = await tokenFor(c, 'dsa', phone);
+    const lead = await newLead(c, a, { by: 'dsa1' });
+    await c.prisma.lead.update({ where: { id: lead.id }, data: { brought_by_user_id: id } });
+    await c.http().delete(`${P}/users/me`).set(bearer(token)).send({ phone }).expect(200);
+    expect(await c.prisma.user.findUnique({ where: { id } })).toBeNull();
+    expect((await c.prisma.lead.findUniqueOrThrow({ where: { id: lead.id } })).brought_by_user_id).toBeNull();
+  });
+  it("Connect Bhai's internal TIP cannot delete itself", async () => {
+    await c.http().delete(`${P}/users/me`).set(bearer(a.internal)).send({ phone: INTERNAL_TIP_PHONE }).expect(409);
   });
 });

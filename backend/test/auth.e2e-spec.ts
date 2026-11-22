@@ -105,14 +105,15 @@ describe('auth', () => {
     await c.http().post(`${P}/auth/login`).send({ phone: cust.phone, password: 'wrong-password-1' }).expect(401);
   });
 
-  it('a number that is also a pending TIP can still confirm a connection request as a customer', async () => {
+  it('a number that is already a pending TIP cannot create a customer account (one number, one role)', async () => {
     const phone = uniquePhone();
     await c.prisma.user.create({ data: { role: 'tip', name: 'Pending TIP', phone, partner_status: 'pending' } });
     await c.http().post(`${P}/auth/otp/request`).send({ phone }).expect(200);
     await c.http().post(`${P}/auth/otp/verify`).send({ phone, code: '123456' }).expect(401);        // no role: picks the TIP, which is waiting for approval
-    await c.http().post(`${P}/auth/otp/request`).send({ phone, role: 'customer' }).expect(200);     // the connection-request flow asks for the customer account
-    const v = await c.http().post(`${P}/auth/otp/verify`).send({ phone, role: 'customer', code: '123456', name: 'Same Person' }).expect(200);
-    expect(v.body.user.role).toBe('customer');
+    await c.http().post(`${P}/auth/otp/request`).send({ phone, role: 'customer' }).expect(200);
+    const v = await c.http().post(`${P}/auth/otp/verify`).send({ phone, role: 'customer', code: '123456', name: 'Same Person' }).expect(401);
+    expect(v.body.message).toMatch(/registered as a TIP/);
+    expect(await c.prisma.user.count({ where: { phone, role: 'customer' } })).toBe(0);
   });
 
   it('a number with a customer account AND a pending TIP logs in as the customer (no approval message)', async () => {

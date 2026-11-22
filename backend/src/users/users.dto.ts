@@ -42,6 +42,9 @@ export class UpdateMeDto {
   @IsOptional() @IsString() @MaxLength(255) address?: string;
   @IsOptional() @Matches(/^[1-9]\d{5}$/) pincode?: string;
 }
+export class DeleteMeDto {
+  @IsString() @MaxLength(20) phone: string;   // the account's own mobile number, typed again as the confirmation
+}
 export class UserQuery extends PageQuery {
   @IsOptional() @IsIn(['customer', 'dsa', 'tip', 'admin']) role?: 'customer' | 'dsa' | 'tip' | 'admin';
   @IsOptional() @IsIn(['pending', 'approved', 'rejected', 'suspended']) partner_status?: 'pending' | 'approved' | 'rejected' | 'suspended';

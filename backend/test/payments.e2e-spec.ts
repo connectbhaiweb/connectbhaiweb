@@ -154,7 +154,8 @@ describe('payments (charges, Razorpay, Care Plan)', () => {
   describe('Care Plan', () => {
     it('TIP buys Care Plan for several leads with one payment; paying flips every lead flag and creates devices', async () => {
       const installed = await newLead(c, a, { tip: 'dream' });
-      await install(c, a.dream, installed.id, 'SN-CP-1');
+      const sn1 = `SN-CP-1-${Date.now()}`, sn2 = `SN-CP-2-${Date.now()}`;   // unique per run: the modem serial is unique in the database, which keeps its rows between runs
+      await install(c, a.dream, installed.id, sn1);
       const pending = await newLead(c, a, { tip: 'dream' });
 
       const ch = await c.http().post(`${P}/charges/care-plan`).set(bearer(a.dream)).send({ lead_ids: [installed.id, pending.id] }).expect(201);
@@ -179,9 +180,9 @@ describe('payments (charges, Razorpay, Care Plan)', () => {
       await c.http().post(`${P}/charges/care-plan`).set(bearer(a.dream)).send({ lead_ids: [installed.id] }).expect(409); // already active
 
       // when the second lead is installed later, its device appears automatically
-      await install(c, a.dream, pending.id, 'SN-CP-2');
+      await install(c, a.dream, pending.id, sn2);
       const dev = await c.prisma.carePlanDevice.findUniqueOrThrow({ where: { lead_id: pending.id } });
-      expect(dev).toMatchObject({ is_active: true, serial_number: 'SN-CP-2' });
+      expect(dev).toMatchObject({ is_active: true, serial_number: sn2 });
     });
     it('guards: others\' leads, lost leads, empty / bad input, DSA role, unconfigured fee', async () => {
       const mine = await newLead(c, a, { tip: 'dream' });
@@ -191,7 +192,7 @@ describe('payments (charges, Razorpay, Care Plan)', () => {
       await c.http().post(`${P}/charges/care-plan`).set(bearer(a.dream)).send({}).expect(400);
       await c.http().post(`${P}/charges/care-plan`).set(bearer(a.dream)).send({ lead_ids: [999999] }).expect(400);
       await c.http().post(`${P}/charges/care-plan`).set(bearer(a.dsa1)).send({ lead_ids: [mine.id] }).expect(403);
-      await c.http().post(`${P}/charges/care-plan`).set(bearer(a.admin)).send({ lead_ids: [mine.id] }).expect(403);
+      await c.http().post(`${P}/charges/care-plan`).set(bearer(a.admin)).send({ lead_ids: [999999] }).expect(400);   // admin may buy it for the TIP a lead is assigned to, but not for leads that do not exist
       await c.http().patch(`${P}/leads/${mine.id}/status`).set(bearer(a.dream)).send({ status: 'cancelled' }).expect(200);
       await c.http().post(`${P}/charges/care-plan`).set(bearer(a.dream)).send({ lead_ids: [mine.id] }).expect(400);
       const ok = await newLead(c, a, { tip: 'dream' });
