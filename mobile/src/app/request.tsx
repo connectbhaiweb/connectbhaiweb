@@ -1,7 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { CircleCheck, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, Field, T } from '@/components/ui';
 import { requestConnection } from '@/lib/catalog';
 import { useSession } from '@/lib/session';
 import { colors } from '@/lib/theme';
@@ -18,10 +20,8 @@ export default function RequestConnection() {
 
   const submit = async () => {
     setBusy(true); setError('');
-    try {
-      const r = await requestConnection({ name, phone, pincode, address, plan_id: plan_id ? Number(plan_id) : undefined });
-      setRef(r.ref_code);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Something went wrong.'); }
+    try { setRef((await requestConnection({ name, phone, pincode, address, plan_id: plan_id ? Number(plan_id) : undefined })).ref_code); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Something went wrong.'); }
     setBusy(false);
   };
   const ok = name.trim().length >= 2 && phone.length === 10;
@@ -29,10 +29,11 @@ export default function RequestConnection() {
   if (ref) {
     return (
       <SafeAreaView style={s.safe}>
-        <View style={s.wrap}>
-          <Text style={s.h1}>Request sent</Text>
-          <Text style={s.sub}>Your reference is {ref}. A partner will call you to confirm the plan and book the installation.</Text>
-          <Pressable style={s.btn} onPress={() => router.dismissAll()}><Text style={s.btnText}>Done</Text></Pressable>
+        <View style={[s.wrap, { alignItems: 'center', paddingTop: 48 }]}>
+          <View style={s.tick}><CircleCheck size={40} color={colors.green} strokeWidth={2.2} /></View>
+          <T v="h1" style={{ textAlign: 'center' }}>Request sent</T>
+          <T style={{ textAlign: 'center' }}>Your reference is <T v="h3">{ref}</T>. A partner will call you to confirm the plan and book the installation.</T>
+          <Button block label="Done" onPress={() => router.dismissAll()} />
         </View>
       </SafeAreaView>
     );
@@ -41,34 +42,27 @@ export default function RequestConnection() {
     <SafeAreaView style={s.safe}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.wrap} keyboardShouldPersistTaps="handled">
-          <Text style={s.h1}>{plan_name ? 'Request this connection' : 'Request a callback'}</Text>
-          {!!plan_name && <Text style={s.plan}>{plan_name}</Text>}
-          <Text style={s.sub}>PIN code {pincode}</Text>
-          <TextInput style={s.input} placeholder="Your name" value={name} onChangeText={setName} />
-          <TextInput style={s.input} placeholder="10-digit mobile number" keyboardType="number-pad" maxLength={10}
-            value={phone} onChangeText={(t) => setPhone(t.replace(/\D/g, ''))} />
-          <TextInput style={[s.input, { height: 90 }]} placeholder="Address (optional)" multiline value={address} onChangeText={setAddress} />
-          {!!error && <Text style={s.error}>{error}</Text>}
-          <Pressable style={[s.btn, (!ok || busy) && s.dim]} disabled={!ok || busy} onPress={submit}>
-            {busy ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>Send request</Text>}
-          </Pressable>
-          <Pressable onPress={() => router.back()}><Text style={s.link}>Cancel</Text></Pressable>
+          <View style={s.top}>
+            <T v="h1" style={{ flex: 1 }}>{plan_name ? 'Request this connection' : 'Request a callback'}</T>
+            <Pressable accessibilityLabel="Close" onPress={() => router.back()} style={s.x}><X size={20} color={colors.ink} /></Pressable>
+          </View>
+          {!!plan_name && <Card style={{ gap: 4 }}><T v="label">Selected plan</T><T v="h3">{plan_name}</T><T v="small">PIN code {pincode}</T></Card>}
+          {!plan_name && <T v="small">PIN code {pincode}</T>}
+          <Field label="Your name" placeholder="Full name" value={name} onChangeText={setName} />
+          <Field label="Mobile number" placeholder="10-digit mobile number" keyboardType="number-pad" maxLength={10} value={phone} onChangeText={(t) => setPhone(t.replace(/\D/g, ''))} />
+          <Field label="Address (optional)" placeholder="House no, street, landmark" multiline value={address} onChangeText={setAddress} />
+          {!!error && <T style={{ color: colors.bad }}>{error}</T>}
+          <Button block label="Send request" loading={busy} disabled={!ok} onPress={submit} />
+          <T v="small" style={{ textAlign: 'center' }}>A partner will call you to confirm. No payment now.</T>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
-
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  wrap: { padding: 20, gap: 12 },
-  h1: { fontSize: 24, fontWeight: '800', color: colors.navy },
-  plan: { fontSize: 17, fontWeight: '700', color: colors.text },
-  sub: { fontSize: 15, color: colors.muted, lineHeight: 21 },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, fontSize: 17, backgroundColor: '#fff' },
-  error: { color: colors.danger },
-  btn: { backgroundColor: colors.primary, borderRadius: 12, padding: 16, alignItems: 'center' },
-  dim: { opacity: 0.5 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  link: { color: colors.primary, textAlign: 'center', padding: 8, fontWeight: '600' },
+  wrap: { padding: 20, gap: 14 },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  x: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
+  tick: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.greenSoft, alignItems: 'center', justifyContent: 'center' },
 });

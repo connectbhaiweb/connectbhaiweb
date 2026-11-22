@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
+import { X } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Hero } from '@/components/Hero';
+import { Button, Field, T } from '@/components/ui';
 import { requestOtp } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { colors } from '@/lib/theme';
@@ -23,45 +25,34 @@ export default function Login() {
   const verify = () => run(async () => { await signIn(phone, code); router.back(); });
 
   return (
-    <SafeAreaView style={s.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.wrap}>
-        <View style={s.logoBox}><Image source={require('../../assets/images/logo-full.png')} style={s.logo} resizeMode="contain" /></View>
-        <Text style={s.sub}>{sent ? `Enter the OTP sent to ${phone}` : 'Log in with your mobile number'}</Text>
-
+    <View style={s.screen}>
+      <Hero>
+        <View style={s.topRow}>
+          <Image source={require('../../assets/images/logo-full.png')} style={s.logo} resizeMode="contain" />
+          <Pressable accessibilityLabel="Close" onPress={() => router.back()} style={s.x}><X size={20} color="#fff" /></Pressable>
+        </View>
+        <T v="h1" style={{ color: '#fff', marginTop: 18 }}>Log in</T>
+        <T style={{ color: '#C9D8FF' }}>Customers, DSAs, installers and admins log in with a mobile number.</T>
+      </Hero>
+      <View style={s.card}>
+        <T v="h2">{sent ? 'Enter the OTP' : 'Your mobile number'}</T>
+        <T v="small">{sent ? `We sent a 6-digit OTP to ${phone}.` : 'We will send you a one-time password.'}</T>
         {!sent ? (
-          <TextInput style={s.input} placeholder="10-digit mobile number" keyboardType="number-pad" maxLength={10}
-            value={phone} onChangeText={(t) => setPhone(t.replace(/\D/g, ''))} autoFocus />
+          <Field mono placeholder="10-digit number" keyboardType="number-pad" maxLength={10} value={phone} onChangeText={(t) => setPhone(t.replace(/\D/g, ''))} autoFocus />
         ) : (
-          <TextInput style={s.input} placeholder="OTP" keyboardType="number-pad" maxLength={8}
-            textContentType="oneTimeCode" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, ''))} autoFocus />
+          <Field mono placeholder="OTP" keyboardType="number-pad" maxLength={8} textContentType="oneTimeCode" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, ''))} autoFocus />
         )}
-
-        {!!error && <Text style={s.error}>{error}</Text>}
-
-        <Pressable style={[s.btn, busy && s.dim]} disabled={busy || (sent ? code.length < 4 : phone.length !== 10)} onPress={sent ? verify : send}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>{sent ? 'Verify and log in' : 'Send OTP'}</Text>}
-        </Pressable>
-
-        {sent && (
-          <Pressable onPress={() => { setSent(false); setCode(''); setError(''); }}>
-            <Text style={s.link}>Change number</Text>
-          </Pressable>
-        )}
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        {!!error && <T style={{ color: colors.bad }}>{error}</T>}
+        <Button block label={sent ? 'Verify and log in' : 'Send OTP'} loading={busy} disabled={sent ? code.length < 4 : phone.length !== 10} onPress={sent ? verify : send} />
+        {sent && <Button kind="ghost" label="Change number" onPress={() => { setSent(false); setCode(''); setError(''); }} />}
+      </View>
+    </View>
   );
 }
-
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  wrap: { flex: 1, justifyContent: 'center', padding: 24, gap: 14 },
-  logoBox: { backgroundColor: colors.navy, borderRadius: 14, padding: 14, alignSelf: 'flex-start' },
-  logo: { height: 36, width: 170 },
-  sub: { fontSize: 16, color: colors.muted, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, fontSize: 18, backgroundColor: '#fff' },
-  error: { color: colors.danger },
-  btn: { backgroundColor: colors.primary, borderRadius: 12, padding: 16, alignItems: 'center' },
-  dim: { opacity: 0.6 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  link: { color: colors.primary, textAlign: 'center', padding: 8 },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  logo: { height: 34, width: 160 },
+  x: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
+  card: { margin: 16, marginTop: -12, backgroundColor: '#fff', borderRadius: 22, padding: 18, gap: 12, borderWidth: 1, borderColor: colors.cardLine },
 });

@@ -1,85 +1,80 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
+import { ArrowRight, UserRound } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { Header } from '@/components/Header';
-import { myLeads, type MyLead } from '@/lib/catalog';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AppHeader } from '@/components/AppHeader';
+import { BookingCard, NoBooking, PastRequests, PaymentsCard, RouterCard } from '@/components/dashboard';
+import { Button, Card, T } from '@/components/ui';
+import { loadCustomer, type CustomerData, type Lead } from '@/lib/customer';
 import { useSession } from '@/lib/session';
-import { colors } from '@/lib/theme';
+import { colors, font } from '@/lib/theme';
 
-const STATUS: Record<string, string> = {
-  new: 'Request received', contacted: 'Partner contacted you', followup: 'Follow-up scheduled', scheduled: 'Installation booked',
-  installed: 'Installed', lost: 'Closed',
-};
-const when = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '');
-
-export default function Requests() {
+/* Customer home: the website's /my dashboard in phone layout. */
+export default function MyBookings() {
   const { user } = useSession();
-  const [items, setItems] = useState<MyLead[] | null>(null);
+  const [data, setData] = useState<CustomerData | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (user?.role !== 'customer') return;
     setBusy(true); setError('');
-    try { setItems(await myLeads()); } catch (e) { setError(e instanceof Error ? e.message : 'Something went wrong.'); }
+    try { setData(await loadCustomer()); } catch (e) { setError(e instanceof Error ? e.message : 'Something went wrong.'); }
     setBusy(false);
   }, [user]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const first = (user?.name ?? '').split(' ')[0];
+  const current = data?.leads.find((l) => l.status !== 'lost') ?? data?.leads[0];
+  const sel: Lead | undefined = data?.leads.find((l) => l.id === selected) ?? current;
+  const device = data?.devices.find((d) => d.leadId === (data?.leads.find((l) => l.booking?.status === 'installed')?.id));
+  const hasPlan = !!data?.leads.some((l) => l.status !== 'lost');
+
   return (
     <View style={s.screen}>
-      <Header />
-      {!user ? (
-        <View style={s.center}>
-          <Text style={s.h1}>Track your connection</Text>
-          <Text style={s.sub}>Log in to see your requests, installation booking and payment status.</Text>
-          <Pressable style={s.btn} onPress={() => router.push('/login')}><Text style={s.btnText}>Log in</Text></Pressable>
+      <AppHeader />
+      {!user || user.role !== 'customer' ? (
+        <View style={s.gate}>
+          <Card style={{ gap: 12 }}>
+            <T v="eyebrow">{user ? 'Customer access' : 'Customer access'}</T>
+            <T v="h1">{user ? 'This tab is for customers' : 'Log in to track your booking'}</T>
+            <T v="small" style={{ fontSize: 14.5 }}>{user ? 'Your role has its own dashboard, coming soon in the app.' : 'See your request, installation progress, router status and payments in one place.'}</T>
+            {!user && <Button label="Log in" onPress={() => router.push('/login')} />}
+          </Card>
         </View>
       ) : (
-        <FlatList
-          data={items ?? []}
-          keyExtractor={(l) => String(l.id)}
-          contentContainerStyle={s.list}
-          refreshControl={<RefreshControl refreshing={busy && !!items} onRefresh={load} />}
-          ListHeaderComponent={busy && !items ? <ActivityIndicator color={colors.primary} /> : error ? <Text style={s.error}>{error}</Text> : undefined}
-          ListEmptyComponent={items && !busy ? <Text style={s.sub}>No requests yet. Search plans by PIN code and request a connection.</Text> : undefined}
-          renderItem={({ item }) => {
-            const b = item.bookings?.[0];
-            return (
-              <View style={s.card}>
-                <View style={s.rowBetween}>
-                  <Text style={s.ref}>{item.ref_code}</Text>
-                  <Text style={s.status}>{STATUS[item.status] ?? item.status}</Text>
-                </View>
-                <Text style={s.plan}>{item.plan ? `${item.plan.category?.name ?? ''} ${item.plan.name}`.trim() : 'Callback request'}</Text>
-                {item.plan && <Text style={s.sub}>₹{item.plan.price} per month</Text>}
-                <Text style={s.sub}>PIN {item.pincode}{item.address ? ` · ${item.address}` : ''}</Text>
-                {b?.scheduled_at && <Text style={s.sub}>Installation: {when(b.scheduled_at)}</Text>}
-                {item.telephone_no && <Text style={s.sub}>Telephone no: {item.telephone_no}</Text>}
-                {item.order_no && <Text style={s.sub}>Order no: {item.order_no}</Text>}
-                <Text style={s.small}>Requested {when(item.created_at)}</Text>
-              </View>
-            );
-          }}
-        />
+        <ScrollView contentContainerStyle={s.wrap} refreshControl={<RefreshControl refreshing={busy && !!data} onRefresh={load} />}>
+          <View style={s.hello}>
+            <Text style={s.h1}>Namaste{first ? `, ${first}` : ''} 👋</Text>
+            <View style={s.role}><UserRound size={15} color={colors.actionInk} strokeWidth={2.2} /><Text style={s.roleText}>Customer</Text></View>
+            <T v="small" style={{ fontSize: 13.5 }}>Manage your bookings, payments and service requests.</T>
+          </View>
+          <Button block iconRight={ArrowRight} label={hasPlan ? 'New connection' : 'Find plans'} onPress={() => router.navigate('/(tabs)')} />
+
+          {busy && !data && <ActivityIndicator size="large" color={colors.blue} style={{ marginTop: 24 }} />}
+          {!!error && !data && (
+            <Card style={{ gap: 10 }}><T v="h3">Could not load your dashboard.</T><T v="small">{error}</T><Button label="Try again" onPress={load} /></Card>
+          )}
+          {data && (
+            <>
+              {sel ? <BookingCard lead={sel} /> : <NoBooking />}
+              <RouterCard lead={data.leads.find((l) => l.booking?.status === 'installed')} device={device} />
+              <PaymentsCard charges={data.charges} />
+              <PastRequests leads={data.leads.filter((l) => l !== sel)} onOpen={(l) => setSelected(l.id)} />
+            </>
+          )}
+        </ScrollView>
       )}
     </View>
   );
 }
-
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  list: { padding: 16, gap: 12 },
-  h1: { fontSize: 22, fontWeight: '800', color: colors.navy },
-  sub: { fontSize: 15, color: colors.muted, lineHeight: 21 },
-  small: { fontSize: 12, color: colors.muted },
-  error: { color: colors.danger },
-  btn: { backgroundColor: colors.primary, borderRadius: 12, padding: 16, alignItems: 'center' },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  card: { backgroundColor: colors.card, borderRadius: 16, padding: 14, gap: 4, borderWidth: 1, borderColor: colors.border },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between' },
-  ref: { fontWeight: '700', color: colors.text },
-  status: { fontWeight: '700', color: colors.primary },
-  plan: { fontSize: 17, fontWeight: '700', color: colors.text },
+  wrap: { padding: 12, gap: 10, paddingBottom: 28 },
+  gate: { padding: 16 },
+  hello: { gap: 6, marginBottom: 2, marginTop: 4 },
+  h1: { fontFamily: font.displayXBold, fontSize: 23, color: colors.ink, letterSpacing: -0.3 },
+  role: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: colors.chipBlue, borderRadius: 8, paddingHorizontal: 10, height: 28 },
+  roleText: { fontFamily: font.bodyBold, fontSize: 13, color: '#0B1A4A' },
 });
