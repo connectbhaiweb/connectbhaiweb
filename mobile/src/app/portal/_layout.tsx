@@ -1,12 +1,12 @@
 import { Redirect, Tabs } from 'expo-router';
-import { CalendarDays, CreditCard, House, Menu, ShieldCheck, Users, Wrench } from 'lucide-react-native';
+import { CalendarDays, CreditCard, Headphones, House, Menu, MessagesSquare, ShieldCheck, Users, Wrench } from 'lucide-react-native';
 import { tr, useLang } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
 
 /** The role dashboard (website: My dashboard / DSA portal / TIP portal / Admin portal). Its own bottom bar; "More" has the other pages and a way back to the website. */
 const SHOWN: Record<string, string[]> = {
-  customer: ['requests', 'devices', 'billing', 'more'],
+  customer: ['requests', 'support', 'devices', 'billing', 'chat'],
   dsa: ['home', 'leads', 'installs', 'more'],
   tip: ['home', 'leads', 'payments', 'more'],
   admin: ['home', 'leads', 'more'],
@@ -27,8 +27,10 @@ export default function PortalLayout() {
       tabBarStyle: { backgroundColor: '#fff', borderTopColor: colors.line, paddingTop: 6 },
     }}>
       {tab('requests', 'Bookings', CalendarDays)}
+      {tab('support', 'Support', Headphones)}
       {tab('devices', 'Care plan', ShieldCheck)}
       {tab('billing', 'Payments', CreditCard)}
+      {tab('chat', 'Chat', MessagesSquare)}
       {tab('home', user?.role === 'admin' ? 'Overview' : 'Home', House)}
       {tab('leads', 'Leads', Users)}
       {tab('installs', 'Installs', Wrench)}

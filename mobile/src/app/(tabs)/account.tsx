@@ -3,6 +3,7 @@ import { ChevronRight, Globe, LayoutDashboard, Handshake, IndianRupee, LogOut, S
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
+import { BackBar } from '@/components/BackBar';
 import { Footer } from '@/components/Footer';
 import { Button, Card, Chip, Field, T } from '@/components/ui';
 import { deleteMyAccount } from '@/lib/catalog';
@@ -25,7 +26,8 @@ const MENU: Record<string, { label: string; to: Go; Icon: typeof Search }[]> = {
 export default function Account() {
   const { user, signOut } = useSession();
   const { lang } = useLang();
-  const inPortal = usePathname().startsWith('/portal');
+  const path = usePathname();
+  const inPortal = path.startsWith('/portal') || path === '/profile';
   const [confirming, setConfirming] = useState(false);
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
@@ -40,6 +42,7 @@ export default function Account() {
   return (
     <View style={s.screen}>
       <AppHeader />
+      {path === '/profile' && <BackBar />}
       <ScrollView>
         <View style={s.wrap}>
         {!user ? (

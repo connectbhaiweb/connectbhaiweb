@@ -5,7 +5,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View }
 import { AppHeader } from '@/components/AppHeader';
 import { CustomerGate } from '@/components/CustomerGate';
 import { BookingCard, NoBooking, PastRequests } from '@/components/dashboard';
-import { Button, Card, T } from '@/components/ui';
+import { Button, Card, Pill, T } from '@/components/ui';
 import { type Lead } from '@/lib/customer';
 import { useCustomer } from '@/lib/useCustomer';
 import { colors, font } from '@/lib/theme';
@@ -31,6 +31,11 @@ export default function MyBookings() {
             <Text style={s.h1}>Namaste{first ? `, ${first}` : ''} 👋</Text>
             <View style={s.role}><UserRound size={15} color={colors.actionInk} strokeWidth={2.2} /><Text style={s.roleText}>Customer</Text></View>
             <T v="small" style={{ fontSize: 13.5 }}>Manage your bookings, payments and service requests.</T>
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Pill label="Care plan" onPress={() => router.navigate('/portal/devices')} />
+            <Pill label="Speed test" onPress={() => router.navigate('/speed')} />
+            <Pill label="Pay now" onPress={() => router.navigate('/portal/billing')} />
           </View>
           <Button block iconRight={ArrowRight} label={hasPlan ? 'New connection' : 'Find plans'} onPress={() => router.navigate('/')} />
 

@@ -39,7 +39,7 @@ export function AppHeader() {
             ))}
           </View>
           {user ? (
-            <Pressable accessibilityLabel="My account" onPress={() => router.navigate(inPortal ? '/portal/more' : LANDING[user.role])} style={s.avatar}><Text style={s.avatarText}>{(user.name || '?').charAt(0).toUpperCase()}</Text></Pressable>
+            <Pressable accessibilityLabel="My account" onPress={() => router.navigate(inPortal ? '/profile' : LANDING[user.role])} style={s.avatar}><Text style={s.avatarText}>{(user.name || '?').charAt(0).toUpperCase()}</Text></Pressable>
           ) : (
             <Pressable onPress={() => router.push('/login')} style={s.login}><Text style={s.loginText}>{tr('Log in', lang)}</Text></Pressable>
           )}
