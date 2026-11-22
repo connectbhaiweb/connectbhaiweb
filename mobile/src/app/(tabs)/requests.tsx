@@ -58,7 +58,7 @@ export default function MyBookings() {
           )}
           {data && (
             <>
-              {sel ? <BookingCard lead={sel} /> : <NoBooking />}
+              {sel ? <BookingCard lead={sel} onPaid={load} /> : <NoBooking />}
               <RouterCard lead={data.leads.find((l) => l.booking?.status === 'installed')} device={device} />
               <PaymentsCard charges={data.charges} />
               <PastRequests leads={data.leads.filter((l) => l !== sel)} onOpen={(l) => setSelected(l.id)} />

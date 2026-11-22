@@ -1,8 +1,11 @@
 import { router } from 'expo-router';
 import { ArrowRight, CalendarDays, Check, ChevronRight, CircleCheck, CircleX, Clock, CreditCard, FileText, MapPin, Phone, Store, UserCheck, UserRound, Wifi } from 'lucide-react-native';
+import { useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Chip, T } from '@/components/ui';
 import { inr } from '@/lib/catalog';
+import { payPlan } from '@/lib/pay';
+import { useSession } from '@/lib/session';
 import { STEPS, STEP_OF, fDate, fDayTime, leadChip, planTitle, type Charge, type Device, type Lead, type Person } from '@/lib/customer';
 import { colors, font } from '@/lib/theme';
 
@@ -10,7 +13,16 @@ const STEP_ICON = [FileText, UserCheck, Phone, CalendarDays, Wifi] as const;
 const TONE_ICON = { green: CircleCheck, red: CircleX, blue: CalendarDays, amber: CalendarDays } as const;
 const cityOf = (pin: string) => (/^452/.test(pin) ? 'Indore' : '');
 
-export function BookingCard({ lead }: { lead: Lead }) {
+export function BookingCard({ lead, onPaid }: { lead: Lead; onPaid?: () => void }) {
+  const { user } = useSession();
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState('');
+  const pay = async () => {
+    setPaying(true); setPayError('');
+    try { await payPlan(lead.id, { name: user?.name, phone: user?.phone }); onPaid?.(); }
+    catch (e) { setPayError(e instanceof Error ? e.message : 'Payment failed.'); }
+    setPaying(false);
+  };
   const [chip, tone] = leadChip(lead.status);
   const at = STEP_OF[lead.status] ?? 0, lost = lead.status === 'lost';
   const sub = [fDayTime(lead.createdAt), lead.tip ? lead.tip.firm || lead.tip.name : lead.dsa?.name ?? '', '', lead.booking?.scheduledAt ? `Scheduled ${fDate(lead.booking.scheduledAt)}` : '', lead.booking?.installedAt ? fDayTime(lead.booking.installedAt) : ''];
@@ -57,9 +69,10 @@ export function BookingCard({ lead }: { lead: Lead }) {
             <Text style={s.payTitle}>{lead.payment ? 'Plan paid' : 'Your plan payment'}</Text>
             <Text style={s.small}>{lead.payment ? `${inr(lead.payment.amount)}${lead.payment.paidAt ? ` · ${fDate(lead.payment.paidAt)}` : ''}` : `${inr(lead.plan.price)} incl. GST · pay Connect Bhai directly`}</Text>
           </View>
-          {lead.payment && <Chip label="Paid" tone="green" icon={Check} />}
+          {lead.payment ? <Chip label="Paid" tone="green" icon={Check} /> : <Button small label={paying ? 'Opening…' : 'Pay now'} disabled={paying} onPress={pay} />}
         </View>
       )}
+      {!!payError && <T v="small" style={{ color: colors.red }}>{payError}</T>}
 
       <View style={{ gap: 8 }}>
         {lead.dsa && <PersonRow label="Your agent" p={lead.dsa} kind="DSA" city={cityOf(lead.pincode)} text={`Namaste, about my Connect Bhai request ${lead.ref}`} />}
