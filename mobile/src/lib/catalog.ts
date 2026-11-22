@@ -1,10 +1,12 @@
 import type { ImageSourcePropType } from 'react-native';
 import { api, hasSession } from './api';
 
-export type Category = 'fiber' | 'air_fiber' | 'tv' | 'ott';
+export type Category = 'fiber' | 'air_fiber' | 'tv' | 'ott' | 'sim';
+/** The API calls Air Fiber "airfiber". */
+const API_TYPE: Record<Category, string> = { fiber: 'fiber', air_fiber: 'airfiber', tv: 'tv', ott: 'ott', sim: 'sim' };
 export const CATEGORIES: { key: Category; label: string; long: string }[] = [
   { key: 'fiber', label: 'Fiber', long: 'Fiber broadband' }, { key: 'air_fiber', label: 'Air Fiber', long: 'Air Fiber' },
-  { key: 'tv', label: 'TV', long: 'TV' }, { key: 'ott', label: 'OTT', long: 'OTT' },
+  { key: 'sim', label: 'SIM', long: 'SIM' }, { key: 'tv', label: 'TV', long: 'TV' }, { key: 'ott', label: 'OTT', long: 'OTT' },
 ];
 export const inr = (n: number | string | null | undefined) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
@@ -27,7 +29,7 @@ export type Plan = {
   price: number; priceExGst: number | null; install: number; tv: number; ott: string[]; validity: number | null;
 };
 export const mapPlan = (p: RawPlan): Plan => ({
-  id: p.id, name: p.name, provider: p.category.name, type: p.category.type as Category, logo: logoFor(p.category.name, p.category.logo_url),
+  id: p.id, name: p.name, provider: p.category.name, type: (p.category.type === 'airfiber' ? 'air_fiber' : p.category.type) as Category, logo: logoFor(p.category.name, p.category.logo_url),
   speed: p.speed_mbps, price: Number(p.price), priceExGst: p.price_ex_gst != null ? Number(p.price_ex_gst) : null, install: Number(p.install_charge) || 0,
   tv: p.tv_channels || 0, ott: (p.ott_apps ?? []).map((o) => (typeof o === 'string' ? o : o.name)), validity: p.validity_days,
 });
@@ -36,7 +38,7 @@ export type PinInfo = { pincode: string; serviceable: boolean; city: { name: str
 export const lookupPin = (pin: string) => api<PinInfo>('GET', `/pincodes/${pin}`, undefined, { anon: true });
 
 export async function searchPlans(pin: string, type: Category) {
-  const r = await api<{ items: RawPlan[] }>('GET', `/plans?pincode=${pin}&type=${type}&limit=100`, undefined, { anon: true });
+  const r = await api<{ items: RawPlan[] }>('GET', `/plans?${pin ? `pincode=${pin}&` : ''}type=${API_TYPE[type]}&limit=100`, undefined, { anon: true });
   return r.items.map(mapPlan);
 }
 /* PIN suggestions: one chip per PIN code, like the website. */

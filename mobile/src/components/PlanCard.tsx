@@ -4,7 +4,7 @@ import { Button, Card, T } from '@/components/ui';
 import { CATEGORIES, inr, type Plan } from '@/lib/catalog';
 import { colors, font } from '@/lib/theme';
 
-const CTA = { fiber: 'Request connection', air_fiber: 'Book Air Fiber', tv: 'Request connection', ott: 'Get this pack' } as const;
+const CTA = { fiber: 'Request connection', air_fiber: 'Book Air Fiber', tv: 'Request connection', ott: 'Get this pack', sim: 'Book SIM' } as const;
 const Row = ({ k, v }: { k: string; v: string }) => (
   <View style={s.row}><Text style={s.rowK}>{k}</Text><Text style={s.rowV}>{v}</Text></View>
 );
@@ -27,6 +27,8 @@ export function PlanCard({ plan, picked, onCompare, onRequest }: { plan: Plan; p
           <Text style={s.speed}>{plan.speed ?? '—'}<Text style={s.mbps}> Mbps</Text></Text>
         ) : plan.type === 'tv' && plan.tv ? (
           <Text style={s.speed}>{plan.tv}<Text style={s.mbps}> channels</Text></Text>
+        ) : plan.type === 'ott' ? (
+          <Text style={s.speed}>{plan.ott.length}<Text style={s.mbps}> apps</Text></Text>
         ) : <View />}
         <Text style={s.price}>{inr(plan.price)}<Text style={s.per}>/{plan.type === 'ott' || plan.type === 'tv' ? 'month' : 'month'}</Text></Text>
       </View>

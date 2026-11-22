@@ -99,6 +99,19 @@ export function Pill({ label, on, onPress }: { label: string; on?: boolean; onPr
   );
 }
 
+/* ---------- Checkbox row ---------- */
+export function Check({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const { lang } = useLang();
+  return (
+    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 }}>
+      <View style={{ width: 22, height: 22, borderRadius: 5, borderWidth: 1.5, borderColor: on ? colors.blue : colors.lineStrong, backgroundColor: on ? colors.blue : '#fff', alignItems: 'center', justifyContent: 'center' }}>
+        {on && <Text style={{ color: '#fff', fontSize: 14, fontFamily: font.bodyXBold, lineHeight: 16 }}>✓</Text>}
+      </View>
+      <Text style={{ fontFamily: font.bodyMd, fontSize: 15.5, color: colors.ink }}>{tr(label, lang)}</Text>
+    </Pressable>
+  );
+}
+
 /* ---------- Text field ---------- */
 export function Field({ label, mono, style, containerStyle, ...rest }: { label?: string; mono?: boolean; containerStyle?: StyleProp<ViewStyle> } & TextInputProps) {
   const { lang } = useLang();
