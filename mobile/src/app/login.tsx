@@ -1,8 +1,7 @@
 import { router } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
-import { Hero } from '@/components/Hero';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Field, Pill, T } from '@/components/ui';
 import { requestOtp } from '@/lib/api';
 import { useSession } from '@/lib/session';
@@ -29,16 +28,10 @@ export default function Login() {
 
   return (
     <View style={s.screen}>
-      <Hero>
-        <View style={s.topRow}>
-          <Image source={require('../../assets/images/logo-full.png')} style={s.logo} resizeMode="contain" />
-          <Pressable accessibilityLabel="Close" onPress={() => router.back()} style={s.x}><X size={20} color="#fff" /></Pressable>
-        </View>
-        <T v="h1" style={{ color: '#fff', marginTop: 18 }}>Log in</T>
-        <T style={{ color: '#C9D8FF' }}>Customers, DSAs, installers and admins log in with a mobile number.</T>
-      </Hero>
+      <Pressable style={StyleSheet.absoluteFill} onPress={() => router.back()} accessibilityLabel="Close" />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.center} pointerEvents="box-none">
       <View style={s.card}>
-        <T v="h2">Log in to Connect Bhai</T>
+        <View style={s.head}><T v="h2" style={{ flex: 1 }}>Log in to Connect Bhai</T><Pressable accessibilityLabel="Close" onPress={() => router.back()} style={s.x}><X size={18} color={colors.ink} /></Pressable></View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Pill label="Mobile + password" on={mode === 'pw'} onPress={() => { setMode('pw'); setError(''); }} />
           <Pill label="WhatsApp OTP" on={mode === 'otp'} onPress={() => { setMode('otp'); setError(''); }} />
@@ -49,6 +42,11 @@ export default function Login() {
             <Field label="Password" secureTextEntry autoCapitalize="none" autoComplete="current-password" value={pw} onChangeText={setPw} />
             {!!error && <T style={{ color: colors.bad }}>{error}</T>}
             <Button block label="Log in" loading={busy} disabled={phone.length !== 10 || !pw} onPress={login} />
+            <T v="small" style={{ fontSize: 14 }}><T v="small" style={{ fontSize: 14, color: colors.blue, textDecorationLine: 'underline' }} onPress={() => { setMode('otp'); setError(''); }}>Forgot password?</T> Partners and customers can log in with an OTP on WhatsApp.</T>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Pill label="Admin" onPress={() => setPhone('9999999999')} />
+              <T v="small" style={{ flex: 1, fontSize: 13 }}>Fills the admin username. Enter the password and tap Log in.</T>
+            </View>
           </>
         ) : (
           <>
@@ -66,13 +64,14 @@ export default function Login() {
           </>
         )}
       </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  logo: { height: 34, width: 160 },
-  x: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
-  card: { margin: 16, marginTop: -12, backgroundColor: '#fff', borderRadius: 22, padding: 18, gap: 12, borderWidth: 1, borderColor: colors.cardLine },
+  screen: { flex: 1, backgroundColor: 'rgba(6,14,40,0.62)' },
+  center: { flex: 1, justifyContent: 'center', padding: 18 },
+  card: { backgroundColor: '#fff', borderRadius: 22, padding: 20, gap: 14 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  x: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
 });

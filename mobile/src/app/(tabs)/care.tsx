@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Activity, Gauge, KeyRound, Pencil, RotateCw, ShieldCheck, Signal, Wifi, Wrench } from 'lucide-react-native';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { AppHeader } from '@/components/AppHeader';
 import { Footer } from '@/components/Footer';
 import { RouterCard } from '@/components/dashboard';
@@ -38,6 +39,14 @@ export default function Care() {
             </>
           ) : (
             <>
+              <View style={{ alignItems: 'center' }}>
+                <Svg width={260} height={180} viewBox="0 0 320 220">
+                  <Circle cx={160} cy={116} r={96} fill="#E3ECFF" />
+                  <Path d="M96 82c36-34 92-34 128 0M118 104c24-22 60-22 84 0" fill="none" stroke="#22D3EE" strokeWidth={7} strokeLinecap="round" />
+                  <Rect x={62} y={132} width={196} height={46} rx={14} fill="#2F54E0" />
+                  <Circle cx={92} cy={155} r={6} fill="#4ADE80" /><Circle cx={114} cy={155} r={6} fill="#fff" /><Circle cx={136} cy={155} r={6} fill="#fff" />
+                </Svg>
+              </View>
               {!user && <Button icon={ShieldCheck} label="Log in to Care plan" onPress={() => router.push('/login')} />}
               {!!user && <T v="small">Modem status is shown to the customer, the installing TIP and admin. The modem list for TIP and admin is not in the app yet.</T>}
               {STEPS.map(([n, Icon, t, d]) => (

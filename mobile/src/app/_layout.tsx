@@ -26,7 +26,7 @@ function Routes() {
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="login" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="login" options={{ presentation: 'transparentModal', animation: 'fade' }} />
         <Stack.Screen name="request" options={{ presentation: 'modal' }} />
         <Stack.Screen name="compare" options={{ presentation: 'modal' }} />
       </Stack>
