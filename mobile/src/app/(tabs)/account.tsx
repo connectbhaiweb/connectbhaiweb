@@ -1,12 +1,13 @@
 import { router, usePathname } from 'expo-router';
-import { ChevronRight, Globe, Handshake, IndianRupee, LogOut, Search, Trash2 } from 'lucide-react-native';
+import { ChevronRight, Globe, LayoutDashboard, Handshake, IndianRupee, LogOut, Search, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
 import { Footer } from '@/components/Footer';
-import { Button, Card, Chip, Field, Segmented, T } from '@/components/ui';
+import { Button, Card, Chip, Field, T } from '@/components/ui';
 import { deleteMyAccount } from '@/lib/catalog';
 import { tr, useLang } from '@/lib/i18n';
+import { LANDING, PORTAL } from '@/lib/portal';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
 
@@ -23,7 +24,7 @@ const MENU: Record<string, { label: string; to: Go; Icon: typeof Search }[]> = {
 
 export default function Account() {
   const { user, signOut } = useSession();
-  const { lang, setLang } = useLang();
+  const { lang } = useLang();
   const inPortal = usePathname().startsWith('/portal');
   const [confirming, setConfirming] = useState(false);
   const [phone, setPhone] = useState('');
@@ -54,6 +55,13 @@ export default function Account() {
               <T v="h1">{user.name}</T>
               <T v="small" style={{ fontSize: 14.5 }}>+91 {user.phone}</T>
             </Card>
+            {!inPortal && (
+              <Card style={{ padding: 4 }}>
+                <Pressable style={s.item} onPress={() => router.navigate(LANDING[user.role])}>
+                  <LayoutDashboard size={20} color={colors.blue} /><Text style={s.itemText}>{tr(PORTAL[user.role], lang)}</Text><ChevronRight size={18} color="#7C8AA8" />
+                </Pressable>
+              </Card>
+            )}
             {inPortal && (
               <Card style={{ padding: 4 }}>
                 {[...(MENU[user.role] ?? []), { label: 'Back to website', to: '/' as Go, Icon: Globe }].map(({ label, to, Icon }) => (
@@ -63,10 +71,6 @@ export default function Account() {
                 ))}
               </Card>
             )}
-            <Card style={{ gap: 10 }}>
-              <T v="label">Language</T>
-              <Segmented items={[{ key: 'en', label: 'English' }, { key: 'hi', label: 'हिन्दी' }]} value={lang} onChange={setLang} />
-            </Card>
             <Button kind="outline" icon={LogOut} label="Log out" onPress={signOut} />
             {user.role !== 'admin' && !confirming && <Button kind="ghost" icon={Trash2} label="Delete my account" onPress={() => setConfirming(true)} style={{ borderColor: colors.bad }} />}
             {confirming && (

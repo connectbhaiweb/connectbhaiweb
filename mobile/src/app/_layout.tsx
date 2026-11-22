@@ -6,6 +6,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 import { LangProvider } from '@/lib/i18n';
 import { SessionProvider, useSession } from '@/lib/session';
 
@@ -29,6 +30,7 @@ function Routes() {
         <Stack.Screen name="request" options={{ presentation: 'modal' }} />
         <Stack.Screen name="compare" options={{ presentation: 'modal' }} />
       </Stack>
+      <FloatingWhatsApp />
     </>
   );
 }
