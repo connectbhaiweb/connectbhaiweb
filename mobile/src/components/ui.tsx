@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
+import { tr, useLang } from '@/lib/i18n';
 import { colors, font, shadow } from '@/lib/theme';
 
 /* ---------- Text ---------- */
@@ -15,7 +16,8 @@ const TEXT: Record<Variant, TextStyle> = {
   eyebrow: { fontFamily: font.bodyXBold, fontSize: 12, lineHeight: 18, color: colors.blue, letterSpacing: 1.4, textTransform: 'uppercase' },
 };
 export function T({ v = 'body', style, children, ...rest }: { v?: Variant; style?: StyleProp<TextStyle>; children: ReactNode } & Omit<React.ComponentProps<typeof Text>, 'style'>) {
-  return <Text {...rest} style={[TEXT[v], style]}>{children}</Text>;
+  const { lang } = useLang();
+  return <Text {...rest} style={[TEXT[v], style]}>{typeof children === 'string' ? tr(children, lang) : children}</Text>;
 }
 
 /* ---------- Button ---------- */
@@ -33,6 +35,7 @@ export function Button({ label, onPress, kind = 'primary', icon: Icon, iconRight
   label: string; onPress?: () => void; kind?: BtnKind; icon?: LucideIcon; iconRight?: LucideIcon; loading?: boolean; disabled?: boolean; block?: boolean; small?: boolean; style?: StyleProp<ViewStyle>;
 }) {
   const c = BTN[kind];
+  const { lang } = useLang(); label = tr(label, lang);
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} disabled={disabled || loading}
       style={({ pressed }) => [s.btn, small && s.btnSmall, { backgroundColor: c.bg, borderColor: c.border }, kind === 'primary' && !disabled && shadow.primary,
@@ -55,6 +58,7 @@ const TONE: Record<Tone, { bg: string; fg: string }> = {
   red: { bg: colors.redSoft, fg: colors.red }, amber: { bg: colors.warnSoft, fg: colors.warn }, grey: { bg: '#EDF1F7', fg: colors.muted },
 };
 export function Chip({ label, tone = 'blue', icon: Icon, dot }: { label: string; tone?: Tone; icon?: LucideIcon; dot?: boolean }) {
+  const { lang } = useLang(); label = tr(label, lang);
   const c = TONE[tone];
   return (
     <View style={[s.chip, { backgroundColor: c.bg }]}>
@@ -70,13 +74,14 @@ export const Card = ({ children, style }: { children: ReactNode; style?: StylePr
 
 /* ---------- Segmented control (the website's .ptabs) ---------- */
 export function Segmented<K extends string>({ items, value, onChange }: { items: { key: K; label: string }[]; value: K; onChange: (k: K) => void }) {
+  const { lang } = useLang();
   return (
     <View style={s.seg}>
       {items.map((i) => {
         const on = i.key === value;
         return (
           <Pressable key={i.key} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => onChange(i.key)} style={[s.segItem, on && s.segOn]}>
-            <Text style={[s.segText, on && { color: colors.blue }]} numberOfLines={1}>{i.label}</Text>
+            <Text style={[s.segText, on && { color: colors.blue }]} numberOfLines={1}>{tr(i.label, lang)}</Text>
           </Pressable>
         );
       })}
@@ -86,19 +91,21 @@ export function Segmented<K extends string>({ items, value, onChange }: { items:
 
 /* ---------- Pill (filter / PIN suggestion) ---------- */
 export function Pill({ label, on, onPress }: { label: string; on?: boolean; onPress?: () => void }) {
+  const { lang } = useLang();
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={[s.pill, on && { backgroundColor: colors.blue, borderColor: colors.blue }]}>
-      <Text style={[s.pillText, on && { color: '#fff' }]}>{label}</Text>
+      <Text style={[s.pillText, on && { color: '#fff' }]}>{tr(label, lang)}</Text>
     </Pressable>
   );
 }
 
 /* ---------- Text field ---------- */
 export function Field({ label, mono, style, containerStyle, ...rest }: { label?: string; mono?: boolean; containerStyle?: StyleProp<ViewStyle> } & TextInputProps) {
+  const { lang } = useLang();
   return (
     <View style={[{ gap: 6 }, containerStyle]}>
       {label ? <T v="label">{label}</T> : null}
-      <TextInput placeholderTextColor="#8C99B5" {...rest} style={[s.input, mono && s.inputMono, mono && !rest.value && { letterSpacing: 0, fontSize: 17 }, rest.multiline && { height: 92, textAlignVertical: 'top' }, style]} />
+      <TextInput placeholderTextColor="#8C99B5" {...rest} placeholder={rest.placeholder ? tr(rest.placeholder, lang) : undefined} style={[s.input, mono && s.inputMono, mono && !rest.value && { letterSpacing: 0, fontSize: 17 }, rest.multiline && { height: 92, textAlignVertical: 'top' }, style]} />
     </View>
   );
 }

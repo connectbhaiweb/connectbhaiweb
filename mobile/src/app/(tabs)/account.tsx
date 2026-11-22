@@ -3,8 +3,9 @@ import { LogOut, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
-import { Button, Card, Chip, Field, T } from '@/components/ui';
+import { Button, Card, Chip, Field, Segmented, T } from '@/components/ui';
 import { deleteMyAccount } from '@/lib/catalog';
+import { useLang } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { colors } from '@/lib/theme';
 
@@ -12,6 +13,7 @@ const TITLE = { customer: 'Customer', dsa: 'DSA', tip: 'TIP partner', admin: 'Ad
 
 export default function Account() {
   const { user, signOut } = useSession();
+  const { lang, setLang } = useLang();
   const [confirming, setConfirming] = useState(false);
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
@@ -39,7 +41,10 @@ export default function Account() {
               <Chip label={TITLE[user.role]} tone="blue" />
               <T v="h1">{user.name}</T>
               <T v="small" style={{ fontSize: 14.5 }}>+91 {user.phone}</T>
-              {user.role !== 'customer' && <T v="small">The {TITLE[user.role]} dashboard is coming soon in the app.</T>}
+            </Card>
+            <Card style={{ gap: 10 }}>
+              <T v="label">Language</T>
+              <Segmented items={[{ key: 'en', label: 'English' }, { key: 'hi', label: 'हिन्दी' }]} value={lang} onChange={setLang} />
             </Card>
             <Button kind="outline" icon={LogOut} label="Log out" onPress={signOut} />
             {user.role !== 'admin' && !confirming && <Button kind="ghost" icon={Trash2} label="Delete my account" onPress={() => setConfirming(true)} style={{ borderColor: colors.bad }} />}

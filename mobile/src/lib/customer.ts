@@ -2,7 +2,7 @@ import { api } from './api';
 import { mapPlan, type Plan } from './catalog';
 
 /* Customer data, mapped the same way as the website's rest.js (mapLead / mapBooking / mapCharge). */
-async function all<T>(path: string): Promise<T[]> {
+export async function all<T>(path: string): Promise<T[]> {
   const first = await api<{ items: T[]; total: number }>('GET', `${path}${path.includes('?') ? '&' : '?'}page=1&limit=100`);
   const items = [...first.items];
   const pages = Math.min(Math.ceil((first.total || 0) / 100), 50);
@@ -18,15 +18,17 @@ const LS: Record<string, LeadStatus> = { new: 'new', contacted: 'contacted', fol
 
 export type Lead = {
   id: number; ref: string; status: LeadStatus; pincode: string; area: string | null; address: string | null; createdAt: string; assignedAt: string | null;
+  name: string; phone: string; notes: string; followUp: string | null; source: string;
   plan: Plan | null; telephoneNo: string; orderNo: string; carePlan: boolean; dsa: Person | null; tip: Person | null;
   booking: { id: number; status: 'scheduled' | 'installed' | 'cancelled'; scheduledAt: string | null; installedAt: string | null } | null;
   payment: { amount: number; paidAt: string | null } | null;
 };
-const mapLead = (l: any): Lead => {
+export const mapLead = (l: any): Lead => {
   const bk = Array.isArray(l.bookings) && l.bookings[0] ? l.bookings[0] : null;
   return {
     id: l.id, ref: l.ref_code, pincode: l.pincode, area: l.area?.name ?? null, address: l.address, createdAt: l.created_at, assignedAt: l.updated_at,
     status: l.status === 'new' && (l.brought_by_user_id || l.tip_user_id) ? 'assigned' : (LS[l.status] ?? 'new'),
+    name: l.customer_name || '', phone: l.customer_phone || '', notes: l.notes || '', followUp: l.followup_at ?? null, source: l.source || '',
     plan: l.plan ? mapPlan({ ...l.plan, category: l.plan.category }) : null, telephoneNo: l.telephone_no || '', orderNo: l.order_no || '', carePlan: !!l.care_plan,
     dsa: person(l.dsa), tip: person(l.tip),
     booking: bk ? { id: bk.id, status: bk.status === 'completed' ? 'installed' : bk.status === 'cancelled' ? 'cancelled' : 'scheduled', scheduledAt: bk.scheduled_at, installedAt: bk.completed_at } : null,

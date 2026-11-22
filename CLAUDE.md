@@ -77,7 +77,11 @@ Modules in `src/<feature>/` (auth, leads, bookings, payments, care-plan, commiss
 
 ## Mobile
 Routes in `src/app/` (`_layout.tsx` = navigators); non-route code in `src/components`, `src/lib`. Never hand-edit `ios/`/`android/`. Check versioned Expo docs before using any API.
-- Rebuilt from scratch (Expo SDK 58, TypeScript, bundle ID `com.connectbhai.app`, iOS + Android, one project for both). Same backend, no new APIs. `src/lib/api.ts` = fetch client (tokens in `expo-secure-store`, auto refresh on 401); `src/lib/session.tsx` = login state; `src/app/login.tsx` = phone + OTP; `src/app/_layout.tsx` guards routes with `Stack.Protected`. Role dashboards are still to build.
+- Rebuilt from scratch (Expo SDK 58, TypeScript, bundle ID `com.connectbhai.app`, iOS + Android, one project for both). Same backend, no new APIs. `src/lib/api.ts` = fetch client (tokens in `expo-secure-store`, auto refresh on 401); `src/lib/session.tsx` = login state. Browsing (Home, PIN search, `plans`, compare, request) is public; no route guards.
+- Navigation: `(tabs)/_layout.tsx` shows tabs by role (others get `href: null`): guest/customer = Plans, My bookings, More; DSA = Home, Leads, Installs, Commission, More. TIP and admin show Home (placeholder) + More until their dashboards are built. `More` = `account.tsx` (language, log out, delete account). Detail screens are Stack routes (`lead/[id]`, `lead/new`).
+- Data layers: `lib/catalog.ts` (public plans), `lib/customer.ts` (customer + shared lead mapper), `lib/partner.ts` (DSA/TIP/admin lead actions, dashboard, commissions), `lib/pay.ts` (plan payment: mock gateway in dev, `react-native-razorpay` live), `lib/router.ts` (Care plan router restart, Wi-Fi, speed test).
+- Language: `lib/i18n.tsx` (`tr(text, lang)`, `useLang`), Hindi in `lib/hi.json` (copied from the website lists) and `lib/hi-extra.ts` (app-only text). React Compiler is on: always pass `lang` into `tr` so text re-renders. New visible text needs a Hindi entry in `hi-extra.ts`.
+- Not built: SIM plans (the real API has none), TIP and admin dashboards, current-location PIN, max-price filter.
 - First iOS build: `export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` (CocoaPods crashes without it), then `npx expo run:ios`; later `npx expo start --dev-client`. `ios/` and `android/` are generated and git-ignored.
 
 ## Rules for Claude

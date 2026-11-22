@@ -2,6 +2,7 @@ import { Clock, Headset, Phone, Scale, ShieldCheck, UserRound } from 'lucide-rea
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { tr, useLang } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
 
@@ -11,29 +12,35 @@ const TRUST = [[ShieldCheck, 'Trusted Providers'], [Scale, 'Unbiased Comparison'
 export function AppHeader() {
   const { top } = useSafeAreaInsets();
   const { user } = useSession();
+  const { lang, setLang } = useLang();
   return (
     <View style={{ backgroundColor: colors.trust }}>
       <View style={[s.trust, { paddingTop: top, height: 40 + top }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.trustRow} style={{ flex: 1 }}>
           {TRUST.map(([Icon, label]) => (
-            <View key={label} style={s.trustItem}><Icon size={15} color="#5EE0A8" strokeWidth={2} /><Text style={s.trustText}>{label}</Text></View>
+            <View key={label} style={s.trustItem}><Icon size={15} color="#5EE0A8" strokeWidth={2} /><Text style={s.trustText}>{tr(label, lang)}</Text></View>
           ))}
         </ScrollView>
         <Pressable accessibilityLabel="Call Connect Bhai" onPress={() => Linking.openURL('tel:+919479935365')} style={s.call}><Phone size={17} color="#5EE0A8" strokeWidth={2.2} /></Pressable>
       </View>
       <View style={s.head}>
         <Image source={require('../../assets/images/logo-full.png')} style={s.logo} resizeMode="contain" />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Pressable accessibilityLabel="Language" onPress={() => setLang(lang === 'en' ? 'hi' : 'en')} style={s.lang}><Text style={s.langText}>{lang === 'en' ? 'हिं' : 'EN'}</Text></Pressable>
         {user ? (
           <Pressable onPress={() => router.push('/(tabs)/account')} style={s.who}><UserRound size={16} color="#fff" /><Text style={s.whoText} numberOfLines={1}>{user.name.split(' ')[0]}</Text></Pressable>
         ) : (
-          <Pressable onPress={() => router.push('/login')} style={s.login}><Text style={s.loginText}>Log in</Text></Pressable>
+          <Pressable onPress={() => router.push('/login')} style={s.login}><Text style={s.loginText}>{tr('Log in', lang)}</Text></Pressable>
         )}
+        </View>
       </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
+  lang: { width: 40, height: 38, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
+  langText: { color: '#fff', fontFamily: font.bodyBold, fontSize: 14 },
   trust: { flexDirection: 'row', alignItems: 'center', height: 40 + 0, paddingLeft: 14, paddingRight: 8 },
   trustRow: { alignItems: 'center', gap: 22 },
   trustItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },
