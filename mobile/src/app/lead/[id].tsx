@@ -5,11 +5,11 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, Vi
 import { AppHeader } from '@/components/AppHeader';
 import { Button, Card, Chip, Field, Pill, T } from '@/components/ui';
 import { fDate, leadChip, planTitle } from '@/lib/customer';
-import { assignTip, bookInstall, dayChoices, loadLead, setStatus, tipOptions, type Lead, type TipOption } from '@/lib/partner';
+import { assignTip, bookInstall, completeInstall, startInstall, dayChoices, loadLead, setStatus, tipOptions, type Lead, type TipOption } from '@/lib/partner';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
 
-type Panel = '' | 'follow' | 'lost' | 'book' | 'tip';
+type Panel = '' | 'follow' | 'lost' | 'book' | 'tip' | 'done';
 
 export default function LeadDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +24,8 @@ export default function LeadDetail() {
   const [tipId, setTipId] = useState<number | null>(null);
   const [tel, setTel] = useState('');
   const [order, setOrder] = useState('');
+  const [conn, setConn] = useState('');
+  const [serial, setSerial] = useState('');
   const days = dayChoices();
 
   const load = useCallback(async () => {
@@ -41,7 +43,9 @@ export default function LeadDetail() {
     try { setTips(await tipOptions(Number(id))); } catch (e) { setError(e instanceof Error ? e.message : 'Could not load installers.'); }
   };
 
-  const mine = user?.role === 'dsa' || user?.role === 'admin';
+  const mine = user?.role === 'dsa' || user?.role === 'admin' || user?.role === 'tip';
+  const installer = user?.role === 'tip' || user?.role === 'admin';
+  const assigner = user?.role === 'dsa' || user?.role === 'admin';
   const st = lead?.status;
   const open = st === 'new' || st === 'assigned' || st === 'contacted' || st === 'follow_up';
   const [chip, tone] = st ? leadChip(st) : ['', 'blue' as const];
@@ -100,7 +104,7 @@ export default function LeadDetail() {
               </Card>
             )}
 
-            {mine && st === 'booked' && (
+            {assigner && st === 'booked' && (
               <Card style={{ gap: 10 }}>
                 <T v="h3">{lead.tip ? 'Change installer' : 'Assign an installer'}</T>
                 {panel !== 'tip' ? <Button label={lead.tip ? 'Change installer' : 'Assign installer'} onPress={openTip} /> : (
@@ -113,7 +117,22 @@ export default function LeadDetail() {
                 )}
               </Card>
             )}
-            {!mine && <T v="small">Only the lead&apos;s DSA or admin can change this lead.</T>}
+            {installer && st === 'booked' && lead.booking?.status === 'scheduled' && (
+              <Card style={{ gap: 10 }}>
+                <T v="h3">Installation</T>
+                <T v="small">Scheduled {fDate(lead.booking.scheduledAt)}</T>
+                <Button kind="soft" label="I have reached the site" loading={busy && panel === ''} onPress={() => act(() => startInstall(lead.booking!.id))} />
+                <Button label="Complete installation" onPress={() => setPanel(panel === 'done' ? '' : 'done')} />
+                {panel === 'done' && (
+                  <View style={{ gap: 10 }}>
+                    <Field label="Connection ID" value={conn} onChangeText={setConn} autoCapitalize="characters" maxLength={60} />
+                    <Field label="Router serial (optional)" value={serial} onChangeText={setSerial} autoCapitalize="characters" maxLength={60} />
+                    <Button label="Mark installed" loading={busy} disabled={conn.trim().length < 2} onPress={() => act(() => completeInstall(lead.booking!.id, { connectionId: conn, routerSerial: serial }))} />
+                  </View>
+                )}
+              </Card>
+            )}
+            {!mine && <T v="small">Only the people on this lead can change it.</T>}
           </>
         )}
         {!!error && <T v="small" style={{ color: colors.red, fontSize: 14 }}>{error}</T>}

@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { ClipboardList, House, IndianRupee, Menu, Search, Users, Wrench } from 'lucide-react-native';
+import { ClipboardList, CreditCard, House, IndianRupee, Menu, Search, Users, Wrench } from 'lucide-react-native';
 import { tr, useLang } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
@@ -9,7 +9,7 @@ const SHOWN: Record<string, string[]> = {
   guest: ['index', 'requests', 'account'],
   customer: ['index', 'requests', 'account'],
   dsa: ['home', 'leads', 'installs', 'commission', 'account'],
-  tip: ['home', 'account'],
+  tip: ['home', 'leads', 'payments', 'account'],
   admin: ['home', 'account'],
 };
 
@@ -31,6 +31,7 @@ export default function TabsLayout() {
       {tab('home', 'Home', House)}
       {tab('leads', 'Leads', Users)}
       {tab('installs', 'Installs', Wrench)}
+      {tab('payments', 'Payments', CreditCard)}
       {tab('commission', 'Commission', IndianRupee)}
       {tab('account', 'More', Menu)}
     </Tabs>

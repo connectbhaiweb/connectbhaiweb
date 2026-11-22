@@ -43,3 +43,14 @@ export const dayChoices = (): { label: string; date: Date }[] => {
   const at = (d: number) => { const x = new Date(); x.setDate(x.getDate() + d); if (d === 0) x.setHours(23, 59, 0, 0); else x.setHours(18, 0, 0, 0); return x; };
   return [{ label: 'Today', date: at(0) }, { label: 'Tomorrow', date: at(1) }, { label: 'In 3 days', date: at(3) }, { label: 'Next week', date: at(7) }];
 };
+
+export const startInstall = (bookingId: number) => api('POST', `/bookings/${bookingId}/start`, {});
+export const completeInstall = (bookingId: number, f: { connectionId: string; routerSerial?: string; notes?: string }) =>
+  api('POST', `/bookings/${bookingId}/complete`, { connection_id: f.connectionId.trim(), router_serial: f.routerSerial?.trim() || undefined, notes: f.notes?.trim() || undefined });
+
+export type Fee = { id: number; ref: string; description: string; amount: number; status: string; paidAt: string | null; createdAt: string };
+export const loadFees = () =>
+  all<any>('/charges').then((r) => r.map((c): Fee => ({
+    id: c.id, ref: c.invoice_no || `CH-${String(c.id).padStart(6, '0')}`, description: c.description || 'Fee', amount: Number(c.total_amount),
+    status: c.status === 'pending' ? 'due' : c.status, paidAt: c.paid_at ?? null, createdAt: c.created_at,
+  })));

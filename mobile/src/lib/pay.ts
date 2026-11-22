@@ -6,7 +6,11 @@ type Who = { name?: string | null; phone?: string | null };
 /** Pays the plan price of a lead. The server prices it; the app only opens checkout. */
 export async function payPlan(leadId: number, who: Who): Promise<void> {
   const charge = await api<{ id: number }>('POST', '/charges/customer', { lead_id: leadId });
-  const id = charge.id;
+  await payCharge(charge.id, who);
+}
+
+/** Pays any charge that already exists (a TIP's fee to Connect Bhai, or a customer's plan charge). */
+export async function payCharge(id: number, who: Who): Promise<void> {
   const o = await api<Order>('POST', `/charges/${id}/pay`, {});
   if (o.mock) {
     await api('POST', `/charges/${id}/mock-pay`, {});
