@@ -3,9 +3,9 @@ import { CalendarDays, ChevronLeft } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
-import { Button, Card, Chip, Field, Pill, T } from '@/components/ui';
+import { Button, Card, Chip, Field, Pill, Segmented, T } from '@/components/ui';
 import { fDate, leadChip, planTitle } from '@/lib/customer';
-import { assignDsa, assignTip, bookInstall, completeInstall, startInstall, dayChoices, loadLead, loadPartners, setStatus, tipOptions, type Lead, type Partner, type TipOption } from '@/lib/partner';
+import { assignDsa, assignTip, bookInstall, cancelBooking, completeInstall, startInstall, dayChoices, loadLead, loadPartners, setStatus, tipOptions, type Lead, type Partner, type TipOption } from '@/lib/partner';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
 
@@ -28,6 +28,9 @@ export default function LeadDetail() {
   const [dsaId, setDsaId] = useState<number | null>(null);
   const [conn, setConn] = useState('');
   const [serial, setSerial] = useState('');
+  const [mac, setMac] = useState('');
+  const [note, setNote] = useState('');
+  const [ist, setIst] = useState<'installed' | 'in_progress' | 'cancelled'>('installed');
   const days = dayChoices();
 
   const load = useCallback(async () => {
@@ -138,15 +141,22 @@ export default function LeadDetail() {
               <Card style={{ gap: 10 }}>
                 <T v="h3">Installation</T>
                 <T v="small">Scheduled {fDate(lead.booking.scheduledAt)}</T>
-                <Button kind="soft" label="I have reached the site" loading={busy && panel === ''} onPress={() => act(() => startInstall(lead.booking!.id))} />
-                <Button label="Complete installation" onPress={() => setPanel(panel === 'done' ? '' : 'done')} />
-                {panel === 'done' && (
-                  <View style={{ gap: 10 }}>
-                    <Field label="Connection ID" value={conn} onChangeText={setConn} autoCapitalize="characters" maxLength={60} />
-                    <Field label="Router serial (optional)" value={serial} onChangeText={setSerial} autoCapitalize="characters" maxLength={60} />
-                    <Button label="Mark installed" loading={busy} disabled={conn.trim().length < 2} onPress={() => act(() => completeInstall(lead.booking!.id, { connectionId: conn, routerSerial: serial }))} />
-                  </View>
+                <T v="label">New status</T>
+                <Segmented<'installed' | 'in_progress' | 'cancelled'> items={[{ key: 'installed', label: 'Installed' }, { key: 'in_progress', label: 'In progress' }, { key: 'cancelled', label: 'Cancelled' }]} value={ist} onChange={setIst} />
+                {ist === 'installed' && (
+                  <>
+                    <Field label="Connection reference" placeholder="Provider account / FTTH ID" value={conn} onChangeText={setConn} autoCapitalize="characters" maxLength={60} />
+                    <T v="small" style={{ fontSize: 13 }}>Required to mark Installed. Marking installed also creates the commission.</T>
+                    <Field label="ONT / modem serial number (Genie)" placeholder="e.g. ZTEGC8A1B2C3" value={serial} onChangeText={setSerial} autoCapitalize="characters" maxLength={60} />
+                    <T v="small" style={{ fontSize: 13 }}>Printed on the modem label. Links the modem for live status, Wi-Fi change, restart and speed tests.</T>
+                    <Field label="Modem MAC address (optional)" value={mac} onChangeText={setMac} autoCapitalize="characters" maxLength={20} />
+                    <Field label="Notes (optional)" value={note} onChangeText={setNote} maxLength={500} />
+                  </>
                 )}
+                {ist === 'in_progress' && <T v="small">This tells the customer the installer has reached the site.</T>}
+                {ist === 'cancelled' && <T v="small">This cancels the booking.</T>}
+                <Button label="Save" loading={busy} disabled={ist === 'installed' && conn.trim().length < 2}
+                  onPress={() => act(() => ist === 'installed' ? completeInstall(lead.booking!.id, { connectionId: conn, routerSerial: serial, routerMac: mac, notes: note }) : ist === 'in_progress' ? startInstall(lead.booking!.id) : cancelBooking(lead.booking!.id))} />
               </Card>
             )}
             {!mine && <T v="small">Only the people on this lead can change it.</T>}

@@ -45,8 +45,9 @@ export const dayChoices = (): { label: string; date: Date }[] => {
 };
 
 export const startInstall = (bookingId: number) => api('POST', `/bookings/${bookingId}/start`, {});
-export const completeInstall = (bookingId: number, f: { connectionId: string; routerSerial?: string; notes?: string }) =>
-  api('POST', `/bookings/${bookingId}/complete`, { connection_id: f.connectionId.trim(), router_serial: f.routerSerial?.trim() || undefined, notes: f.notes?.trim() || undefined });
+export const completeInstall = (bookingId: number, f: { connectionId: string; routerSerial?: string; routerMac?: string; notes?: string }) =>
+  api('POST', `/bookings/${bookingId}/complete`, { connection_id: f.connectionId.trim(), router_serial: f.routerSerial?.trim().toUpperCase() || undefined, router_mac: f.routerMac?.trim() || undefined, notes: f.notes?.trim() || undefined });
+export const cancelBooking = (bookingId: number) => api('PATCH', `/bookings/${bookingId}`, { status: 'cancelled' });
 
 export type Fee = { id: number; ref: string; description: string; amount: number; status: string; paidAt: string | null; createdAt: string };
 export const loadFees = () =>

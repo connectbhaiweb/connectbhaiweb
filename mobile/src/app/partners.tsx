@@ -3,6 +3,7 @@ import { Phone } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Linking, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
+import { BackBar } from '@/components/BackBar';
 import { Button, Card, Chip, Field, Pill, Segmented, T } from '@/components/ui';
 import { loadPartners, setPartnerStatus, type Partner } from '@/lib/partner';
 import { colors, font } from '@/lib/theme';
@@ -40,6 +41,7 @@ export default function Partners() {
   return (
     <View style={s.screen}>
       <AppHeader />
+      <BackBar />
       <FlatList
         data={shown} keyExtractor={(p) => String(p.id)} keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={false} onRefresh={() => load(role)} />}

@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
+import { BackBar } from '@/components/BackBar';
 import { Kpi } from '@/components/partner';
 import { Card, Chip, T } from '@/components/ui';
 import { inr } from '@/lib/catalog';
@@ -25,6 +26,7 @@ export default function CommissionTab() {
   return (
     <View style={s.screen}>
       <AppHeader />
+      <BackBar />
       <FlatList
         data={rows} keyExtractor={(c) => String(c.id)} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}
         contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 30 }}
