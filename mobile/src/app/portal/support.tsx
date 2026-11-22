@@ -33,8 +33,8 @@ export default function Support() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
-  const refresh = useCallback(async () => { try { setTickets(await loadTickets()); } catch { setTickets([]); } await load(); }, [load]);
-  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+  const refresh = async () => { try { setTickets(await loadTickets()); } catch { setTickets([]); } await load(); };
+  useFocusEffect(useCallback(() => { loadTickets().then(setTickets).catch(() => setTickets([])); load(); }, [load]));
 
   const leads = (data?.leads ?? []).filter((l) => l.status !== 'lost');
   const act = leads[0];
