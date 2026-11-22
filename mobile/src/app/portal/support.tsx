@@ -34,7 +34,7 @@ export default function Support() {
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
   const refresh = async () => { try { setTickets(await loadTickets()); } catch { setTickets([]); } await load(); };
-  useFocusEffect(useCallback(() => { loadTickets().then(setTickets).catch(() => setTickets([])); load(); }, [load]));
+  useFocusEffect(useCallback(() => { loadTickets().then(setTickets).catch(() => setTickets([])); load(); }, [load, setTickets]));
 
   const leads = (data?.leads ?? []).filter((l) => l.status !== 'lost');
   const act = leads[0];
