@@ -40,14 +40,14 @@ const mapCharge = (c: any): Charge => ({
   status: c.status === 'pending' ? 'due' : c.status, paidAt: c.paid_at,
 });
 
-export type Device = { leadId: number; online: boolean | null; rxDbm: number | null; lastSeen: string | null };
+export type Device = { id: number; leadId: number; online: boolean | null; rxDbm: number | null; lastSeen: string | null };
 
 export type CustomerData = { leads: Lead[]; charges: Charge[]; devices: Device[] };
 export async function loadCustomer(): Promise<CustomerData> {
   const [leads, charges, devices] = await Promise.all([
     all<any>('/leads').then((l) => l.map(mapLead)),
     all<any>('/charges').then((c) => c.map(mapCharge)).catch(() => []),
-    all<any>('/care-plan/devices').then((d) => d.map((x): Device => ({ leadId: x.lead_id, online: x.online ?? null, rxDbm: x.rx_power_dbm != null ? Number(x.rx_power_dbm) : null, lastSeen: x.last_seen_at }))).catch(() => []),
+    all<any>('/care-plan/devices').then((d) => d.map((x): Device => ({ id: x.id, leadId: x.lead_id, online: x.online ?? null, rxDbm: x.rx_power_dbm != null ? Number(x.rx_power_dbm) : null, lastSeen: x.last_seen_at }))).catch(() => []),
   ]);
   return { leads, charges, devices };
 }

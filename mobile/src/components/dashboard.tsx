@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { ArrowRight, CalendarDays, Check, ChevronRight, CircleCheck, CircleX, Clock, CreditCard, FileText, MapPin, Phone, Store, UserCheck, UserRound, Wifi } from 'lucide-react-native';
+import { ArrowRight, CalendarDays, Check, ChevronRight, CircleCheck, CircleX, Clock, CreditCard, FileText, Gauge, KeyRound, MapPin, Phone, Store, UserCheck, RotateCw, UserRound, Wifi } from 'lucide-react-native';
 import { useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Chip, T } from '@/components/ui';
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Button, Card, Chip, Field, T } from '@/components/ui';
 import { inr } from '@/lib/catalog';
 import { payPlan } from '@/lib/pay';
+import { changeWifi, restartRouter, runSpeedTest, type SpeedResult } from '@/lib/router';
 import { useSession } from '@/lib/session';
 import { STEPS, STEP_OF, fDate, fDayTime, leadChip, planTitle, type Charge, type Device, type Lead, type Person } from '@/lib/customer';
 import { colors, font } from '@/lib/theme';
@@ -121,6 +122,30 @@ export function RouterCard({ lead, device }: { lead: Lead | undefined; device: D
   const on = device?.online === true, off = device?.online === false;
   const [chip, tone] = !installed ? (['Not installed', 'grey'] as const) : on ? (['Online', 'green'] as const) : off ? (['Offline', 'red'] as const) : (['Status unavailable', 'grey'] as const);
   const rx = installed ? rxOf(device?.rxDbm ?? null) : null;
+  const [busy, setBusy] = useState<'' | 'restart' | 'wifi' | 'speed'>('');
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [wifi, setWifi] = useState(false);
+  const [ssid, setSsid] = useState('');
+  const [pw, setPw] = useState('');
+  const [speed, setSpeed] = useState<SpeedResult | null>(null);
+  const live = installed && !!lead?.carePlan && !!device;
+
+  const run = async (kind: 'restart' | 'wifi' | 'speed', fn: () => Promise<string | void>) => {
+    setBusy(kind); setNote(null);
+    try { const t = await fn(); if (t) setNote({ ok: true, text: t }); }
+    catch (e) { setNote({ ok: false, text: e instanceof Error ? e.message : 'Something went wrong.' }); }
+    setBusy('');
+  };
+  const restart = () => Alert.alert('Restart router?', 'Your internet will drop for about 2 minutes.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Restart', style: 'destructive', onPress: () => run('restart', async () => { await restartRouter(device!.id); return 'Restart sent. It runs when the router next checks in (about a minute).'; }) },
+  ]);
+  const saveWifi = () => {
+    if (!ssid.trim() || (pw && pw.length < 8)) { setNote({ ok: false, text: 'Enter a Wi-Fi name, and a password of at least 8 characters.' }); return; }
+    run('wifi', async () => { await changeWifi(device!.id, ssid.trim(), pw); setWifi(false); setSsid(''); setPw(''); return 'Wi-Fi change sent. Devices reconnect after it applies.'; });
+  };
+  const test = () => run('speed', async () => { setSpeed(null); setSpeed(await runSpeedTest(device!.id)); });
+
   return (
     <Card style={{ gap: 10, padding: 12, borderRadius: 14 }}>
       <View style={s.head}><View style={s.h2}><Wifi size={20} color={colors.actionInk} strokeWidth={2.6} /><Text style={s.h2Text}>Router status</Text></View><Chip dot label={chip} tone={tone} /></View>
@@ -128,6 +153,33 @@ export function RouterCard({ lead, device }: { lead: Lead | undefined; device: D
         {installed ? (rx ? <>Signal: <Text style={{ fontFamily: font.bodyXBold, color: rx[1] }}>{rx[0]}</Text></> : 'Signal: not reported yet') : 'Shows after installation'}
       </Text>
       {installed && !lead?.carePlan && <T v="small">Activate the Care plan to see live status and manage your router.</T>}
+      {live && (
+        <View style={{ gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Button small kind="outline" icon={RotateCw} label="Restart" loading={busy === 'restart'} disabled={!!busy || off} onPress={restart} style={{ flex: 1 }} />
+            <Button small kind="outline" icon={KeyRound} label="Wi-Fi" disabled={!!busy || off} onPress={() => { setNote(null); setWifi(!wifi); }} style={{ flex: 1 }} />
+            <Button small kind="outline" icon={Gauge} label="Speed" loading={busy === 'speed'} disabled={!!busy} onPress={test} style={{ flex: 1 }} />
+          </View>
+          {wifi && (
+            <View style={{ gap: 10 }}>
+              <Field label="New Wi-Fi name" value={ssid} onChangeText={setSsid} autoCapitalize="none" autoCorrect={false} maxLength={32} />
+              <Field label="New password (optional)" value={pw} onChangeText={setPw} autoCapitalize="none" autoCorrect={false} secureTextEntry maxLength={63} />
+              <Button label="Save Wi-Fi" loading={busy === 'wifi'} onPress={saveWifi} />
+            </View>
+          )}
+          {busy === 'speed' && <T v="small">Testing your line. This can take 1 to 3 minutes…</T>}
+          {speed && (
+            <View style={s.speedRow}>
+              <View style={s.speedCell}><Text style={s.speedNum}>{speed.down ?? '–'}</Text><Text style={s.small}>Download Mbps</Text></View>
+              <View style={s.speedCell}><Text style={s.speedNum}>{speed.up ?? '–'}</Text><Text style={s.small}>Upload Mbps</Text></View>
+              <View style={s.speedCell}><Text style={s.speedNum}>{speed.ping ?? '–'}</Text><Text style={s.small}>Ping ms</Text></View>
+            </View>
+          )}
+          {speed?.simulated && <T v="small">Simulated result (test environment).</T>}
+          {off && <T v="small">The router is offline, so restart and Wi-Fi change are unavailable.</T>}
+          {note && <T v="small" style={{ color: note.ok ? colors.greenInk : colors.red }}>{note.text}</T>}
+        </View>
+      )}
     </Card>
   );
 }
@@ -174,6 +226,9 @@ export function PastRequests({ leads, onOpen }: { leads: Lead[]; onOpen: (l: Lea
 }
 
 const s = StyleSheet.create({
+  speedRow: { flexDirection: 'row', gap: 8 },
+  speedCell: { flex: 1, backgroundColor: colors.blueSoft, borderRadius: 12, padding: 10, alignItems: 'center' },
+  speedNum: { fontFamily: font.displayXBold, fontSize: 22, color: colors.ink },
   top: { flexDirection: 'row', gap: 10 },
   ico: { width: 50, height: 50, borderRadius: 12, backgroundColor: '#E5EDFE', alignItems: 'center', justifyContent: 'center' },
   bkTitle: { fontFamily: font.display, fontSize: 17, color: colors.ink },
