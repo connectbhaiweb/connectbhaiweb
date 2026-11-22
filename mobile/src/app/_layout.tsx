@@ -6,17 +6,14 @@ import { SessionProvider, useSession } from '@/lib/session';
 SplashScreen.preventAutoHideAsync();
 
 function Routes() {
-  const { user, ready } = useSession();
+  const { ready } = useSession();
   useEffect(() => { if (ready) SplashScreen.hideAsync(); }, [ready]);
   if (!ready) return null;
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!user}>
-        <Stack.Screen name="index" />
-      </Stack.Protected>
-      <Stack.Protected guard={!user}>
-        <Stack.Screen name="login" />
-      </Stack.Protected>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="login" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="request" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }
