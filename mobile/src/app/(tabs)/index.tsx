@@ -1,19 +1,19 @@
 import { router } from 'expo-router';
-import { ChevronDown, ListChecks, RotateCcw, Search, ShieldCheck, Wrench } from 'lucide-react-native';
+import { ChevronDown, RotateCcw } from 'lucide-react-native';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppHeader } from '@/components/AppHeader';
-import { CareCard } from '@/components/CareCard';
 import { Faq } from '@/components/Faq';
 import { Footer } from '@/components/Footer';
 import { Hero } from '@/components/Hero';
 import { Results } from '@/components/Results';
-import { Story } from '@/components/Story';
+import { WebArt } from '@/components/WebArt';
 import { Button, Card, Field, Pill, Segmented, T } from '@/components/ui';
 import { CATEGORIES, popularPins, type Category } from '@/lib/catalog';
 import { tr, useLang } from '@/lib/i18n';
 import { compare, useCompare } from '@/lib/plan-state';
 import { joinWaitlist, loadCities, type City } from '@/lib/site';
+import { ART_CARECARD, ART_STEPS, ART_STORY } from '@/lib/web-art.generated';
 import { colors, font, shadow } from '@/lib/theme';
 
 const TITLE: Record<Category, [string, string]> = {
@@ -23,11 +23,11 @@ const TITLE: Record<Category, [string, string]> = {
   ott: ['OTT packs', "Streaming app bundles you can add to any connection. Check what's available at your PIN code."],
   sim: ['Book a SIM online', 'Get a new number or keep your number and switch (port). Delivered to your door in Indore with e-KYC.'],
 };
-const HOW: [string, string, string, typeof Search][] = [
-  ['01 / Compare', 'Search your PIN code', 'See only the plans that are actually offered in your area, with speed, price, data and OTT/TV benefits.', Search],
-  ['02 / Choose', 'Request a connection', 'Pick a plan and share your details. You get a request number immediately.', ListChecks],
-  ['03 / Connect', 'Track installation', 'An assigned TIP calls you, books the installation and updates every step in your dashboard.', Wrench],
-  ['04 / Care', 'Stay looked after', 'Check your modem status, restart it and change your Wi-Fi from your dashboard, and raise a ticket whenever you need help.', ShieldCheck],
+const HOW: [string, string, string][] = [
+  ['01 / Compare', 'Search your PIN code', 'See only the plans that are actually offered in your area, with speed, price, data and OTT/TV benefits.'],
+  ['02 / Choose', 'Request a connection', 'Pick a plan and share your details. You get a request number immediately.'],
+  ['03 / Connect', 'Track installation', 'An assigned TIP calls you, books the installation and updates every step in your dashboard.'],
+  ['04 / Care', 'Stay looked after', 'Check your modem status, restart it and change your Wi-Fi from your dashboard, and raise a ticket whenever you need help.'],
 ];
 
 export default function Home() {
@@ -131,17 +131,17 @@ export default function Home() {
         )}
 
         <View style={s.sec}>
-          <Story />
-          <CareCard />
+          <WebArt html={ART_STORY} minHeight={220} />
+          <WebArt html={ART_CARECARD} minHeight={260} />
           <T style={{ fontSize: 14.5, lineHeight: 21 }}>Free for customers · BSNL TIPs, DSAs & local ISPs · Installation tracked end to end</T>
         </View>
 
         <View style={s.sec}>
           <T v="eyebrow">How it works</T>
           <T v="h1">From search to a working connection</T>
-          {HOW.map(([n, h, p, Icon]) => (
+          {HOW.map(([n, h, p]) => (
             <Card key={n} style={{ gap: 6, padding: 0, overflow: 'hidden' }}>
-              <View style={s.art}><Icon size={40} color={colors.blue} strokeWidth={1.8} /></View>
+              <WebArt html={ART_STEPS[HOW.findIndex((x) => x[0] === n)].match(/<div class="step-top">[\s\S]*?<\/span><\/div>/)?.[0] ?? ''} minHeight={90} css="body{padding-bottom:20px}.step-top{margin:0}" />
               <View style={{ padding: 16, gap: 6 }}><T v="eyebrow">{n}</T><T v="h2">{h}</T><T v="small" style={{ fontSize: 14.5, lineHeight: 21 }}>{p}</T></View>
             </Card>
           ))}

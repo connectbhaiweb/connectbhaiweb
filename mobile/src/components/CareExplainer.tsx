@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { Activity, Gauge, KeyRound, Pencil, RotateCw, ShieldCheck, Signal, Wifi, Wrench } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { Button, Card, T } from '@/components/ui';
+import { WebArt } from '@/components/WebArt';
+import { ART_CARE } from '@/lib/web-art.generated';
 import { tr, useLang } from '@/lib/i18n';
 import { useSession } from '@/lib/session';
 import { colors, font } from '@/lib/theme';
@@ -21,14 +22,7 @@ export function CareExplainer() {
   const { user } = useSession();
   return (
     <>
-              <View style={{ alignItems: 'center' }}>
-                <Svg width={260} height={180} viewBox="0 0 320 220">
-                  <Circle cx={160} cy={116} r={96} fill="#E3ECFF" />
-                  <Path d="M96 82c36-34 92-34 128 0M118 104c24-22 60-22 84 0" fill="none" stroke="#22D3EE" strokeWidth={7} strokeLinecap="round" />
-                  <Rect x={62} y={132} width={196} height={46} rx={14} fill="#2F54E0" />
-                  <Circle cx={92} cy={155} r={6} fill="#4ADE80" /><Circle cx={114} cy={155} r={6} fill="#fff" /><Circle cx={136} cy={155} r={6} fill="#fff" />
-                </Svg>
-              </View>
+              <WebArt html={ART_CARE} minHeight={170} css=".care-art{display:block;margin:0 auto;max-width:300px}" />
               {!user && <Button icon={ShieldCheck} label="Log in to Care plan" onPress={() => router.push('/login')} />}
               {!!user && <T v="small">Modem status is shown to the customer, the installing TIP and admin. The modem list for TIP and admin is not in the app yet.</T>}
               {STEPS.map(([n, Icon, t, d]) => (
