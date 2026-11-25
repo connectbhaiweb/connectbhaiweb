@@ -21,6 +21,7 @@ export const EXTRA = {
   "{x} incl. GST · pay Connect Bhai directly, any day": "{x} GST सहित · किसी भी दिन सीधे Connect Bhai को चुकाएं",
   "Mark paid": "भुगतान हुआ मार्क करें", "Mark plan payment received": "प्लान का भुगतान मिला मार्क करें",
   "Make connection": "कनेक्शन बनाएं",
+  "Recommended": "सुझाया गया",
   "Mark payment received": "भुगतान मिला मार्क करें", "Reference (optional)": "रेफरेंस (वैकल्पिक)", "Payment marked as received.": "भुगतान मिला मार्क कर दिया गया।",
   "Use this when the customer paid the plan price to you directly (cash or UPI). The customer gets a payment receipt.": "जब ग्राहक ने प्लान की कीमत सीधे आपको (नकद या UPI) दी हो तब इसका उपयोग करें। ग्राहक को भुगतान रसीद मिलेगी।",
   "Enter your PIN code": "अपना PIN code डालें", "Enter PIN codes, e.g. 452010, 452016": "PIN code डालें, जैसे 452010, 452016",

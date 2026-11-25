@@ -490,9 +490,12 @@ function planFacts(p) {
   return `<div><span>Validity</span><b>${p.validity_days} days</b></div><div><span>Calls</span><b>${esc(p.voice || "—")}</b></div><div><span>SMS</span><b>${p.sms_per_day ? p.sms_per_day + "/day" : "—"}</b></div>`;
 }
 const ctaFor = p => p.category.startsWith("sim") ? "Book SIM" : p.category === "ott" ? "Get this pack" : p.category === "air_fiber" ? "Book Air Fiber" : "Request connection";
+/* BSNL plans carry a "Recommended" mark: a ribbon on the plan card, and first place in Compare (the results order is the customer's). */
+const isRecommended = p => /^bsnl\b/i.test(String((p.provider && (p.provider.brand || p.provider.name)) || "").trim());
 function planCard(p) {
-  const sel = S.compare.includes(p.id);
+  const sel = S.compare.includes(p.id), rec = isRecommended(p);
   return `<article class="plan ${sel ? "sel" : ""}">
+    ${rec ? `<span class="rec-tag">Recommended</span>` : ""}
     ${demoBadge(p.is_demo)}
     <div class="prov">${plogo(p.provider)}<span>${esc(p.provider.name)}<br><span class="muted small" style="font-weight:600">${esc(CATS[p.category] || "")}</span></span></div>
     <div class="pname">${esc(p.name)}</div>
@@ -506,10 +509,10 @@ function planCard(p) {
 }
 function updateCompareBar() { const n = S.compare.length; publish({ compareCount: n, showCompare: S.view === "home" && n > 0 }); }
 function openCompare() {
-  const ps = S.compare.map(id => S.results.find(p => p.id === id)).filter(Boolean);
+  const ps = S.compare.map(id => S.results.find(p => p.id === id)).filter(Boolean).sort((a, b) => isRecommended(b) - isRecommended(a));   // recommended first, the rest as picked
   if (ps.length < 2) { toast("Select at least 2 plans to compare."); return; }
   const speedy = ps.some(p => isSpeedCat(p.category)), sim = ps.some(p => p.category.startsWith("sim"));
-  const rows = [["Provider", p => esc(p.provider.name)], ...(speedy ? [["Speed", p => `<b>${p.speed_mbps || "—"} Mbps</b>`]] : []), ["Price", p => `<b>${inr(p.price_monthly)}</b>${priceUnit(p)}`],
+  const rows = [["Provider", p => esc(p.provider.name) + (isRecommended(p) ? ` <span class="rec-pill">Recommended</span>` : "")],...(speedy ? [["Speed", p => `<b>${p.speed_mbps || "—"} Mbps</b>`]] : []), ["Price", p => `<b>${inr(p.price_monthly)}</b>${priceUnit(p)}`],
   ...(speedy ? [["₹ per Mbps", p => p.speed_mbps ? "₹" + (p.price_monthly / p.speed_mbps).toFixed(1) : "—"]] : []),
   ...(sim ? [["Data", p => p.data_per_day_gb ? p.data_per_day_gb + " GB/day" : dataTxt(p)], ["Validity", p => p.validity_days + " days"], ["Calls", p => esc(p.voice || "—")], ["SMS", p => p.sms_per_day ? p.sms_per_day + "/day" : "—"]] : [["Data", dataTxt], ["Installation", p => Number(p.install_charge) ? inr(p.install_charge) : "Free"]]),
   ["OTT apps", p => p.ott_apps.length ? esc(p.ott_apps.join(", ")) : "—"], ...(sim ? [] : [["TV channels", p => p.tv_channels ? p.tv_channels + "+" : "—"]])];
