@@ -13,6 +13,7 @@ import "./dashboard.css";
 import "./customer.css";
 import "./portal.css";
 import "./legacy-dash.css";
+import "./recommended.css";
 import DemoBar from "@/components/DemoBar";
 import TrustBar from "@/components/TrustBar";
 import FloatingActions from "@/components/FloatingActions";

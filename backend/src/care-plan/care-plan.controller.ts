@@ -6,11 +6,16 @@ import { AuthUser, CurrentUser, Roles } from '../common/decorators';
 import { PageQuery, pageArgs, paged } from '../common/pagination';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { leadScope } from '../common/utils/scope';
-import { CarePlanSyncService } from './care-plan-sync.service';
+import { CarePlanSyncService, isZabbixOnu } from './care-plan-sync.service';
 import { JobsService } from '../common/jobs/jobs.service';
-import { GenieAcsProvider } from './genieacs.provider';
+import { AcsListedDevice, GenieAcsProvider } from './genieacs.provider';
 import { DEVICE_ACTION_JOB } from './device-action.runner';
 import { SPEED_TEST_JOB } from './speed-test.runner';
+import { ZabbixProvider } from './zabbix.provider';
+
+const STATUS_ONLY = 'This ONU reports Online / Offline only. Restart, Wi-Fi change and speed test are not available for it.';
+/** Tells the screens where a modem's status comes from: a 'zabbix' ONU gets no command buttons. */
+const withSource = <T extends Parameters<typeof isZabbixOnu>[0]>(d: T) => ({ ...d, source: isZabbixOnu(d) ? 'zabbix' as const : 'genieacs' as const });
 
 class ActionDto {
   @IsIn(['reboot', 'change_wifi', 'factory_reset', 'refresh']) action: 'reboot' | 'change_wifi' | 'factory_reset' | 'refresh';
@@ -27,7 +32,7 @@ class DeviceQuery extends PageQuery { @IsOptional() @IsString() lead_ids?: strin
 
 @ApiTags('care-plan') @ApiBearerAuth() @Controller('care-plan')
 export class CarePlanController {
-  constructor(private prisma: PrismaService, private acs: GenieAcsProvider, private sync: CarePlanSyncService, private jobs: JobsService) {}
+  constructor(private prisma: PrismaService, private acs: GenieAcsProvider, private sync: CarePlanSyncService, private jobs: JobsService, private zbx?: ZabbixProvider) {}
 
   private scope(u: AuthUser): Prisma.CarePlanDeviceWhereInput { return u.role === 'admin' ? {} : { lead: leadScope(u) , ...(u.role === 'dsa' ? { id: -1 } : {}) }; }
   private async device(id: number, u: AuthUser) {
@@ -35,18 +40,21 @@ export class CarePlanController {
     if (!d) throw new NotFoundException('Device not found');
     return d;
   }
+  /** The same records, with just-installed Zabbix ONUs recognised first. */
+  private async current<T extends Parameters<CarePlanSyncService['adoptZabbix']>[0][number]>(devices: T[]) { return this.zbx?.isConfigured ? this.sync.adoptZabbix(devices) : devices; }
 
   @Get('devices') async list(@Query() q: DeviceQuery, @CurrentUser() u: AuthUser) {
     const ids = q.lead_ids ? q.lead_ids.split(',').map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 200) : null;
     const where: Prisma.CarePlanDeviceWhereInput = ids ? { AND: [this.scope(u), { lead_id: { in: ids } }] } : this.scope(u);
-    const [items, total] = await Promise.all([
+    const [found, total] = await Promise.all([
       this.prisma.carePlanDevice.findMany({ where, orderBy: { id: 'desc' }, include: { lead: { select: { ref_code: true, customer_name: true } } }, ...pageArgs(q) }),
       this.prisma.carePlanDevice.count({ where }),
     ]);
+    const items = await this.current(found);
     // latest finished speed test per modem, so the admin table can show the Wi-Fi speed
     const last = items.length ? await this.prisma.speedTest.findMany({ where: { care_plan_device_id: { in: items.map((d) => d.id) }, status: 'done', download_mbps: { not: null } }, orderBy: [{ tested_at: 'desc' }, { id: 'desc' }], distinct: ['care_plan_device_id'], select: { care_plan_device_id: true, download_mbps: true, tested_at: true } }) : [];
     const byDev = new Map(last.map((r) => [String(r.care_plan_device_id), r]));
-    return paged(items.map((d) => { const r = byDev.get(String(d.id)); return { ...d, speed_mbps: r ? Number(r.download_mbps) : null, speed_at: r ? r.tested_at : null }; }), total, q);
+    return paged(items.map((d) => { const r = byDev.get(String(d.id)); return withSource({ ...d, speed_mbps: r ? Number(r.download_mbps) : null, speed_at: r ? r.tested_at : null }); }), total, q);
   }
 
   /** Care plan page numbers (installed / online / offline / weak / not linked, by PIN code, and linked modems per TIP) without sending any device rows. */
@@ -64,12 +72,12 @@ export class CarePlanController {
   }
 
   @Get('devices/:id') async one(@Param('id', ParseIntPipe) id: number, @CurrentUser() u: AuthUser) {
-    const d = await this.device(id, u);
+    const [d] = await this.current([await this.device(id, u)]);
     const [actions, speed_tests] = await Promise.all([
       this.prisma.deviceAction.findMany({ where: { care_plan_device_id: id }, orderBy: { id: 'desc' }, take: 20 }),
       this.prisma.speedTest.findMany({ where: { care_plan_device_id: id }, orderBy: { id: 'desc' }, take: 10 }),
     ]);
-    return { ...d, actions, speed_tests, simulated: this.acs.isMock };
+    return withSource({ ...d, actions, speed_tests, simulated: this.acs.isMock });
   }
 
   /** TIP / admin attach the modem identity after installation. */
@@ -84,29 +92,31 @@ export class CarePlanController {
     return this.prisma.carePlanDevice.update({ where: { id }, data: d });
   }
 
-  /** Admin: customers whose installation has a Care Plan record but no modem linked yet (candidates for the "Link" action). */
+  /** Admin: customers whose installation has a Care Plan record but no modem linked yet (candidates for the "Link" action). A recognised Zabbix ONU counts as linked. */
   @Roles('admin') @Get('link-candidates')
   async linkCandidates() {
     const rows = await this.prisma.carePlanDevice.findMany({
       where: { genieacs_device_id: null, is_active: true },
-      select: { id: true, serial_number: true, lead: { select: { ref_code: true, customer_name: true, customer_phone: true } } },
+      select: { id: true, serial_number: true, last_status: true, lead: { select: { ref_code: true, customer_name: true, customer_phone: true } } },
       orderBy: { id: 'desc' }, take: 200,
     });
-    return { items: rows };
+    return { items: rows.filter((r) => !isZabbixOnu(r)).map(({ last_status, ...r }) => r) };
   }
 
   @Post('devices/:id/refresh') @HttpCode(200)
   async refresh(@Param('id', ParseIntPipe) id: number, @CurrentUser() u: AuthUser) {
     const d = await this.device(id, u);
-    return this.sync.pollOne(d);
+    return withSource(await this.sync.pollOne(d));
   }
 
   /** Customer, TIP or admin. Answers 202 at once with a row (queued / sent); the modem runs it at its next check-in and a background job sets the row to done or failed. The Wi-Fi password is sent to GenieACS only, never stored. */
   @Post('devices/:id/actions') @HttpCode(202)
   async action(@Param('id', ParseIntPipe) id: number, @Body() d: ActionDto, @CurrentUser() u: AuthUser) {
-    const dev = await this.device(id, u);
+    const found = await this.device(id, u);
     if (u.role === 'dsa') throw new ForbiddenException();
-    if (!dev.is_active) throw new BadRequestException('Care Plan is not active for this device');
+    if (!found.is_active) throw new BadRequestException('Care Plan is not active for this device');
+    const [dev] = await this.current([found]);
+    if (isZabbixOnu(dev)) throw new BadRequestException(STATUS_ONLY);
     if (d.action === 'change_wifi' && !d.params?.ssid) throw new BadRequestException('params.ssid is required');
     // commands that reach the modem need it to be known to GenieACS (its device id or the ONT serial scanned at install)
     // and not reported offline; 'refresh' stays allowed so the status can recover
@@ -137,8 +147,10 @@ export class CarePlanController {
    */
   @Post('devices/:id/speed-test') @HttpCode(202)
   async speed(@Param('id', ParseIntPipe) id: number, @CurrentUser() u: AuthUser) {
-    const dev = await this.device(id, u);
-    if (!dev.is_active) throw new BadRequestException('Care Plan is not active for this device');
+    const found = await this.device(id, u);
+    if (!found.is_active) throw new BadRequestException('Care Plan is not active for this device');
+    const [dev] = await this.current([found]);
+    if (isZabbixOnu(dev)) throw new BadRequestException(STATUS_ONLY);
     if (!this.acs.isMock && !dev.genieacs_device_id) throw new BadRequestException('The router is not linked yet. Your installer links it at installation.');
     // a test whose job died never finishes: after 10 minutes it is closed as failed so the next one can start
     await this.prisma.speedTest.updateMany({ where: { care_plan_device_id: id, status: 'running', tested_at: { lt: new Date(Date.now() - 10 * 60_000) } }, data: { status: 'failed', error: 'The test did not finish in time' } });
@@ -148,20 +160,34 @@ export class CarePlanController {
     return { ...(await this.prisma.speedTest.findUnique({ where: { id: row.id } })), simulated: this.acs.isMock };   // in tests the job has already run, so this is the finished row
   }
 
-  /** Admin: every modem GenieACS knows, with the customer it is linked to (or none). Read-only; for the "Fetch from GenieACS" button. */
+  /** Admin: every modem GenieACS knows, plus the Zabbix ONUs it does not, with the customer each is linked to (or none). Read-only; for the "Fetch from GenieACS" button. */
   @Roles('admin') @Get('acs-devices')
   async acsDevices() {
-    let items;
+    let items: (AcsListedDevice & { source?: 'zabbix' })[];
     try { items = await this.acs.listDevices(); } catch { throw new ServiceUnavailableException('GenieACS could not be reached. Check /api/v1/health/acs.'); }
+    const serialKey = (s: string | null | undefined) => (s ? ZabbixProvider.key(s) : '');
+    let zabbixError: string | undefined;
+    if (this.zbx?.isConfigured) {
+      try {
+        const inAcs = new Set(items.map((d) => serialKey(d.serial)));
+        items = [...items, ...[...(await this.zbx.onus()).values()].filter((o) => !inAcs.has(serialKey(o.serial))).map((o) => ({
+          id: `zabbix:${o.serial}`, source: 'zabbix' as const, serial: o.serial, online: o.online as boolean, last_inform: o.online ? o.checked_at!.toISOString() : null,
+          manufacturer: null, model: null, firmware: null, rx_power_dbm: null, wifi_ssid: null, ip: null,
+        }))];
+      } catch { zabbixError = 'Zabbix could not be reached, so its ONUs are not listed.'; }
+    }
     const linked = await this.prisma.carePlanDevice.findMany({ select: { genieacs_device_id: true, serial_number: true, is_active: true, lead: { select: { id: true, ref_code: true, customer_name: true, care_plan: true } } } });
     const byId = new Map(), bySerial = new Map();
     const view = (l: (typeof linked)[number]) => ({ id: Number(l.lead.id), ref_code: l.lead.ref_code, customer_name: l.lead.customer_name, care_plan_active: l.lead.care_plan && l.is_active });
-    linked.forEach((l) => { if (l.genieacs_device_id) byId.set(l.genieacs_device_id, view(l)); if (l.serial_number) bySerial.set(l.serial_number, view(l)); });
+    linked.forEach((l) => { if (l.genieacs_device_id) byId.set(l.genieacs_device_id, view(l)); if (l.serial_number) bySerial.set(serialKey(l.serial_number), view(l)); });
     // modems not on any Care Plan record yet: match the serial the installer typed on the booking, so admin can switch Care Plan on for that customer
     const serials = items.map((d) => d.serial).filter(Boolean) as string[];
     const bks = serials.length ? await this.prisma.booking.findMany({ where: { router_serial: { in: serials }, status: 'completed' }, orderBy: { id: 'asc' }, select: { router_serial: true, lead: { select: { id: true, ref_code: true, customer_name: true, care_plan: true } } } }) : [];
-    const byBooking = new Map(bks.map((b) => [b.router_serial, { id: Number(b.lead.id), ref_code: b.lead.ref_code, customer_name: b.lead.customer_name, care_plan_active: b.lead.care_plan }]));
-    return { mock: this.acs.isMock, total: items.length, items: items.map((d) => ({ ...d, linked_to: byId.get(d.id) ?? (d.serial ? bySerial.get(d.serial) ?? byBooking.get(d.serial) : undefined) ?? null })) };
+    const byBooking = new Map(bks.map((b) => [serialKey(b.router_serial), { id: Number(b.lead.id), ref_code: b.lead.ref_code, customer_name: b.lead.customer_name, care_plan_active: b.lead.care_plan }]));
+    return {
+      mock: this.acs.isMock && !this.zbx?.isConfigured, total: items.length, ...(zabbixError ? { zabbix_error: zabbixError } : {}),
+      items: items.map((d) => ({ ...d, linked_to: byId.get(d.id) ?? (d.serial ? bySerial.get(serialKey(d.serial)) ?? byBooking.get(serialKey(d.serial)) : undefined) ?? null })),
+    };
   }
 
   /** Admin / scheduler: refresh every ACTIVE device (Care Plan only). The server also does this by itself every CARE_PLAN_SYNC_MINUTES (default 10). */
