@@ -330,6 +330,8 @@
 /* Care plan list: small icon buttons that fit inside the table */
 .cp-table .pt-tr{grid-template-columns:150fr 96fr 80fr 140fr 88fr 150fr 120fr 60fr 70fr minmax(190px,190fr);min-width:1180px}
 .pt-table.cp-table{overflow-x:auto}
+/* Zabbix tab of the fetched routers: OLT, zone and serial first */
+@media (min-width:901px){.cp-table.cp-zbx .pt-tr{grid-template-columns:140fr 100fr 125fr 80fr 75fr 105fr 115fr 150fr minmax(190px,190fr) 90fr;min-width:1240px}}
 .cp-btns{display:flex;flex-wrap:nowrap;gap:6px}
 .cp-act{height:32px;min-width:32px;padding:0 8px;border-radius:9px}
 .cp-btns .cp-act{width:32px;padding:0}

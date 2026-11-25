@@ -12,6 +12,8 @@ const ago = iso => { if (!iso) return "—"; const m = Math.max(0, Math.round((D
 const up = s => { if (!s) return "—"; const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600); return d ? `${d}d ${h}h` : `${h}h`; };
 const ph = m => String(m).replace(/^(\d{5})(\d{5})$/, "+91 $1 $2");
 const SIG = { Good: "green", Weak: "amber", Bad: "red" };
+const readAt = iso => (iso ? new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
+const ZBX_COLS = ["OLT", "Zone", "Serial number", "ONT name", "Partner", "Status", "Last read", "Customer", "Care plan", "Linked"];
 const ROLE_OF = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" };
 const StatusChip = ({ s }) => <Chip label={s === "online" ? "Online" : s === "unknown" ? "Not reported" : "Offline"} tone={s === "online" ? "green" : s === "unknown" ? "grey" : "red"} />;
 
@@ -46,6 +48,7 @@ export default function CarePlanPage({ base, tab }) {
   const [acs, setAcs] = useState(null), [acsBusy, setAcsBusy] = useState(false), [acsErr, setAcsErr] = useState("");
   const [linkFor, setLinkFor] = useState(null), [cands, setCands] = useState(null), [pick, setPick] = useState(""), [linkBusy, setLinkBusy] = useState(false), [linkErr, setLinkErr] = useState("");
   const [careBusy, setCareBusy] = useState("");
+  const [source, setSource] = useState("genie");   // admin: which tab of the fetched routers
   const activateCare = async d => {   // admin: switch Care plan on for this modem's customer
     setCareBusy(d.id); setAcsErr("");
     try { const { API } = await import("@/lib/connectbhai/api"); await API.carePlanCharge(d.linked_to.id); await fetchAcs(); }
@@ -66,7 +69,7 @@ export default function CarePlanPage({ base, tab }) {
   const fetchAcs = async () => {   // admin: refresh the linked modems, then list everything Genie knows
     setAcsBusy(true); setAcsErr("");
     try { const { API } = await import("@/lib/connectbhai/api"); setAcs(await API.carePlanFetchAcs()); reload(); }
-    catch (e) { setAcsErr((e && e.message) || "Could not reach Genie."); }
+    catch (e) { setAcsErr((e && e.message) || "Could not fetch routers."); }
     setAcsBusy(false);
   };
   const list = useMemo(() => {
@@ -105,34 +108,62 @@ export default function CarePlanPage({ base, tab }) {
   return (
     <div className="dsh-page"><div className="pt">
       <header className="pt-head"><div><h1>Care plan</h1><p>{role === "admin" ? "Every customer router / ONT reported by Genie, your personal assistant." : "Routers / ONTs of your customers, reported by Genie, your personal assistant."}</p></div>
-        {role === "admin" && <button type="button" className="cu-btn cu-btn-primary" onClick={fetchAcs} disabled={acsBusy}><RefreshCw aria-hidden="true" />{acsBusy ? "Fetching…" : "Fetch from Genie"}</button>}
+        {role === "admin" && <button type="button" className="cu-btn cu-btn-primary" onClick={fetchAcs} disabled={acsBusy}><RefreshCw aria-hidden="true" />{acsBusy ? "Fetching…" : "Fetch routers"}</button>}
       </header>
       {role === "admin" && acsErr && <p className="pt-muted" role="alert">{acsErr}</p>}
-      {role === "admin" && acs && (
-        <Card title={`Modems in Genie (${acs.total})`} Icon={Router}>
-          {acs.zabbix_error && <p className="pt-muted" role="alert">{acs.zabbix_error}</p>}
-          {acs.mock ? <p className="pt-muted">Genie is not connected on this server (mock mode), so there is nothing to list.</p>
-            : acs.items.length ? (
-              <div className="pt-table cp-table" role="table" aria-label="Modems in Genie">
-                <div className="pt-tr pt-th" role="row">{["Customer", "Status", "IP", "Signal", "Last seen", "Model", "SSID", "Firmware", "Care plan", "Linked"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
-                {acs.items.map(d => (
-                  <div className="pt-tr" role="row" key={d.id}>
-                    <span role="cell" className="pt-name"><span><b>{d.linked_to ? d.linked_to.customer_name : "Not linked yet"}</b><small>{d.linked_to ? d.linked_to.ref_code : "no customer"}</small></span></span>
-                    <span role="cell" data-l="Status"><StatusChip s={d.online ? "online" : d.source === "zabbix" && d.online == null ? "unknown" : "offline"} /></span>
-                    <span role="cell" data-l="IP" className="pt-ell">{d.ip || "—"}</span>
-                    <span role="cell" data-l="Signal">{d.rx_power_dbm != null ? <Chip label={`${d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"} · ${d.rx_power_dbm} dBm`} tone={SIG[d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"]} /> : "—"}</span>
-                    <span role="cell" data-l="Last seen">{ago(d.last_inform)}</span>
-                    <span role="cell" data-l="Model" className="pt-ell">{[d.manufacturer, d.model].filter(Boolean).join(" ") || (d.source === "zabbix" ? "ONU" : "—")}<small className="cp-sn">{d.serial || d.id}</small></span>
-                    <span role="cell" data-l="SSID" className="pt-ell">{d.wifi_ssid || "—"}</span>
-                    <span role="cell" data-l="Firmware" className="pt-ell">{d.firmware || "—"}</span>
-                    <span role="cell" data-l="Care plan">{!d.linked_to ? "—" : d.linked_to.care_plan_active ? <Chip label="Active" tone="green" /> : <><Chip label="Not active" tone="red" /> <button type="button" className="cu-btn cu-btn-soft" onClick={() => activateCare(d)} disabled={careBusy === d.id}>{careBusy === d.id ? "Adding…" : "Buy Care plan"}</button></>}</span>
-                    <span role="cell" data-l="Linked">{d.linked_to ? <Chip label="Linked" tone="green" /> : <button type="button" className="cu-btn cu-btn-soft" onClick={() => startLink(d)}>Link…</button>}</span>
-                  </div>
-                ))}
+      {role === "admin" && acs && (() => {
+        const genie = acs.items.filter(d => d.source !== "zabbix"), zbx = acs.items.filter(d => d.source === "zabbix");
+        // customer, Care plan and linking work the same in both tabs
+        const custCell = d => <span role="cell" className="pt-name" data-l="Customer"><span><b>{d.linked_to ? d.linked_to.customer_name : "Not linked yet"}</b><small>{d.linked_to ? d.linked_to.ref_code : "no customer"}</small></span></span>;
+        const careCell = d => <span role="cell" data-l="Care plan">{!d.linked_to ? "—" : d.linked_to.care_plan_active ? <Chip label="Active" tone="green" /> : <><Chip label="Not active" tone="red" /> <button type="button" className="cu-btn cu-btn-soft" onClick={() => activateCare(d)} disabled={careBusy === d.id}>{careBusy === d.id ? "Adding…" : "Buy Care plan"}</button></>}</span>;
+        const linkCell = d => <span role="cell" data-l="Linked">{d.linked_to ? <Chip label="Linked" tone="green" /> : d.source === "zabbix" && !d.serial ? <Chip label="No serial" tone="grey" /> : <button type="button" className="cu-btn cu-btn-soft" onClick={() => startLink(d)}>Link…</button>}</span>;
+        return (
+          <Card title={`Routers (${acs.total})`} Icon={Router}>
+            {acs.mock ? <p className="pt-muted">Genie is not connected on this server (mock mode), so there is nothing to list.</p> : <>
+              <div className="pt-filters" role="tablist" aria-label="Router source">
+                {[["genie", "Genie", genie.length], ["zabbix", "Zabbix", zbx.length]].map(([k, l, n]) => <button key={k} type="button" role="tab" aria-selected={source === k} onClick={() => setSource(k)}>{`${l} (${n})`}</button>)}
               </div>
-            ) : <p className="pt-muted">Genie has no modems yet. A modem appears here after it checks in.</p>}
-        </Card>
-      )}
+              {source === "zabbix" ? <>
+                {acs.zabbix_error && <p className="pt-muted" role="alert">{acs.zabbix_error}</p>}
+                {zbx.length ? (
+                  <div className="pt-table cp-table cp-zbx" role="table" aria-label="ONUs in Zabbix">
+                    <div className="pt-tr pt-th" role="row">{ZBX_COLS.map(h => <span key={h} role="columnheader">{h}</span>)}</div>
+                    {zbx.map(d => (
+                      <div className="pt-tr" role="row" key={d.id}>
+                        <span role="cell" data-l="OLT" className="pt-ell">{d.olt || "—"}</span>
+                        <span role="cell" data-l="Zone" className="pt-ell">{d.zone || "—"}</span>
+                        <span role="cell" data-l="Serial number" className="pt-ell">{d.serial || "—"}</span>
+                        <span role="cell" data-l="ONT name">{d.ont_name || "—"}</span>
+                        <span role="cell" data-l="Partner" className="pt-ell">{d.partner || "—"}</span>
+                        <span role="cell" data-l="Status"><StatusChip s={d.online == null ? "unknown" : d.online ? "online" : "offline"} /></span>
+                        <span role="cell" data-l="Last read">{readAt(d.read_at)}</span>
+                        {custCell(d)}{careCell(d)}{linkCell(d)}
+                      </div>
+                    ))}
+                  </div>
+                ) : !acs.zabbix_error && <p className="pt-muted">Zabbix has no ONUs.</p>}
+              </> : genie.length ? (
+                <div className="pt-table cp-table" role="table" aria-label="Modems in Genie">
+                  <div className="pt-tr pt-th" role="row">{["Customer", "Status", "IP", "Signal", "Last seen", "Model", "SSID", "Firmware", "Care plan", "Linked"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
+                  {genie.map(d => (
+                    <div className="pt-tr" role="row" key={d.id}>
+                      {custCell(d)}
+                      <span role="cell" data-l="Status"><StatusChip s={d.online ? "online" : "offline"} /></span>
+                      <span role="cell" data-l="IP" className="pt-ell">{d.ip || "—"}</span>
+                      <span role="cell" data-l="Signal">{d.rx_power_dbm != null ? <Chip label={`${d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"} · ${d.rx_power_dbm} dBm`} tone={SIG[d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"]} /> : "—"}</span>
+                      <span role="cell" data-l="Last seen">{ago(d.last_inform)}</span>
+                      <span role="cell" data-l="Model" className="pt-ell">{[d.manufacturer, d.model].filter(Boolean).join(" ") || "—"}<small className="cp-sn">{d.serial || d.id}</small></span>
+                      <span role="cell" data-l="SSID" className="pt-ell">{d.wifi_ssid || "—"}</span>
+                      <span role="cell" data-l="Firmware" className="pt-ell">{d.firmware || "—"}</span>
+                      {careCell(d)}{linkCell(d)}
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="pt-muted">Genie has no modems yet. A modem appears here after it checks in.</p>}
+            </>}
+          </Card>
+        );
+      })()}
       {role === "admin" && linkFor && (
         <Card title={`Link ${[linkFor.manufacturer, linkFor.model].filter(Boolean).join(" ") || "modem"} · ${linkFor.serial || linkFor.id} to a customer`} Icon={Router}>
           {cands === null ? <p className="pt-muted">Loading customers…</p> : cands.length ? (

@@ -163,16 +163,18 @@ export class CarePlanController {
   /** Admin: every modem GenieACS knows, plus the Zabbix ONUs it does not, with the customer each is linked to (or none). Read-only; for the "Fetch from GenieACS" button. */
   @Roles('admin') @Get('acs-devices')
   async acsDevices() {
-    let items: (AcsListedDevice & { source?: 'zabbix' })[];
+    let items: (AcsListedDevice & { source?: 'zabbix'; ont_name?: string; olt?: string | null; zone?: string | null; partner?: string | null; read_at?: string | null })[];
     try { items = await this.acs.listDevices(); } catch { throw new ServiceUnavailableException('GenieACS could not be reached. Check /api/v1/health/acs.'); }
     const serialKey = (s: string | null | undefined) => (s ? ZabbixProvider.key(s) : '');
     let zabbixError: string | undefined;
     if (this.zbx?.isConfigured) {
       try {
         const inAcs = new Set(items.map((d) => serialKey(d.serial)));
-        items = [...items, ...[...(await this.zbx.onus()).values()].filter((o) => !inAcs.has(serialKey(o.serial))).map((o) => ({
-          id: `zabbix:${o.serial}`, source: 'zabbix' as const, serial: o.serial, online: o.online as boolean, last_inform: o.online ? o.checked_at!.toISOString() : null,
-          manufacturer: null, model: null, firmware: null, rx_power_dbm: null, wifi_ssid: null, ip: null,
+        items = [...items, ...(await this.zbx.list()).filter((o) => !o.serial || !inAcs.has(serialKey(o.serial))).map((o) => ({
+          // an ONU without a serial number is listed too, but cannot be matched or linked to a customer
+          id: o.serial ? `zabbix:${o.serial}` : `zabbix:${o.hostid}:${o.name}`, source: 'zabbix' as const, serial: o.serial || null, online: o.online as boolean,
+          ont_name: o.name, olt: o.olt, zone: o.zone, partner: o.partner, read_at: o.checked_at?.toISOString() ?? null,
+          last_inform: o.online ? o.checked_at!.toISOString() : null, manufacturer: null, model: null, firmware: null, rx_power_dbm: null, wifi_ssid: null, ip: null,
         }))];
       } catch { zabbixError = 'Zabbix could not be reached, so its ONUs are not listed.'; }
     }

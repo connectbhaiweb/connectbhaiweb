@@ -58,7 +58,7 @@ describe('ZabbixProvider', () => {
     expect(['NONE', 'NEVER', 'ODD'].map((s) => onus.get(s)!.online)).toEqual([null, null, null]);
   });
 
-  it('skips ONUs that have no serial number', async () => {
+  it('does not match customers to ONUs that have no serial number', async () => {
     answer({ result: [serial('1', ''), status('1', '2')] });
     expect((await make().onus()).size).toBe(0);
   });
@@ -69,6 +69,14 @@ describe('ZabbixProvider', () => {
     expect((await z.find('  gpon00ABC '))!.online).toBe(true);
     expect(await z.find('nothing')).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);   // answered from the 30 s copy
+  });
+
+  it('lists every ONU with its name, OLT, zone and partner, including one without a serial', async () => {
+    const items = [{ ...serial('10', 'AAA'), name: 'ONU 1/10 (AAA) Serial' }, status('10', '1'), { ...serial('2', ''), name: 'ONU 1/2 ({$ONU_SN:"1.2"}) Serial' }, status('2', '2')];
+    fetchMock = jest.spyOn(global, 'fetch').mockImplementation(async (_u, init: any) => ({ ok: true, json: async () => ({ result: JSON.parse(init.body).method === 'item.get' ? items : [{ hostid: '1', name: 'OLT-1', tags: [{ tag: 'zone', value: 'North' }, { tag: 'partner', value: 'lab' }] }] }) }) as any);
+    const list = await make().list();
+    expect(list.map((o) => [o.name, o.serial, o.online, o.olt, o.zone, o.partner])).toEqual([['ONU 1/2', '', false, 'OLT-1', 'North', 'lab'], ['ONU 1/10', 'AAA', true, 'OLT-1', 'North', 'lab']]);
+    expect(fetchMock.mock.calls.map((c) => JSON.parse(c[1].body).method)).toEqual(['item.get', 'host.get']);
   });
 
   it('keeps the port that is up when a serial shows on two ports', async () => {
