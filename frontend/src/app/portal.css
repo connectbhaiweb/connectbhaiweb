@@ -329,7 +329,7 @@
 .cp-prog-n{margin:0;font-size:12.5px;color:#4A5876;line-height:1.4}
 
 /* Care plan list: small icon buttons that fit inside the table */
-.cp-table .pt-tr{grid-template-columns:150fr 96fr 80fr 140fr 112fr 136fr 110fr 60fr 70fr minmax(190px,190fr);min-width:1180px}
+.cp-table .pt-tr{grid-template-columns:150fr 96fr 80fr 112fr 136fr 110fr 60fr 70fr minmax(190px,190fr);min-width:1040px}
 .pt-table.cp-table{overflow-x:auto}
 /* Zabbix tab of the fetched routers: OLT, zone and serial first */
 @media (min-width:901px){.cp-table.cp-zbx .pt-tr{grid-template-columns:140fr 100fr 125fr 80fr 105fr 115fr 150fr minmax(190px,190fr) 90fr;min-width:1180px}}
