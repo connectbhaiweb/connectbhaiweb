@@ -13,7 +13,7 @@ const up = s => { if (!s) return "—"; const d = Math.floor(s / 86400), h = Mat
 const ph = m => String(m).replace(/^(\d{5})(\d{5})$/, "+91 $1 $2");
 const SIG = { Good: "green", Weak: "amber", Bad: "red" };
 const readAt = iso => (iso ? new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
-const ZBX_COLS = ["OLT", "Zone", "Serial number", "ONT name", "Partner", "Status", "Last read", "Customer", "Care plan", "Linked"];
+const ZBX_COLS = ["OLT", "Zone", "Serial number", "ONT name", "Status", "Last read", "Customer", "Care plan", "Linked"];
 const ROLE_OF = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" };
 const StatusChip = ({ s }) => <Chip label={s === "online" ? "Online" : s === "unknown" ? "Not reported" : "Offline"} tone={s === "online" ? "green" : s === "unknown" ? "grey" : "red"} />;
 
@@ -114,7 +114,7 @@ export default function CarePlanPage({ base, tab }) {
       {role === "admin" && acs && (() => {
         const genie = acs.items.filter(d => d.source !== "zabbix"), zbx = acs.items.filter(d => d.source === "zabbix");
         // customer, Care plan and linking work the same in both tabs
-        const custCell = d => <span role="cell" className="pt-name" data-l="Customer"><span><b>{d.linked_to ? d.linked_to.customer_name : "Not linked yet"}</b><small>{d.linked_to ? d.linked_to.ref_code : "no customer"}</small></span></span>;
+        const custCell = (d, label) => <span role="cell" className="pt-name" data-l={label}><span><b>{d.linked_to ? d.linked_to.customer_name : "Not linked yet"}</b><small>{d.linked_to ? d.linked_to.ref_code : "no customer"}</small></span></span>;
         const careCell = d => <span role="cell" data-l="Care plan">{!d.linked_to ? "—" : d.linked_to.care_plan_active ? <Chip label="Active" tone="green" /> : <><Chip label="Not active" tone="red" /> <button type="button" className="cu-btn cu-btn-soft" onClick={() => activateCare(d)} disabled={careBusy === d.id}>{careBusy === d.id ? "Adding…" : "Buy Care plan"}</button></>}</span>;
         const linkCell = d => <span role="cell" data-l="Linked">{d.linked_to ? <Chip label="Linked" tone="green" /> : d.source === "zabbix" && !d.serial ? <Chip label="No serial" tone="grey" /> : <button type="button" className="cu-btn cu-btn-soft" onClick={() => startLink(d)}>Link…</button>}</span>;
         return (
@@ -123,7 +123,8 @@ export default function CarePlanPage({ base, tab }) {
               <div className="pt-filters" role="tablist" aria-label="Router source">
                 {[["genie", "Genie", genie.length], ["zabbix", "Zabbix", zbx.length]].map(([k, l, n]) => <button key={k} type="button" role="tab" aria-selected={source === k} onClick={() => setSource(k)}>{`${l} (${n})`}</button>)}
               </div>
-              {source === "zabbix" ? <>
+              {/* a new box per tab, and when its table appears or goes: the search bar and pager added around a table (tableTools.js) leave with it */}
+              <div key={`${source}-${(source === "zabbix" ? zbx : genie).length > 0}`}>{source === "zabbix" ? <>
                 {acs.zabbix_error && <p className="pt-muted" role="alert">{acs.zabbix_error}</p>}
                 {zbx.length ? (
                   <div className="pt-table cp-table cp-zbx" role="table" aria-label="ONUs in Zabbix">
@@ -134,10 +135,9 @@ export default function CarePlanPage({ base, tab }) {
                         <span role="cell" data-l="Zone" className="pt-ell">{d.zone || "—"}</span>
                         <span role="cell" data-l="Serial number" className="pt-ell">{d.serial || "—"}</span>
                         <span role="cell" data-l="ONT name">{d.ont_name || "—"}</span>
-                        <span role="cell" data-l="Partner" className="pt-ell">{d.partner || "—"}</span>
                         <span role="cell" data-l="Status"><StatusChip s={d.online == null ? "unknown" : d.online ? "online" : "offline"} /></span>
                         <span role="cell" data-l="Last read">{readAt(d.read_at)}</span>
-                        {custCell(d)}{careCell(d)}{linkCell(d)}
+                        {custCell(d, "Customer")}{careCell(d)}{linkCell(d)}
                       </div>
                     ))}
                   </div>
@@ -159,7 +159,7 @@ export default function CarePlanPage({ base, tab }) {
                     </div>
                   ))}
                 </div>
-              ) : <p className="pt-muted">Genie has no modems yet. A modem appears here after it checks in.</p>}
+              ) : <p className="pt-muted">Genie has no modems yet. A modem appears here after it checks in.</p>}</div>
             </>}
           </Card>
         );
