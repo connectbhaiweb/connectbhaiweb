@@ -75,8 +75,21 @@ test("GenieACS modems keep their own actions in the Devices table", () => {
 
 test("Last seen of a Zabbix ONU comes from the API, as for Genie modems, with the Indian date and time", () => {
   const page = read("../src/components/careplan/CarePlan.jsx");
-  assert.match(page, /<span role="cell" data-l="Last seen">\{ago\(d\.lastInform\)\}\{d\.lastInform && <small className="cp-sn">\{readAt\(d\.lastInform\)\}<\/small>\}<\/span>/);
+  assert.match(page, /<span role="cell" data-l="Last seen">\{ago\(d\.lastInform\)\}\{d\.lastInform && <small className="cp-sn cp-when">\{readAt\(d\.lastInform\)\}<\/small>\}<\/span>/);
   const readAt = vm.runInNewContext(`${page.match(/const readAt = .*;/)[0]} readAt`);
   assert.match(readAt("2026-11-25T11:32:49.000Z"), /25 Nov.*0?5:02\s?pm/i);   // 11:32 UTC is 17:02 in India
   assert.equal(readAt(null), "—");
+});
+
+test("in the Devices table the Zabbix Refresh is the same small button as on a Genie row", () => {
+  const page = read("../src/components/careplan/CarePlan.jsx");
+  assert.match(page, /<ZbxRefresh id=\{d\.id\} onDone=\{reload\} small \/>/);
+  assert.match(page, /\{small \? <span className="cp-btns"><ActBtn Icon=\{RefreshCw\} label="Refresh" off=\{busy\} onClick=\{run\} \/><\/span>/);
+  assert.match(page, /<ActBtn Icon=\{RefreshCw\} label="Refresh" off=\{!linked\}/);   // the Genie one
+});
+
+test("the small text in the Care plan tables uses the page font, and the time stays on one line", () => {
+  const css = read("../src/app/portal.css");
+  assert.doesNotMatch(css.match(/^\.cp-sn\{[^}]*\}/m)[0], /font-family/);
+  assert.match(css, /\.cp-sn\.cp-when\{white-space:nowrap\}/);
 });

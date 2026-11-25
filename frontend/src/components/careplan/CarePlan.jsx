@@ -18,7 +18,7 @@ const ROLE_OF = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" };
 const StatusChip = ({ s }) => <Chip label={s === "online" ? "Online" : s === "unknown" ? "Not reported" : "Offline"} tone={s === "online" ? "green" : s === "unknown" ? "grey" : "red"} />;
 
 /* Zabbix ONU: the one thing to do is read its status again, for that router only. GenieACS modems keep their own buttons (DeviceActs). */
-export function ZbxRefresh({ id, onDone, className = "cu-btn cu-btn-soft" }) {
+export function ZbxRefresh({ id, onDone, small = false }) {   // small: the icon button of the Devices table, like a Genie row's
   const [busy, setBusy] = useState(false), [msg, setMsg] = useState("");
   const run = async () => {
     setBusy(true); setMsg("");
@@ -28,7 +28,8 @@ export function ZbxRefresh({ id, onDone, className = "cu-btn cu-btn-soft" }) {
   };
   return (
     <span className="cp-actbox">
-      <button type="button" className={className} onClick={run} disabled={busy}><RefreshCw aria-hidden="true" />{busy ? "Refreshing…" : "Refresh"}</button>
+      {small ? <span className="cp-btns"><ActBtn Icon={RefreshCw} label="Refresh" off={busy} onClick={run} /></span>
+        : <button type="button" className="cu-btn cu-btn-soft" onClick={run} disabled={busy}><RefreshCw aria-hidden="true" />{busy ? "Refreshing…" : "Refresh"}</button>}
       {msg && <small className="cp-sn" role="status">{msg}</small>}
     </span>
   );
@@ -222,10 +223,10 @@ export default function CarePlanPage({ base, tab }) {
                 <span role="cell" className="pt-name"><span><b>{d.customer.name}</b><small>{ph(d.customer.mobile)}</small></span></span>
                 <span role="cell" data-l="Status"><StatusChip s={d.status} /></span>
                 {["Wi-Fi speed", "Signal"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
-                <span role="cell" data-l="Last seen">{ago(d.lastInform)}{d.lastInform && <small className="cp-sn">{readAt(d.lastInform)}</small>}</span>
+                <span role="cell" data-l="Last seen">{ago(d.lastInform)}{d.lastInform && <small className="cp-sn cp-when">{readAt(d.lastInform)}</small>}</span>
                 <span role="cell" data-l="Model" className="pt-ell">ONU<small className="cp-sn">{d.serialNumber}</small></span>
                 {["SSID", "Devices", "Uptime"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
-                <span role="cell" data-l="Actions"><ZbxRefresh id={d.id} onDone={reload} /></span>
+                <span role="cell" data-l="Actions"><ZbxRefresh id={d.id} onDone={reload} small /></span>
               </div>
             ) : (
               <div className="pt-tr" role="row" key={d.id}>
