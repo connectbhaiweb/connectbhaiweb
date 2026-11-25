@@ -25,12 +25,12 @@ test("the status is Online, Offline or unavailable, with no Genie label", () => 
   assert.equal(deviceView(onu("unknown").device), "<i>Status unavailable</i>");
 });
 
-test("router card: no router buttons for any role, and no speed or modem history", () => {
+test("router card: only Refresh for any role, with no router commands, speed test or modem history", () => {
   for (const role of ["customer", "tip", "admin"]) {
     user = { role };
     for (const state of ["online", "unknown"]) {
       const html = routerCard(onu(state), role !== "customer");
-      assert.deepEqual(acts(html), [], `${role} ${state}`);
+      assert.deepEqual(acts(html), ["refresh-device"], `${role} ${state}`);
       assert.doesNotMatch(html, /data-go|data-hist|data-acts|Genie|speed/i);
       assert.match(html, /GPON1/);
     }
@@ -39,9 +39,9 @@ test("router card: no router buttons for any role, and no speed or modem history
 
 test("only a customer with an offline ONU can raise a complaint", () => {
   user = { role: "customer" };
-  assert.deepEqual(acts(routerCard(onu("offline"), false)), ["offline-complaint"]);
+  assert.deepEqual(acts(routerCard(onu("offline"), false)), ["refresh-device", "offline-complaint"]);
   user = { role: "admin" };
-  assert.deepEqual(acts(routerCard(onu("offline"), true)), []);
+  assert.deepEqual(acts(routerCard(onu("offline"), true)), ["refresh-device"]);
 });
 
 test("a GenieACS modem keeps its buttons", () => {
@@ -58,4 +58,25 @@ test("the other screens hide the buttons for a Zabbix ONU", () => {
 
 test("linking a Zabbix ONU saves only its serial number", () => {
   assert.match(read("../src/lib/connectbhai/rest.js"), /acsDevice\.source === "zabbix" \? \{ serial_number: acsDevice\.serial \}/);
+});
+
+test("the Devices table and customer cards offer Refresh for a Zabbix ONU", () => {
+  const page = read("../src/components/careplan/CarePlan.jsx");
+  assert.equal(page.split("<ZbxRefresh id={d.id}").length - 1, 2);   // customer Care plan card and the admin / TIP table
+  assert.match(read("../src/components/customer/CustomerDashboard.jsx"), /<ZbxRefresh id=\{d\.id\}/);
+  const button = page.slice(page.indexOf("export function ZbxRefresh"), page.indexOf("async function loadDevices"));
+  assert.match(button, /API\.deviceRefresh\(id\)/);
+  assert.doesNotMatch(button, /deviceActById|deviceAction|reboot|wifi/i);
+});
+
+test("GenieACS modems keep their own actions in the Devices table", () => {
+  assert.match(read("../src/components/careplan/CarePlan.jsx"), /<DeviceActs d=\{d\} onDone=\{reload\} \/>/);
+});
+
+test("Last seen of a Zabbix ONU comes from the API, as for Genie modems, with the Indian date and time", () => {
+  const page = read("../src/components/careplan/CarePlan.jsx");
+  assert.match(page, /<span role="cell" data-l="Last seen">\{ago\(d\.lastInform\)\}\{d\.lastInform && <small className="cp-sn">\{readAt\(d\.lastInform\)\}<\/small>\}<\/span>/);
+  const readAt = vm.runInNewContext(`${page.match(/const readAt = .*;/)[0]} readAt`);
+  assert.match(readAt("2026-11-25T11:32:49.000Z"), /25 Nov.*0?5:02\s?pm/i);   // 11:32 UTC is 17:02 in India
+  assert.equal(readAt(null), "—");
 });
