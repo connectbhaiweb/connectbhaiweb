@@ -71,6 +71,7 @@ A customer can pay the **plan price** of their lead any day (`POST /charges/cust
 - Zabbix data: items on the OLT host, `onu.serial[..]` and `onu.status[..]` (SNMP ifOperStatus 1 up, 2 down) paired by tags `pon` + `onu_id`. The status is shown as Zabbix holds it, however old (the user's choice): if the OLT stops answering Zabbix, screens keep showing the last reading. `online: null` only when Zabbix has no up/down value.
 - A serial GenieACS knows is a GenieACS modem. Otherwise `care_plan_devices.last_status = {source:'zabbix', serial}` marks it (`isZabbixOnu`; no migration) and the API returns `source: 'zabbix'`.
 - A Zabbix ONU is **status only**: commands and speed test are refused by the API, and every website screen shows only Online/Offline + serial (a customer can still raise a complaint). The mobile app does not hide its buttons yet (the API refuses them).
+- Admin Care plan > **Fetch routers** shows two tabs, Genie and Zabbix (`GET /care-plan/acs-devices`, split on `source`). The Zabbix tab shows OLT (host name), zone and partner (host tags), serial, ONT name (port label), status and last read, then the same Customer / Care plan / Linked cells; an ONU without a serial is listed but cannot be linked. Never show raw trap text (it holds the SNMP community string).
 - `backend/.env.test` keeps both Zabbix settings empty so tests never call the real server.
 
 ## Admin edit / delete (any status)

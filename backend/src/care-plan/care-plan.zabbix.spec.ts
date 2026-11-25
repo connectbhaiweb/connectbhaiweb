@@ -13,7 +13,10 @@ const notFound = () => jest.fn().mockRejectedValue(new Error('Device not found i
 function make(o: { mock?: boolean; onus?: Record<string, boolean | null>; down?: boolean; off?: boolean; fetch?: jest.Mock; devices?: any[] } = {}) {
   const onus = new Map(Object.entries(o.onus ?? {}).map(([serial, online]) => [ZabbixProvider.key(serial), { serial, online, checked_at: new Date() }]));
   const list = jest.fn(o.down ? async () => { throw new Error('Zabbix 502'); } : async () => onus);
-  const zbx: any = { isConfigured: !o.off, onus: list, find: async (s: string) => (await list()).get(ZabbixProvider.key(s)) ?? null };
+  const zbx: any = {
+    isConfigured: !o.off, onus: list, find: async (s: string) => (await list()).get(ZabbixProvider.key(s)) ?? null,
+    list: async () => [...(await list()).values()].map((x, i) => ({ ...x, hostid: '1', name: `ONU 1/${i + 1}`, olt: 'OLT-1', zone: 'North', partner: 'lab' })),
+  };
   const acs: any = { isMock: !!o.mock, fetchStatus: o.fetch ?? notFound(), queueAction: jest.fn(), listDevices: jest.fn().mockResolvedValue([]) };
   const devices = o.devices ?? [];
   const update = jest.fn().mockImplementation(async ({ where, data }) => ({ ...devices.find((d) => d.id === where.id), id: where.id, ...data, last_status: data.last_status === Prisma.DbNull ? null : data.last_status }));
@@ -120,6 +123,18 @@ describe('Care Plan: ONUs whose status comes from Zabbix', () => {
     prisma.carePlanDevice.findMany.mockResolvedValue([{ genieacs_device_id: null, serial_number: 'gpon2', is_active: true, lead: { id: 2, ref_code: 'CB2', customer_name: 'Ravi', care_plan: true } }]);
     const r = await c.acsDevices();
     expect(r.items.map((d: any) => [d.serial, d.source ?? 'genieacs', d.linked_to?.customer_name ?? null])).toEqual([['both', 'genieacs', null], ['GPON1', 'zabbix', null], ['GPON2', 'zabbix', 'Ravi']]);
+  });
+
+  it('the admin list gives each Zabbix ONU its OLT details, and lists one without a serial as unlinked', async () => {
+    const { c, zbx, prisma } = make();
+    zbx.list = async () => [
+      { serial: 'GPON1', online: true, checked_at: new Date('2026-11-01T00:00:00Z'), hostid: '1', name: 'ONU 1/2', olt: 'OLT-1', zone: 'North', partner: 'lab' },
+      { serial: '', online: false, checked_at: new Date(), hostid: '1', name: 'ONU 1/1', olt: 'OLT-1', zone: 'North', partner: 'lab' },
+    ];
+    prisma.carePlanDevice.findMany.mockResolvedValue([{ genieacs_device_id: null, serial_number: null, is_active: true, lead: { id: 1, ref_code: 'CB1', customer_name: 'Asha', care_plan: true } }]);
+    const r = await c.acsDevices();
+    expect(r.items[0]).toMatchObject({ id: 'zabbix:GPON1', source: 'zabbix', olt: 'OLT-1', zone: 'North', partner: 'lab', ont_name: 'ONU 1/2', read_at: '2026-11-01T00:00:00.000Z' });
+    expect(r.items[1]).toMatchObject({ id: 'zabbix:1:ONU 1/1', serial: null, online: false, linked_to: null });
   });
 
   it('the admin list still shows GenieACS modems when Zabbix is down, and says so', async () => {

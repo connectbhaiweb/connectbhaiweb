@@ -22,6 +22,8 @@ export const EXTRA = {
   "Mark paid": "भुगतान हुआ मार्क करें", "Mark plan payment received": "प्लान का भुगतान मिला मार्क करें",
   "Make connection": "कनेक्शन बनाएं",
   "Recommended": "सुझाया गया",
+  "Fetch routers": "राउटर लाएं", "Routers ({n})": "राउटर ({n})", "Could not fetch routers.": "राउटर नहीं ला पाए।", "Router source": "राउटर का स्रोत",
+  "OLT": "OLT", "Zone": "ज़ोन", "ONT name": "ONT का नाम", "Partner": "पार्टनर", "Last read": "आखिरी रीडिंग", "No serial": "सीरियल नहीं", "Zabbix has no ONUs.": "Zabbix में कोई ONU नहीं है।",
   "Whether your router is online or offline.": "आपका राउटर ऑनलाइन है या ऑफलाइन।",
   "Zabbix could not be reached, so its ONUs are not listed.": "Zabbix से संपर्क नहीं हो पाया, इसलिए उसके ONU सूची में नहीं हैं।",
   "Mark payment received": "भुगतान मिला मार्क करें", "Reference (optional)": "रेफरेंस (वैकल्पिक)", "Payment marked as received.": "भुगतान मिला मार्क कर दिया गया।",
