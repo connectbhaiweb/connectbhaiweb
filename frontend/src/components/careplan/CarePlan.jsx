@@ -11,7 +11,6 @@ import { hrefOf } from "@/components/dashboard/nav";
 const ago = iso => { if (!iso) return "—"; const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 6e4)); return m < 1 ? "Just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
 const up = s => { if (!s) return "—"; const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600); return d ? `${d}d ${h}h` : `${h}h`; };
 const ph = m => String(m).replace(/^(\d{5})(\d{5})$/, "+91 $1 $2");
-const SIG = { Good: "green", Weak: "amber", Bad: "red" };
 const readAt = iso => (iso ? new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 const ZBX_COLS = ["OLT", "Zone", "Serial number", "ONT name", "Status", "Last read", "Customer", "Care plan", "Linked"];
 const ROLE_OF = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" };
@@ -163,13 +162,12 @@ export default function CarePlanPage({ base, tab }) {
                 ) : !acs.zabbix_error && <p className="pt-muted">Zabbix has no ONUs.</p>}
               </> : genie.length ? (
                 <div className="pt-table cp-table" role="table" aria-label="Modems in Genie">
-                  <div className="pt-tr pt-th" role="row">{["Customer", "Status", "IP", "Signal", "Last seen", "Model", "SSID", "Firmware", "Care plan", "Linked"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
+                  <div className="pt-tr pt-th" role="row">{["Customer", "Status", "IP", "Last seen", "Model", "SSID", "Firmware", "Care plan", "Linked"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
                   {genie.map(d => (
                     <div className="pt-tr" role="row" key={d.id}>
                       {custCell(d)}
                       <span role="cell" data-l="Status"><StatusChip s={d.online ? "online" : "offline"} /></span>
                       <span role="cell" data-l="IP" className="pt-ell">{d.ip || "—"}</span>
-                      <span role="cell" data-l="Signal">{d.rx_power_dbm != null ? <Chip label={`${d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"} · ${d.rx_power_dbm} dBm`} tone={SIG[d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"]} /> : "—"}</span>
                       <span role="cell" data-l="Last seen">{ago(d.last_inform)}</span>
                       <span role="cell" data-l="Model" className="pt-ell">{[d.manufacturer, d.model].filter(Boolean).join(" ") || "—"}<small className="cp-sn">{d.serial || d.id}</small></span>
                       <span role="cell" data-l="SSID" className="pt-ell">{d.wifi_ssid || "—"}</span>
@@ -217,12 +215,12 @@ export default function CarePlanPage({ base, tab }) {
         </div>}>
         {list.length ? (
           <div className="pt-table cp-table" role="table" aria-label="Devices">
-            <div className="pt-tr pt-th" role="row">{["Customer", "Status", "Wi-Fi speed", "Signal", "Last seen", "Model", "SSID", "Devices", "Uptime", "Actions"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
+            <div className="pt-tr pt-th" role="row">{["Customer", "Status", "Wi-Fi speed", "Last seen", "Model", "SSID", "Devices", "Uptime", "Actions"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
             {list.map(d => d.statusOnly ? (   /* Zabbix ONU: customer, status, last seen (Zabbix reading time) and serial only */
               <div className="pt-tr" role="row" key={d.id}>
                 <span role="cell" className="pt-name"><span><b>{d.customer.name}</b><small>{ph(d.customer.mobile)}</small></span></span>
                 <span role="cell" data-l="Status"><StatusChip s={d.status} /></span>
-                {["Wi-Fi speed", "Signal"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
+                <span role="cell" data-l="Wi-Fi speed">—</span>
                 <span role="cell" data-l="Last seen">{ago(d.lastInform)}{d.lastInform && <small className="cp-sn cp-when">{readAt(d.lastInform)}</small>}</span>
                 <span role="cell" data-l="Model" className="pt-ell">ONU<small className="cp-sn">{d.serialNumber}</small></span>
                 {["SSID", "Devices", "Uptime"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
@@ -233,7 +231,6 @@ export default function CarePlanPage({ base, tab }) {
                 <span role="cell" className="pt-name"><span><b>{d.customer.name}</b><small>{ph(d.customer.mobile)}</small></span></span>
                 <span role="cell" data-l="Status"><Chip label={d.status === "online" ? "Online" : d.status === "unknown" ? "Not reported" : "Offline"} tone={d.status === "online" ? "green" : d.status === "unknown" ? "grey" : "red"} />{d.live === false && <small className="cp-sn" title="Not a live reading yet: shows Live once the modem reports through Genie, your personal assistant">Simulated</small>}</span>
                 <span role="cell" data-l="Wi-Fi speed">{d.wifi.speedMbps ? `${d.wifi.speedMbps} Mbps` : "—"}</span>
-                <span role="cell" data-l="Signal"><Chip label={d.signal.rxPowerDbm != null ? `${d.signal.quality} · ${d.signal.rxPowerDbm} dBm` : "No signal"} tone={SIG[d.signal.quality]} /></span>
                 <span role="cell" data-l="Last seen">{ago(d.lastInform)}</span>
                 <span role="cell" data-l="Model" className="pt-ell">{d.manufacturer} {d.model}<small className="cp-sn">{d.serialNumber}</small></span>
                 <span role="cell" data-l="SSID" className="pt-ell">{d.wifi.ssid}</span>
@@ -396,7 +393,7 @@ function DeviceActs({ d, onDone }) {
 }
 
 function facts(d) {
-  return [["Status", d.status === "online" ? "Online" : "Offline"], ["Wi-Fi speed", d.wifi.speedMbps ? `${d.wifi.speedMbps} Mbps` : "—"], ["Signal", d.signal.rxPowerDbm != null ? `${d.signal.quality} (${d.signal.rxPowerDbm} dBm)` : "No signal"],
+  return [["Status", d.status === "online" ? "Online" : "Offline"], ["Wi-Fi speed", d.wifi.speedMbps ? `${d.wifi.speedMbps} Mbps` : "—"],
     ["Last seen", ago(d.lastInform)], ["Model", `${d.manufacturer} ${d.model}`], ["Serial number", d.serialNumber], ["SSID", `${d.wifi.ssid} · ${d.wifi.band}, ch ${d.wifi.channel}`],
     ["Connected devices", d.wifi.connectedDevices], ["Uptime", up(d.uptimeSeconds)], ["IP address", d.ip || "—"], ["Firmware", d.firmwareVersion]];
 }
