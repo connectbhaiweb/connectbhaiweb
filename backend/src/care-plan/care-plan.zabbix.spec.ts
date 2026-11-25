@@ -117,6 +117,13 @@ describe('Care Plan: ONUs whose status comes from Zabbix', () => {
     expect(await c.refresh(1, admin)).toMatchObject({ source: 'zabbix', online: false });
   });
 
+  it('refresh saves only the router asked for', async () => {
+    const { c, update } = make({ onus: { Z: false, OTHER: false }, devices: [dev(1, 'Z', { last_status: mark('Z') }), dev(2, 'OTHER', { last_status: mark('OTHER') })] });
+    await c.refresh(1, admin);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0][0].where).toEqual({ id: BigInt(1) });
+  });
+
   it('the admin list adds Zabbix ONUs, once each, linked by serial', async () => {
     const { c, acs, prisma } = make({ onus: { GPON1: true, GPON2: false, BOTH: true } });
     acs.listDevices.mockResolvedValue([{ id: 'A', serial: 'both', online: true }]);

@@ -12,10 +12,27 @@ const ago = iso => { if (!iso) return "—"; const m = Math.max(0, Math.round((D
 const up = s => { if (!s) return "—"; const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600); return d ? `${d}d ${h}h` : `${h}h`; };
 const ph = m => String(m).replace(/^(\d{5})(\d{5})$/, "+91 $1 $2");
 const SIG = { Good: "green", Weak: "amber", Bad: "red" };
-const readAt = iso => (iso ? new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
+const readAt = iso => (iso ? new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—");
 const ZBX_COLS = ["OLT", "Zone", "Serial number", "ONT name", "Status", "Last read", "Customer", "Care plan", "Linked"];
 const ROLE_OF = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" };
 const StatusChip = ({ s }) => <Chip label={s === "online" ? "Online" : s === "unknown" ? "Not reported" : "Offline"} tone={s === "online" ? "green" : s === "unknown" ? "grey" : "red"} />;
+
+/* Zabbix ONU: the one thing to do is read its status again, for that router only. GenieACS modems keep their own buttons (DeviceActs). */
+export function ZbxRefresh({ id, onDone, className = "cu-btn cu-btn-soft" }) {
+  const [busy, setBusy] = useState(false), [msg, setMsg] = useState("");
+  const run = async () => {
+    setBusy(true); setMsg("");
+    try { const { API } = await import("@/lib/connectbhai/api"); await API.deviceRefresh(id); setMsg("Status refreshed."); onDone && onDone(); }
+    catch (e) { setMsg("Could not refresh the status."); }
+    setBusy(false);
+  };
+  return (
+    <span className="cp-actbox">
+      <button type="button" className={className} onClick={run} disabled={busy}><RefreshCw aria-hidden="true" />{busy ? "Refreshing…" : "Refresh"}</button>
+      {msg && <small className="cp-sn" role="status">{msg}</small>}
+    </span>
+  );
+}
 
 async function loadDevices(API) {
   const user = API.me();                                             // { id, role } of the signed-in account
@@ -91,6 +108,7 @@ export default function CarePlanPage({ base, tab }) {
         {d && d.statusOnly ? (   /* Zabbix ONU: Online / Offline only */
           <Card title="ONU" Icon={Router} action={<StatusChip s={d.status} />}>
             <dl className="cp-dl"><div><dt>Serial number</dt><dd>{d.serialNumber}</dd></div></dl>
+            <div className="cp-acts"><ZbxRefresh id={d.id} onDone={reload} /></div>
           </Card>
         ) : d ? (
           <Card title={`${d.manufacturer} ${d.model}`} Icon={Router} action={<Chip label={d.status === "online" ? "Online" : "Offline"} tone={d.status === "online" ? "green" : "red"} />}>
@@ -199,13 +217,15 @@ export default function CarePlanPage({ base, tab }) {
         {list.length ? (
           <div className="pt-table cp-table" role="table" aria-label="Devices">
             <div className="pt-tr pt-th" role="row">{["Customer", "Status", "Wi-Fi speed", "Signal", "Last seen", "Model", "SSID", "Devices", "Uptime", "Actions"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
-            {list.map(d => d.statusOnly ? (   /* Zabbix ONU: customer, status and serial only */
+            {list.map(d => d.statusOnly ? (   /* Zabbix ONU: customer, status, last seen (Zabbix reading time) and serial only */
               <div className="pt-tr" role="row" key={d.id}>
                 <span role="cell" className="pt-name"><span><b>{d.customer.name}</b><small>{ph(d.customer.mobile)}</small></span></span>
                 <span role="cell" data-l="Status"><StatusChip s={d.status} /></span>
-                {["Wi-Fi speed", "Signal", "Last seen"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
+                {["Wi-Fi speed", "Signal"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
+                <span role="cell" data-l="Last seen">{ago(d.lastInform)}{d.lastInform && <small className="cp-sn">{readAt(d.lastInform)}</small>}</span>
                 <span role="cell" data-l="Model" className="pt-ell">ONU<small className="cp-sn">{d.serialNumber}</small></span>
-                {["SSID", "Devices", "Uptime", "Actions"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
+                {["SSID", "Devices", "Uptime"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
+                <span role="cell" data-l="Actions"><ZbxRefresh id={d.id} onDone={reload} /></span>
               </div>
             ) : (
               <div className="pt-tr" role="row" key={d.id}>

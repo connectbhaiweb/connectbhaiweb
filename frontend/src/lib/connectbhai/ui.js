@@ -100,7 +100,7 @@ function setErr(form, map) {
 }
 const val = (form, name) => { const el = form.elements[name]; if (!el) return ""; if (el.type === "checkbox") return el.checked; const v = String(el.value || "").trim(); return /phone$/.test(name) ? normPhone(v) : v; };
 /* QA 12: what a Refresh actually found */
-const stateMsg = d => !d ? "Status refreshed." : d.state === "online" ? "Router is online." : d.state === "offline" ? `Router is offline${d.last_seen ? " (last seen " + fdt(d.last_seen) + ")" : ""}.` : "The router has not reported to Genie yet.";
+const stateMsg = d => !d ? "Status refreshed." : d.status_only && d.state === "unknown" ? "Status unavailable" : d.state === "online" ? "Router is online." : d.state === "offline" ? `Router is offline${d.last_seen ? " (last seen " + fdt(d.last_seen) + ")" : ""}.` : "The router has not reported to Genie yet.";
 function deviceView(d) {
   if (d && d.status_only) return d.state === "online" ? pill("Online", "p-ok") : d.state === "offline" ? pill("Offline", "p-bad") : pill("Status unavailable", "p-grey");   // Zabbix ONU
   const live = d && !d.is_simulated;
@@ -755,13 +755,13 @@ async function renderDSA() {
   /* the numbers come from the server's aggregates; the lists below load one page at a time (serverTable) */
   const [st, partner] = await Promise.all([dashStats(API, "dsa", { months: 1 }), API.myPartner()]);
   const L = st.leads, open = L.new + L.contacted + L.follow_up + L.booked + (L.assigned || 0), C = st.commission;
-  const filt = S.dsaFilter || "open";
+  const filt = S.dsaFilter || "all";
   const charges = tab === "payments" || partner.status !== "active" ? await API.myCharges() : [];
   let body;
   if (tab === "leads") body = `<div class="kpis"><div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-act="dsa-filter" data-v="open"><span>Open leads</span><b>${open}</b></div><div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-act="dsa-filter" data-v="due"><span>Follow-ups due</span><b>${st.followups_due}</b><small>today or earlier</small></div><div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-act="dsa-filter" data-v="booked"><span>Booked</span><b>${L.booked}</b></div><div class="kpi" role="button" tabindex="0" style="cursor:pointer" data-act="dsa-filter" data-v="installed"><span>Installed</span><b>${L.installed}</b></div></div>
-    <div class="chips" style="margin-bottom:14px">${[["open", "Open"], ["due", "Follow-up due"], ["assigned", "New to call"], ["contacted", "Contacted"], ["booked", "Booked"], ["installed", "Installed"], ["lost", "Lost"], ["all", "All"]].map(([k, l]) => `<button type="button" class="chip" data-act="dsa-filter" data-v="${k}" aria-pressed="${filt === k}">${l}</button>`).join("")}</div>
+    <div class="chips" style="margin-bottom:14px">${[["all", "All"], ["open", "Open"], ["due", "Follow-up due"], ["assigned", "New to call"], ["contacted", "Contacted"], ["booked", "Booked"], ["installed", "Installed"], ["lost", "Lost"]].map(([k, l]) => `<button type="button" class="chip" data-act="dsa-filter" data-v="${k}" aria-pressed="${filt === k}">${l}</button>`).join("")}</div>
     ${serverTable("dsa-leads", {
-    role: "dsa", kind: "leads", filters: () => ({ status: S.dsaFilter || "open" }), label: "Search leads", html: dsaLeadsTable,
+    role: "dsa", kind: "leads", filters: () => ({ status: S.dsaFilter || "all" }), label: "Search leads", html: dsaLeadsTable,
     empty: `No leads here yet. New requests from your PIN codes (${partner.service_pincodes || "none set"}) are assigned to you automatically. You can also add customers you meet in the field, and you earn when they are installed.`
   })}`;
   if (tab === "installs") body = serverTable("dsa-installs", { role: "dsa", kind: "bookings", label: "Search installations", empty: "No installations yet.", html: rows => `<div class="list">${rows.map(b => `<div class="item"><div class="ih"><h3>${esc(b.lead.name)}</h3>${bookPill(b.status)}<span class="spacer"></span><span class="mono muted">${esc(b.ref_code)}</span></div><div class="meta"><span><b>${esc(fmtPh(b.lead.phone))}</b></span><span>${planLine(b.plan)}</span><span>Scheduled <b>${fdate(b.scheduled_date)}</b></span>${b.tip ? `<span>TIP <b>${esc(b.tip.name)}</b></span>` : ""}</div>${contactBtns({ phone: b.lead.phone, email: b.lead.email }, { thread: "lead:" + b.lead.id })}${contactLine("Installer", b.tip)}</div>`).join("")}</div>` });
@@ -1573,13 +1573,13 @@ async function downloadTemplate() {
    ===================================================================== */
 const CARE_NOTE = `<div class="notice info" style="margin-bottom:14px">Status marked <b>Live · Genie</b> comes from the modem through Genie, your personal assistant, the Care plan system: the installer's own Genie or Connect Bhai's. Restart and Wi-Fi change are sent as Genie tasks. Modems not linked yet, and everything in this demo, are marked <b>Simulated</b>.</div>`;
 const OUTAGE_MIN = 3;   // offline modems in one area that suggest a line / OLT fault (demo: 3; live site: 10)
-/* An ONU read from Zabbix reports Online / Offline only: no commands, speed test or history. A customer can still raise a complaint. */
+/* An ONU read from Zabbix reports Online / Offline only: no commands, speed test or history. Its status can be read again, and a customer can still raise a complaint. */
 function onuCard(b, withCustomer) {
   const d = b.device, u = me();
   return `<div class="item"><div class="ih"><h3>${withCustomer && b.lead ? esc(b.lead.name) + " · " : ""}${planLine(b.plan)}</h3><span class="spacer"></span><span class="mono muted">${esc(b.connection_ref || b.ref_code)}</span></div>
     <div class="row">${deviceView(d)}</div>
     <div class="meta">${withCustomer && b.lead ? `<span><b>${esc(b.lead.phone)}</b> · ${esc(b.lead.area || "")} ${esc(b.lead.pincode || "")}</span>` : ""}<span>ONT serial <b class="mono">${esc(d.serial)}</b></span></div>
-    ${u && u.role === "customer" && d.state === "offline" ? `<div class="row"><button class="btn btn-danger btn-sm" data-act="offline-complaint" data-id="${b.id}" type="button">Raise complaint</button></div>` : ""}</div>`;
+    <div class="row"><button class="btn btn-ghost btn-sm" data-act="refresh-device" data-id="${b.id}" type="button">Refresh status</button>${u && u.role === "customer" && d.state === "offline" ? `<button class="btn btn-danger btn-sm" data-act="offline-complaint" data-id="${b.id}" type="button">Raise complaint</button>` : ""}</div></div>`;
 }
 function routerCard(b, withCustomer) {
   if (b.device && b.device.status_only) return onuCard(b, withCustomer);
@@ -2263,7 +2263,7 @@ const forms = {
   "dsa-add": async (f, btn) => {
     const d = { name: val(f, "name"), phone: val(f, "phone"), pincode: val(f, "pincode"), area: val(f, "area"), address: val(f, "address"), plan_id: val(f, "plan_id"), consent: val(f, "consent") }, e = {};
     if (d.name.length < 2) e["dl-name"] = "Enter the customer's name."; if (!isPhone(d.phone)) e["dl-phone"] = "Enter a valid 10-digit mobile number."; if (!isPin(d.pincode)) e["dl-pin"] = "Enter a valid 6-digit PIN code."; if (!d.consent) e["dl-consent"] = "Customer consent is required.";
-    if (!setErr(f, e)) return; const r = await guard(btn, () => API.dsaAddLead(d)); closeModal(); toast("Lead " + r.ref_code + " added" + (r.tip ? " · TIP: " + r.tip : "") + "."); S.dsaFilter = "open"; render();
+    if (!setErr(f, e)) return; const r = await guard(btn, () => API.dsaAddLead(d)); closeModal(); toast("Lead " + r.ref_code + " added" + (r.tip ? " · TIP: " + r.tip : "") + "."); S.dsaFilter = "all"; render();
   },
   "pay-charge": async (f, btn) => { const m = (f.querySelector("input[name=method]:checked") || {}).value || "upi"; btn.disabled = true; btn.textContent = "Processing payment…"; try { const c = await API.payCharge(f.dataset.id, m); paySuccess(c); } catch (e) { btn.disabled = false; btn.textContent = "Try again"; toast(errMsg(e), true); } },
   settings: async (f, btn) => {
