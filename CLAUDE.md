@@ -66,6 +66,13 @@ npx expo install <pkg>      # ALWAYS, never npm/yarn add
 ## Plan payment (customer pays Connect Bhai directly)
 A customer can pay the **plan price** of their lead any day (`POST /charges/customer {lead_id}`; Razorpay via the normal charge flow). The server always prices it from `plan.price` (GST-inclusive); no amount or description is accepted from the client, a ₹0 plan cannot be paid, and an open payment for the same lead is reused. Admin, or the TIP assigned to the lead, can instead mark it received outside the app: `POST /leads/:id/payment/offline {reference?}` (creates the charge if none is open, then settles it as `offline`). Leads carry their latest paid `customer_payment` as `charges[0]` (`payment` in `rest.js`), shown as Paid on the customer booking card, the lead dialog and the TIP table.
 
+## Care plan: GenieACS and Zabbix ONUs
+- GenieACS (TR-069) modems give full status and take commands. ONUs without it are read from **Zabbix** (`care-plan/zabbix.provider.ts`, env `ZABBIX_API_URL` + `ZABBIX_API_TOKEN`, read-only `item.get`; empty = off). Customers are linked the same way, by serial number (booking `router_serial`).
+- Zabbix data: items on the OLT host, `onu.serial[..]` and `onu.status[..]` (SNMP ifOperStatus 1 up, 2 down) paired by tags `pon` + `onu_id`. The status is shown as Zabbix holds it, however old (the user's choice): if the OLT stops answering Zabbix, screens keep showing the last reading. `online: null` only when Zabbix has no up/down value.
+- A serial GenieACS knows is a GenieACS modem. Otherwise `care_plan_devices.last_status = {source:'zabbix', serial}` marks it (`isZabbixOnu`; no migration) and the API returns `source: 'zabbix'`.
+- A Zabbix ONU is **status only**: commands and speed test are refused by the API, and every website screen shows only Online/Offline + serial (a customer can still raise a complaint). The mobile app does not hide its buttons yet (the API refuses them).
+- `backend/.env.test` keeps both Zabbix settings empty so tests never call the real server.
+
 ## Admin edit / delete (any status)
 Admin can edit and delete leads and DSA/TIP partners in **any** status: `PATCH|DELETE /leads/:id`, `PATCH|DELETE /users/:id` (`leads.service.adminUpdate/adminDelete`, `users.service.updatePartner/deletePartner`). Deletes are one transaction: a lead takes its bookings, payout, modem and chat with it (invoices stay, unlinked); a partner's leads stay (DSA/TIP cleared) while their bookings, payouts, charges, tickets and messages go. Connect Bhai's internal TIP cannot be deleted. The status machine and the assign locks above are **not** relaxed. The partner Edit dialog saves name, firm, mobile, email, address, PIN only (per-install amount and lead target are global settings).
 

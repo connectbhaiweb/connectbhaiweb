@@ -54,6 +54,8 @@ export const envValidationSchema = Joi.object({
   GENIEACS_API_TOKEN: Joi.string().allow('').default(''),
   GENIEACS_USERNAME: Joi.string().allow('').default(''),
   GENIEACS_PASSWORD: Joi.string().allow('').default(''),
+  ZABBIX_API_URL: Joi.string().uri().allow('').default(''),   // .../api_jsonrpc.php; empty (or no token) = Zabbix off
+  ZABBIX_API_TOKEN: Joi.string().allow('').default(''),
   SPEEDTEST_FILE_URL: Joi.string().uri().allow('').default(''),   // plain-http test file the modem downloads (default http://speedtest.tele2.net/10MB.zip)
   SPEEDTEST_PING_HOST: Joi.string().allow('').default(''),
   /** read by prisma/seed.ts only; listed so a typo shows at boot */

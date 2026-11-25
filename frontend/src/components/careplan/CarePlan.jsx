@@ -13,6 +13,7 @@ const up = s => { if (!s) return "—"; const d = Math.floor(s / 86400), h = Mat
 const ph = m => String(m).replace(/^(\d{5})(\d{5})$/, "+91 $1 $2");
 const SIG = { Good: "green", Weak: "amber", Bad: "red" };
 const ROLE_OF = { my: "customer", dsa: "dsa", tip: "tip", admin: "admin" };
+const StatusChip = ({ s }) => <Chip label={s === "online" ? "Online" : s === "unknown" ? "Not reported" : "Offline"} tone={s === "online" ? "green" : s === "unknown" ? "grey" : "red"} />;
 
 async function loadDevices(API) {
   const user = API.me();                                             // { id, role } of the signed-in account
@@ -83,8 +84,12 @@ export default function CarePlanPage({ base, tab }) {
     const d = all[0], b = data.booking, live = !!(b && b.device && b.device.acs && b.device.active !== false && b.device.state === "online");
     return (
       <div className="dsh-page"><div className="pt">
-        <header className="pt-head"><div><h1>Care plan</h1><p>Your router, Wi-Fi and connection health, reported by Genie, your personal assistant.</p></div></header>
-        {d ? (
+        <header className="pt-head"><div><h1>Care plan</h1><p>{d && d.statusOnly ? "Whether your router is online or offline." : "Your router, Wi-Fi and connection health, reported by Genie, your personal assistant."}</p></div></header>
+        {d && d.statusOnly ? (   /* Zabbix ONU: Online / Offline only */
+          <Card title="ONU" Icon={Router} action={<StatusChip s={d.status} />}>
+            <dl className="cp-dl"><div><dt>Serial number</dt><dd>{d.serialNumber}</dd></div></dl>
+          </Card>
+        ) : d ? (
           <Card title={`${d.manufacturer} ${d.model}`} Icon={Router} action={<Chip label={d.status === "online" ? "Online" : "Offline"} tone={d.status === "online" ? "green" : "red"} />}>
             <dl className="cp-dl">{facts(d).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
             <div className="cp-acts">
@@ -105,6 +110,7 @@ export default function CarePlanPage({ base, tab }) {
       {role === "admin" && acsErr && <p className="pt-muted" role="alert">{acsErr}</p>}
       {role === "admin" && acs && (
         <Card title={`Modems in Genie (${acs.total})`} Icon={Router}>
+          {acs.zabbix_error && <p className="pt-muted" role="alert">{acs.zabbix_error}</p>}
           {acs.mock ? <p className="pt-muted">Genie is not connected on this server (mock mode), so there is nothing to list.</p>
             : acs.items.length ? (
               <div className="pt-table cp-table" role="table" aria-label="Modems in Genie">
@@ -112,11 +118,11 @@ export default function CarePlanPage({ base, tab }) {
                 {acs.items.map(d => (
                   <div className="pt-tr" role="row" key={d.id}>
                     <span role="cell" className="pt-name"><span><b>{d.linked_to ? d.linked_to.customer_name : "Not linked yet"}</b><small>{d.linked_to ? d.linked_to.ref_code : "no customer"}</small></span></span>
-                    <span role="cell" data-l="Status"><Chip label={d.online ? "Online" : "Offline"} tone={d.online ? "green" : "red"} /></span>
+                    <span role="cell" data-l="Status"><StatusChip s={d.online ? "online" : d.source === "zabbix" && d.online == null ? "unknown" : "offline"} /></span>
                     <span role="cell" data-l="IP" className="pt-ell">{d.ip || "—"}</span>
                     <span role="cell" data-l="Signal">{d.rx_power_dbm != null ? <Chip label={`${d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"} · ${d.rx_power_dbm} dBm`} tone={SIG[d.rx_power_dbm >= -25 ? "Good" : d.rx_power_dbm >= -27 ? "Weak" : "Bad"]} /> : "—"}</span>
                     <span role="cell" data-l="Last seen">{ago(d.last_inform)}</span>
-                    <span role="cell" data-l="Model" className="pt-ell">{[d.manufacturer, d.model].filter(Boolean).join(" ") || "—"}<small className="cp-sn">{d.serial || d.id}</small></span>
+                    <span role="cell" data-l="Model" className="pt-ell">{[d.manufacturer, d.model].filter(Boolean).join(" ") || (d.source === "zabbix" ? "ONU" : "—")}<small className="cp-sn">{d.serial || d.id}</small></span>
                     <span role="cell" data-l="SSID" className="pt-ell">{d.wifi_ssid || "—"}</span>
                     <span role="cell" data-l="Firmware" className="pt-ell">{d.firmware || "—"}</span>
                     <span role="cell" data-l="Care plan">{!d.linked_to ? "—" : d.linked_to.care_plan_active ? <Chip label="Active" tone="green" /> : <><Chip label="Not active" tone="red" /> <button type="button" className="cu-btn cu-btn-soft" onClick={() => activateCare(d)} disabled={careBusy === d.id}>{careBusy === d.id ? "Adding…" : "Buy Care plan"}</button></>}</span>
@@ -162,7 +168,15 @@ export default function CarePlanPage({ base, tab }) {
         {list.length ? (
           <div className="pt-table cp-table" role="table" aria-label="Devices">
             <div className="pt-tr pt-th" role="row">{["Customer", "Status", "Wi-Fi speed", "Signal", "Last seen", "Model", "SSID", "Devices", "Uptime", "Actions"].map(h => <span key={h} role="columnheader">{h}</span>)}</div>
-            {list.map(d => (
+            {list.map(d => d.statusOnly ? (   /* Zabbix ONU: customer, status and serial only */
+              <div className="pt-tr" role="row" key={d.id}>
+                <span role="cell" className="pt-name"><span><b>{d.customer.name}</b><small>{ph(d.customer.mobile)}</small></span></span>
+                <span role="cell" data-l="Status"><StatusChip s={d.status} /></span>
+                {["Wi-Fi speed", "Signal", "Last seen"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
+                <span role="cell" data-l="Model" className="pt-ell">ONU<small className="cp-sn">{d.serialNumber}</small></span>
+                {["SSID", "Devices", "Uptime", "Actions"].map(h => <span key={h} role="cell" data-l={h}>—</span>)}
+              </div>
+            ) : (
               <div className="pt-tr" role="row" key={d.id}>
                 <span role="cell" className="pt-name"><span><b>{d.customer.name}</b><small>{ph(d.customer.mobile)}</small></span></span>
                 <span role="cell" data-l="Status"><Chip label={d.status === "online" ? "Online" : d.status === "unknown" ? "Not reported" : "Offline"} tone={d.status === "online" ? "green" : d.status === "unknown" ? "grey" : "red"} />{d.live === false && <small className="cp-sn" title="Not a live reading yet: shows Live once the modem reports through Genie, your personal assistant">Simulated</small>}</span>
