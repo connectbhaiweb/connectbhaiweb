@@ -20,7 +20,9 @@ To do in Stage 1: remove Android permissions the app does not need (the build li
 
 ## Stage 1 status (2026-11-28, Android emulator 360 x 640 dp, debug build, local API, English)
 
-Testing was stopped early at the owner's request. `Covered` = seen running. iOS: not verified for every row.
+**Stage 1 is done: the owner closed it on 2026-11-28 and asked for it to be merged into `staging`.** Testing was stopped early at the owner's request, so the rows listed as `Not verified` below are still untested.
+
+`Covered` = seen running. iOS: not verified for every row.
 
 | Area | Covered | Not verified | Not done / not shown |
 |---|---|---|---|
