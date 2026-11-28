@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Connect Bhai",
+    "slug": "connectbhai",
+    "scheme": "connectbhai",
+    "platforms": ["android", "ios"],
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "android": {
+      "package": "com.connectbhai.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
+        "backgroundColor": "#021A49"
+      },
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.VIBRATE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.connectbhai.app"
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-secure-store", { "faceIDPermission": false }],
+      ["expo-splash-screen", { "image": "./assets/adaptive-foreground.png", "imageWidth": 220, "resizeMode": "contain", "backgroundColor": "#021A49" }],
+      ["expo-location", { "locationWhenInUsePermission": "Connect Bhai uses your location only when you ask: to find your PIN code, or to pin your home so the installer can find it." }],
+      ["expo-image-picker", {
+        "cameraPermission": "Connect Bhai uses the camera only when you take a photo of a document for your DSA or TIP application.",
+        "photosPermission": "Connect Bhai opens your photos only when you choose a document to upload.",
+        "microphonePermission": false
+      }]
+    ]
+  }
+}
